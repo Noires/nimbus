@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+* { box-sizing: border-box; }
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #0f0f13;
+  font-family: Nunito, Quicksand, Poppins, system-ui, sans-serif;
+  color: #e0e0e0;
+}
+
+::selection { background: rgba(0,229,255,0.3); }
+
+/* Neon glow pulse for cluster bubbles (plan §9) — GPU-friendly, opacity only */
+@keyframes glow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.bubble-pulse { animation: glow 2s ease-in-out infinite; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(107,127,163,0.3); border-radius: 3px; }

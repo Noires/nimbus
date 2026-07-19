@@ -1,0 +1,12 @@
+{
+  "name": "nimbus",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["frontend", "server"],
+  "scripts": {
+    "dev:server": "cd server && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "docker:up": "docker compose up -d",
+    "migrate": "cd server && npx prisma migrate dev"
+  }
+}

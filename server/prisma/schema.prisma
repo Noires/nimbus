@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Canvas {
+  id           String   @id @default(cuid())
+  name         String
+  tasks        Task[]   @relation("CanvasTasks")
+  bubbles      Bubble[]
+  portals      Portal[] @relation("PortalHome")
+  portalsIn    Portal[] @relation("PortalTarget")
+  zones        Zone[]
+  connections  Connection[]
+  createdAt    DateTime @default(now())
+  // --- batch 2 ---
+  shareToken   String?  @unique
+  icsToken     String?  @unique
+  captureToken String?  @unique
+  viewpoints   Json     @default("[]")
+  settings     Json     @default("{}")
+
+  @@index([createdAt])
+  @@map("canvases")
+}
+
+model Zone {
+  id       String  @id @default(cuid())
+  canvasId String
+  canvas   Canvas  @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  x        Float
+  y        Float
+  w        Float
+  h        Float
+  label    String  @default("")
+  hue      Int     @default(200)
+  autoTag  String?
+  z        Int     @default(0)
+
+  @@index([canvasId])
+  @@map("zones")
+}
+
+model Task {
+  id              String    @id @default(cuid())
+  canvasId        String
+  canvas          Canvas    @relation("CanvasTasks", fields: [canvasId], references: [id], onDelete: Cascade)
+  x               Float     @default(100)
+  y               Float     @default(100)
+  z               Int       @default(0)
+  title           String
+  description     String    @db.Text
+  tags            String[]  @default([])
+  color           String    @default("#6366f1")
+  dueDate         DateTime?
+  priority        String    @default("medium")
+  done            Boolean   @default(false)
+  archivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  // --- feature wave ---
+  inbox           Boolean   @default(false)
+  snoozedUntil    DateTime?
+  estimateMinutes Int?
+  recurrence      String?
+  lastActivityAt  DateTime  @default(now())
+  actualMinutes   Int       @default(0)
+  // --- external sync ---
+  provider        String?
+  connectionId    String?
+  connection      Connection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  externalKey     String?     @unique
+  externalUrl     String?
+  status          String?
+  externalMeta    Json?
+  syncedAt        DateTime?
+  checklist       ChecklistItem[]
+  blocking        Dependency[]    @relation("Blocker")
+  blockedBy       Dependency[]    @relation("Blocked")
+
+  @@index([canvasId])
+  @@map("tasks")
+}
+
+model ChecklistItem {
+  id     String  @id @default(cuid())
+  taskId String
+  task   Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  text   String
+  done   Boolean @default(false)
+  order  Int     @default(0)
+
+  @@index([taskId])
+  @@map("checklist_items")
+}
+
+model Dependency {
+  id        String @id @default(cuid())
+  blockerId String
+  blockedId String
+  blocker   Task   @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   Task   @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("dependencies")
+}
+
+model Bubble {
+  id        String   @id @default(cuid())
+  canvasId  String
+  canvas    Canvas   @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  title     String   @default("")
+  hue       Int?
+  memberIds String[] @default([])
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([canvasId])
+  @@map("bubbles")
+}
+
+model Template {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String   @default("bubble")
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@map("templates")
+}
+
+model Portal {
+  id             String @id @default(cuid())
+  canvasId       String
+  canvas         Canvas @relation("PortalHome", fields: [canvasId], references: [id], onDelete: Cascade)
+  targetCanvasId String
+  target         Canvas @relation("PortalTarget", fields: [targetCanvasId], references: [id], onDelete: Cascade)
+  x              Float
+  y              Float
+
+  @@index([canvasId])
+  @@map("portals")
+}
+
+model Connection {
+  id            String    @id @default(cuid())
+  provider      String
+  canvasId      String
+  canvas        Canvas    @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  config        Json
+  pollMinutes   Int       @default(5)
+  enabled       Boolean   @default(true)
+  status        String    @default("idle")
+  statusMessage String?
+  lastSyncAt    DateTime?
+  etag          String?
+  columnsCache  Json      @default("[]")
+  createdAt     DateTime  @default(now())
+  tasks         Task[]
+
+  @@index([canvasId])
+  @@map("connections")
+}
+
+// Deliberately no FK to Task: history must survive task deletion.
+model TaskEvent {
+  id        String   @id @default(cuid())
+  taskId    String
+  canvasId  String
+  type      String
+  payload   Json
+  actor     String   @default("local")
+  createdAt DateTime @default(now())
+
+  @@index([canvasId, createdAt])
+  @@index([taskId])
+  @@map("task_events")
+}
