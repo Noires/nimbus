@@ -76,3 +76,7 @@ For architecture details, conventions, and the (non-interactive) migration workf
 The entire UI is available in English and German, switchable at runtime (toolbar language toggle or the Features panel). Dates and relative times localize too.
 
 ![The board in German](docs/screenshots/board-de.png)
+
+## License
+
+[MIT](LICENSE) © Dustin Baron
