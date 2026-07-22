@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Cluster } from "../engine/proximityDetector";
 import { api } from "../data/api";
-import { useStore, bestBubbleMatch, type Task } from "../store";
+import { useStore, bestBubbleMatch, CARD_W, CARD_H, type Task } from "../store";
 import { clusterHue } from "../utils/colors";
 import { formatMinutes, getCapacityHours } from "../utils/capacity";
 import { BubbleXRay } from "./BubbleXRay";
@@ -17,7 +17,9 @@ interface BubbleLayerProps {
 // Must match the card center used by the proximity detector.
 const CARD_CX = 128;
 const CARD_CY = 80;
-const PADDING = 150;
+// Small halo beyond the farthest card CORNER — the extent is measured for
+// real now, so the ring hugs the content instead of over-covering neighbors.
+const PADDING = 40;
 const MIN_RADIUS = 180;
 
 export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
@@ -50,8 +52,15 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
 
       const cx = members.reduce((s, t) => s + t.x + CARD_CX, 0) / members.length;
       const cy = members.reduce((s, t) => s + t.y + CARD_CY, 0) / members.length;
+      // Farthest card corner, not center — a circle over centers clips wide
+      // cards and needed a huge fixed padding that swallowed neighbors.
       const spread = Math.max(
-        ...members.map((t) => Math.hypot(t.x + CARD_CX - cx, t.y + CARD_CY - cy)),
+        ...members.flatMap((t) => [
+          Math.hypot(t.x - cx, t.y - cy),
+          Math.hypot(t.x + CARD_W - cx, t.y - cy),
+          Math.hypot(t.x - cx, t.y + CARD_H - cy),
+          Math.hypot(t.x + CARD_W - cx, t.y + CARD_H - cy),
+        ]),
       );
       const r = Math.max(spread + PADDING, MIN_RADIUS);
       const matched = bestBubbleMatch(serverBubbles, cluster.members);

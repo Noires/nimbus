@@ -92,6 +92,7 @@ export interface CanvasSettings {
   notifyUnblocked?: boolean;
   notifyWake?: boolean;
   digestHour?: number | null;
+  cardDensity?: "full" | "mini";
 }
 
 export const CanvasSchema = z.object({

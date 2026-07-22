@@ -58,8 +58,10 @@ export interface Provider {
   /** Throws ProviderError on bad repo/project/token. */
   validate(conn: Connection): Promise<ValidateResult>;
   listChanged(conn: Connection, since: Date | null): Promise<ListResult>;
-  /** Project mode: current status per board item. Label mode: null. */
-  listStatuses(conn: Connection): Promise<StatusEntry[] | null>;
+  /** Project mode: current status per tracked issue (by externalKey), queried
+   *  issue → projectItems so foreign items on shared boards never appear.
+   *  Label mode: null. */
+  listStatuses(conn: Connection, keys: string[]): Promise<StatusEntry[] | null>;
   getColumns(conn: Connection): Promise<Column[]>;
   /** Label-mode status derivation from an issue snapshot; null in project mode. */
   deriveStatus(conn: Connection, issue: RemoteIssue): string | null;

@@ -89,8 +89,12 @@ async function gql<T>(query: string, variables: Record<string, unknown>): Promis
     body: JSON.stringify({ query, variables }),
   });
   const json = (await res.json()) as { data?: T; errors?: Array<{ message: string }> };
-  if (json.errors?.length) throw new ProviderError(502, json.errors.map((e) => e.message).join("; "));
-  if (!json.data) throw new ProviderError(502, "Empty GraphQL response");
+  // GraphQL returns partial errors NEXT TO usable data (e.g. one board item
+  // from a repo the token cannot read). Only a data-less response is fatal.
+  if (!json.data) {
+    const detail = json.errors?.map((e) => e.message).join("; ");
+    throw new ProviderError(502, detail || "Empty GraphQL response");
+  }
   return json.data;
 }
 
@@ -227,61 +231,48 @@ export const github: Provider = {
     return { notModified: false, issues, etag };
   },
 
-  async listStatuses(conn): Promise<StatusEntry[] | null> {
+  async listStatuses(conn, keys): Promise<StatusEntry[] | null> {
     const { projectId, owner, repo } = cfg(conn);
     if (!projectId) return null;
-    const repoFull = `${owner}/${repo}`;
-    const entries: StatusEntry[] = [];
-    let cursor: string | null = null;
+    // Query issue → projectItems instead of paginating the whole board: a
+    // shared org board can hold items from repos the token cannot read, and
+    // the board items connection has no server-side repo filter.
+    const prefix = `github:${owner}/${repo}#`;
+    const numbers = keys
+      .filter((k) => k.startsWith(prefix))
+      .map((k) => Number(k.slice(prefix.length)))
+      .filter((n) => Number.isInteger(n) && n > 0);
 
-    for (let guard = 0; guard < 30; guard++) {
-      const data: {
-        node: {
-          items: {
-            pageInfo: { hasNextPage: boolean; endCursor: string | null };
-            nodes: Array<{
-              id: string;
-              content: { number?: number; repository?: { nameWithOwner: string } } | null;
-              fieldValueByName: { name?: string } | null;
-            }>;
-          };
-        } | null;
-      } = await gql(
-        `query($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo { hasNextPage endCursor }
-                nodes {
-                  id
-                  content { ... on Issue { number repository { nameWithOwner } } }
-                  fieldValueByName(name: "Status") {
-                    ... on ProjectV2ItemFieldSingleSelectValue { name }
-                  }
-                }
-              }
-            }
-          }
-        }`,
-        { projectId, cursor },
+    type IssueNode = {
+      projectItems: {
+        nodes: Array<{ id: string; project: { id: string }; fieldValueByName: { name?: string } | null }>;
+      };
+    } | null;
+
+    const entries: StatusEntry[] = [];
+    for (let i = 0; i < numbers.length; i += 50) {
+      const chunk = numbers.slice(i, i + 50);
+      const fields = chunk
+        .map(
+          (n) => `i${n}: issue(number: ${n}) { projectItems(first: 10) { nodes {
+            id
+            project { id }
+            fieldValueByName(name: "Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
+          } } }`,
+        )
+        .join("\n");
+      const data = await gql<{ repository: Record<string, IssueNode> | null }>(
+        `query($owner: String!, $repo: String!) { repository(owner: $owner, name: $repo) { ${fields} } }`,
+        { owner, repo },
       );
-      const items = data.node?.items;
-      if (!items) break;
-      for (const node of items.nodes) {
-        if (
-          node.content?.repository?.nameWithOwner === repoFull &&
-          node.content.number !== undefined &&
-          node.fieldValueByName?.name
-        ) {
-          entries.push({
-            key: `github:${repoFull}#${node.content.number}`,
-            status: node.fieldValueByName.name,
-            projectItemId: node.id,
-          });
+      for (const n of chunk) {
+        const item = data.repository?.[`i${n}`]?.projectItems.nodes.find(
+          (node) => node.project.id === projectId,
+        );
+        if (item?.fieldValueByName?.name) {
+          entries.push({ key: `${prefix}${n}`, status: item.fieldValueByName.name, projectItemId: item.id });
         }
       }
-      if (!items.pageInfo.hasNextPage) break;
-      cursor = items.pageInfo.endCursor;
     }
     return entries;
   },

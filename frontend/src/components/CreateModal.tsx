@@ -203,6 +203,9 @@ function HistorySection({ taskId }: { taskId: string }) {
 interface CreateModalProps {
   /** When set, the modal edits this task instead of creating a new one. */
   initial?: Task | null;
+  /** "panel" docks the form to the right edge with internal scrolling —
+   *  used for editing, where checklist/comments/history can grow tall. */
+  variant?: "modal" | "panel";
   onClose: () => void;
   onSubmit: (data: TaskFormData) => void;
 }
@@ -212,7 +215,7 @@ const SWATCHES = [
   "#eab308", "#22c55e", "#14b8a6", "#06b6d4",
 ];
 
-export function CreateModal({ initial, onClose, onSubmit }: CreateModalProps) {
+export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: CreateModalProps) {
   const t = useT();
   const isEdit = !!initial;
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -264,20 +267,25 @@ export function CreateModal({ initial, onClose, onSubmit }: CreateModalProps) {
     priority: "text-red-300 border-red-500/40",
   };
 
+  const isPanel = variant === "panel";
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-      {/* Backdrop */}
+    <div className={`fixed inset-0 z-[100] flex ${isPanel ? "justify-end" : "items-center justify-center px-4"}`}>
+      {/* Backdrop — lighter for the panel so the canvas stays visible */}
       <div
-        className="absolute inset-0 bg-black/40"
+        className={`absolute inset-0 ${isPanel ? "bg-black/20" : "bg-black/40"}`}
         onClick={onClose}
       />
 
       {/* Modal content */}
       <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={isPanel ? { opacity: 0, x: 40 } : { opacity: 0, y: 24, scale: 0.97 }}
+        animate={isPanel ? { opacity: 1, x: 0 } : { opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        className="relative w-full max-w-md rounded-xl shadow-2xl bg-[#1a1d24]/95 backdrop-blur-xl border border-white/10 p-6">
+        className={
+          isPanel
+            ? "relative h-full w-[440px] max-w-[95vw] overflow-y-auto shadow-2xl bg-[#1a1d24]/97 backdrop-blur-xl border-l border-white/10 p-6"
+            : "relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1a1d24]/95 backdrop-blur-xl border border-white/10 p-6"
+        }>
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-lg font-semibold text-gray-100">{isEdit ? t("b.modal.editTask") : t("b.modal.newTask")}</h2>

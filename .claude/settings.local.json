@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(curl -s \"http://localhost:8085/api/canvases/cmrszu300001anw18vf3z62bd\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"http://localhost:8085/api/canvases/cmrszu300001anw18vf3z62bd/events\")",
+      "Bash(curl -s \"http://localhost:8085/api/canvases/cmrt5h1uo003jp8175ia9wb3b\")"
+    ]
+  }
+}

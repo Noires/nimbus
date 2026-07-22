@@ -67,6 +67,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
   );
   const externalRef = task.externalKey?.match(/^[^:]+:(?:[^/]+)\/([^#]+)#(\d+)$/);
   const statusColumns = connection?.columnsCache ?? [];
+  const mini = useStore((s) => s.cardDensity) === "mini";
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || readOnly) return;
@@ -349,6 +350,32 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
         />
       )}
 
+      {/* Mini density: one compact row — title, sync status, due, priority dot */}
+      {mini && (
+        <div className="px-3 py-2 flex items-center gap-2">
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              task.priority === "high" ? "bg-red-400" : task.priority === "low" ? "bg-green-400" : "bg-yellow-400"
+            }`}
+            title={t(`b.priority.${task.priority}`)}
+          />
+          <div className={`flex-1 min-w-0 truncate text-xs font-semibold ${task.done ? "line-through text-gray-500" : ""}`}>
+            {blocked && !task.done && <span title={t("b.card.blocked")}>🔒 </span>}
+            {task.title || t("b.card.untitled")}
+          </div>
+          {task.externalKey && (
+            <span
+              className="text-[9px] text-cyan-300/80 shrink-0 max-w-24 truncate"
+              title={task.status ?? (externalRef ? `${externalRef[1]}#${externalRef[2]}` : undefined)}
+            >
+              ⑂{task.status ? ` ${task.status}` : ""}
+            </span>
+          )}
+          {dueBadge && <span className="text-[10px] shrink-0">{dueBadge}</span>}
+        </div>
+      )}
+
+      {!mini && (
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className={`text-sm font-semibold ${task.done ? "line-through text-gray-500" : ""}`}>
@@ -387,6 +414,9 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
                 className="text-[10px] bg-[#0f0f13]/70 border border-cyan-500/30 rounded-full px-1.5 py-0.5 text-cyan-300 outline-none cursor-pointer"
                 title={t("b.card.statusColumn")}
               >
+                {/* No synced status yet: without this the browser would show
+                    the first column and fake a "Backlog"-like status. */}
+                {!task.status && <option value="" disabled>—</option>}
                 {task.status && !statusColumns.some((c) => c.name === task.status) && (
                   <option value={task.status}>{task.status}</option>
                 )}
@@ -553,6 +583,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
           )}
         </div>
       </div>
+      )}
     </motion.div>
   );
 }

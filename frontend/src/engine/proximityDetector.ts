@@ -43,7 +43,7 @@ function union(parent: number[], rank: number[], a: number, b: number) {
   }
 }
 
-export function computeClusters(tasks: Task[], prev: Cluster[]): Cluster[] {
+export function computeClusters(tasks: Task[], prev: Cluster[], draggedId?: string | null): Cluster[] {
   const n = tasks.length;
   if (n < 2) return [];
 
@@ -52,8 +52,13 @@ export function computeClusters(tasks: Task[], prev: Cluster[]): Cluster[] {
   const rank = new Array<number>(n).fill(0);
 
   // 1-2. Adjacency edges within THRESHOLD, merged via union-find.
+  // The actively dragged card forms no NEW edges — passing a foreign bubble
+  // must not merge or flicker it; the hysteresis pass below still keeps the
+  // card attached to its previous cluster. The merge happens on drop.
+  const draggedIndex = draggedId ? tasks.findIndex((t) => t.id === draggedId) : -1;
   for (let i = 0; i < n; i++) {
     for (let j = i + 1; j < n; j++) {
+      if (i === draggedIndex || j === draggedIndex) continue;
       if (dist(centers[i], centers[j]) <= THRESHOLD) union(parent, rank, i, j);
     }
   }
@@ -128,12 +133,12 @@ export function useClusters(): Cluster[] {
       if (t - last < FRAME_MS) return;
       last = t;
 
-      const { tasks, showDone, showArchived, lens, replayTasks } = useStore.getState();
+      const { tasks, showDone, showArchived, lens, replayTasks, draggingTaskId } = useStore.getState();
       // During replay, cluster the historical ghosts so bubbles form and
       // dissolve in the time-lapse. The time lens projects positions, so
       // spatial clustering is meaningless there.
       const source = replayTasks ?? visibleTasks(tasks, showDone, showArchived);
-      const next = lens === "time" ? [] : computeClusters(source, prev);
+      const next = lens === "time" ? [] : computeClusters(source, prev, draggingTaskId);
       if (!sameClusters(next, prev)) setClusters(next);
       prev = next;
     };

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useStore, visibleTasks, CARD_W, CARD_H, type Task } from "../store";
+import { useStore, visibleTasks, CARD_W, CARD_H, type Task, type CanvasSettings } from "../store";
 import { nearestInDirection, nearestToPoint, type Direction } from "../utils/spatialNav";
 import { CanvasList } from "./CanvasList";
 import { Canvas } from "./Canvas";
@@ -67,6 +67,14 @@ export function CanvasRouter() {
       navigate(`/canvas/${canvases[0].id}`, { replace: true });
     }
   }, [loading, canvasId, canvases, navigate]);
+
+  // Restore the per-canvas card density from the canvas settings.
+  useEffect(() => {
+    if (!canvasId) return;
+    const canvas = useStore.getState().canvases.find((c) => c.id === canvasId);
+    const density = (canvas?.settings as CanvasSettings | undefined)?.cardDensity;
+    useStore.getState().setCardDensity(density === "mini" ? "mini" : "full");
+  }, [canvasId, canvases]);
 
   // Keyboard: Ctrl+K palette · Ctrl+Z/Y undo/redo · N/F/R · T/G/H lenses · Esc.
   useEffect(() => {
@@ -276,6 +284,9 @@ export function CanvasRouter() {
         case "l":
           store.setViewMode(store.viewMode === "table" ? "canvas" : "table");
           break;
+        case "m":
+          store.setCardDensity(store.cardDensity === "mini" ? "full" : "mini", canvasIdRef.current ?? undefined);
+          break;
       }
     };
     window.addEventListener("keydown", onKey);
@@ -360,6 +371,7 @@ export function CanvasRouter() {
               <CreateModal
                 key={modal.mode === "edit" ? modal.task.id : "create"}
                 initial={modal.mode === "edit" ? modal.task : null}
+                variant={modal.mode === "edit" ? "panel" : "modal"}
                 onClose={() => setModal(null)}
                 onSubmit={handleSubmit}
               />

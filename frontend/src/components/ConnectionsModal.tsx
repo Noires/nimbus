@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useStore, type Connection } from "../store";
 import { t, useT } from "../i18n";
@@ -140,7 +141,9 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
   const inputClass =
     "px-2.5 py-1.5 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-xs outline-none transition-colors";
 
-  return (
+  // Portal to <body>: the toolbar's transform/backdrop-filter would otherwise
+  // become the containing block for this fixed-position overlay.
+  return createPortal(
     <div className="fixed inset-0 z-[120] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <motion.div
@@ -193,6 +196,7 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
           {tr("a.connections.help1")}<code>GITHUB_TOKEN</code>{tr("a.connections.help2")}<code>server/.env</code>{tr("a.connections.help3")}<code>status:&lt;column&gt;</code>{tr("a.connections.help4")}<em>{tr("a.connections.helpArchiving")}</em>{tr("a.connections.help5")}
         </p>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   );
 }

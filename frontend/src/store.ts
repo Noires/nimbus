@@ -20,6 +20,10 @@ import {
   type Connection,
 } from "./data/api";
 import { history, type Op } from "./engine/history";
+import { computeClusters } from "./engine/proximityDetector";
+import { computeTidyMoves } from "./engine/tidy";
+import { computeAutoArrange, NONE_KEY, type ArrangeMode } from "./engine/autoArrange";
+import { latticePositions } from "./engine/lattice";
 import { t } from "./i18n";
 
 export type { Canvas, Task, Bubble, Dependency, Portal, Zone, Waypoint, CanvasSettings, Connection };
@@ -66,6 +70,8 @@ interface State {
   arrangeCluster: (memberIds: string[], mode: "due" | "priority") => Promise<void>;
   packCluster: (memberIds: string[]) => Promise<void>;
   commitClusterMove: (memberIds: string[], startPositions: Map<string, { x: number; y: number }>) => Promise<void>;
+  tidyCanvas: () => Promise<void>;
+  autoArrangeCanvas: (mode: ArrangeMode) => Promise<void>;
 
   // --- checklist ---
   addChecklistItem: (taskId: string, text: string) => Promise<void>;
@@ -123,6 +129,8 @@ interface State {
   // --- view mode & day filter ---
   viewMode: "canvas" | "table";
   setViewMode: (mode: "canvas" | "table") => void;
+  cardDensity: "full" | "mini";
+  setCardDensity: (density: "full" | "mini", canvasId?: string) => void;
   dayFilter: string | null;
   setDayFilter: (day: string | null) => void;
   zoneDraw: boolean;
@@ -196,23 +204,6 @@ interface State {
   // --- undo/redo ---
   undo: () => Promise<void>;
   redo: () => Promise<void>;
-}
-
-/** Center card + rings of 6·k at 230px radial pitch — every card stays
- *  chained (≤240px) to the ring inside it. Shared by pack and split. */
-export function honeycombPositions(cx: number, cy: number, count: number): Array<{ x: number; y: number }> {
-  const positions: Array<{ x: number; y: number }> = [{ x: cx, y: cy }];
-  let ring = 1;
-  while (positions.length < count) {
-    const slots = 6 * ring;
-    const radius = 230 * ring;
-    for (let i = 0; i < slots && positions.length < count; i++) {
-      const angle = (2 * Math.PI * i) / slots + (ring % 2 ? 0 : Math.PI / slots);
-      positions.push({ x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) });
-    }
-    ring++;
-  }
-  return positions;
 }
 
 function taskToInput(task: Task): NewTaskInput & TaskPatch {
@@ -418,7 +409,7 @@ export const useStore = create<State>((set, get) => {
 
       const cx = members.reduce((s, t) => s + t.x, 0) / members.length;
       const cy = members.reduce((s, t) => s + t.y, 0) / members.length;
-      const positions = honeycombPositions(cx, cy, members.length);
+      const positions = latticePositions(cx, cy, members.length);
 
       const ops: Op[] = members.map((t, i) => ({
         kind: "patch",
@@ -433,6 +424,108 @@ export const useStore = create<State>((set, get) => {
           get().patchTask(t.id, { x: positions[i].x, y: positions[i].y }, { record: false }),
         ),
       );
+    },
+
+    tidyCanvas: async () => {
+      const { tasks, showDone, showArchived } = get();
+      const shown = visibleTasks(tasks, showDone, showArchived);
+      if (shown.length < 2) return;
+
+      const clusters = computeClusters(shown, []);
+      const byId = new Map(shown.map((t) => [t.id, t]));
+
+      // Phase 1: snap each cluster's members onto the overlap-free lattice
+      // around the cluster centroid. Assignment follows the current reading
+      // order (top-to-bottom, left-to-right) so cards move as little as
+      // possible; the bubble itself survives because lattice neighbors stay
+      // inside the 240px proximity threshold. Clusters that are already
+      // overlap-free keep their hand-made arrangement (and re-running tidy
+      // stays a no-op).
+      const moves = new Map<string, { x: number; y: number }>();
+      for (const cluster of clusters) {
+        const members = cluster.members
+          .map((id) => byId.get(id))
+          .filter((m): m is Task => !!m);
+        if (members.length < 2) continue;
+        const hasOverlap = members.some((a, i) =>
+          members.some(
+            (b, j) => j > i && Math.abs(a.x - b.x) < CARD_W && Math.abs(a.y - b.y) < CARD_H,
+          ),
+        );
+        if (!hasOverlap) continue;
+        const cx = members.reduce((s, m) => s + m.x, 0) / members.length;
+        const cy = members.reduce((s, m) => s + m.y, 0) / members.length;
+        const ordered = [...members].sort((a, b) => a.y - b.y || a.x - b.x || a.id.localeCompare(b.id));
+        const positions = latticePositions(cx, cy, ordered.length);
+        ordered.forEach((member, i) => {
+          moves.set(member.id, { x: Math.round(positions[i].x), y: Math.round(positions[i].y) });
+        });
+      }
+
+      // Phase 2: separate whole groups on the compacted positions.
+      const compacted = shown.map((task) => ({ ...task, ...(moves.get(task.id) ?? {}) }));
+      for (const [taskId, pos] of computeTidyMoves(compacted, clusters)) moves.set(taskId, pos);
+
+      // Drop no-ops against the ORIGINAL positions.
+      for (const [taskId, pos] of [...moves]) {
+        const before = byId.get(taskId)!;
+        if (before.x === pos.x && before.y === pos.y) moves.delete(taskId);
+      }
+      if (moves.size === 0) {
+        get().showToast(t("toast.tidyNoop"));
+        return;
+      }
+
+      const ops: Op[] = [...moves.entries()].map(([taskId, pos]) => {
+        const before = byId.get(taskId)!;
+        return { kind: "patch", taskId, redo: pos, undo: { x: before.x, y: before.y } };
+      });
+      history.push({ op: { kind: "batch", ops }, label: t("label.tidied") });
+
+      await Promise.all(
+        [...moves.entries()].map(([taskId, pos]) => get().patchTask(taskId, pos, { record: false })),
+      );
+      get().showToast(t("toast.tidied", { count: moves.size }));
+    },
+
+    autoArrangeCanvas: async (mode) => {
+      const { tasks, showDone, showArchived } = get();
+      const shown = visibleTasks(tasks, showDone, showArchived);
+      if (shown.length < 2) return;
+
+      const { moves, groups } = computeAutoArrange(shown, mode);
+      const byId = new Map(shown.map((t) => [t.id, t]));
+      const ops: Op[] = [...moves.entries()].map(([taskId, pos]) => {
+        const before = byId.get(taskId)!;
+        return { kind: "patch", taskId, redo: pos, undo: { x: before.x, y: before.y } };
+      });
+      if (ops.length > 0) {
+        history.push({ op: { kind: "batch", ops }, label: t("label.autoArranged") });
+        await Promise.all(
+          [...moves.entries()].map(([taskId, pos]) => get().patchTask(taskId, pos, { record: false })),
+        );
+      }
+
+      // Name the resulting bubbles after their group. Bubble metadata is not
+      // part of the undo history (matches all other bubble actions).
+      const canvasId = shown[0].canvasId;
+      const labelFor = (key: string): string => {
+        if (mode === "priority") return t(`b.priority.${key}`);
+        if (mode === "due") return t(`arrange.due.${key === NONE_KEY ? "none" : key}`);
+        if (key === NONE_KEY) return t(mode === "tag" ? "arrange.none.tag" : "arrange.none.status");
+        return key;
+      };
+      for (const group of groups) {
+        if (group.memberIds.length < 2) continue;
+        try {
+          await get().titleCluster(canvasId, group.memberIds, labelFor(group.key));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      get().fitView();
+      get().showToast(t("toast.autoArranged", { count: groups.length }));
     },
 
     commitClusterMove: async (memberIds, startPositions) => {
@@ -612,7 +705,7 @@ export const useStore = create<State>((set, get) => {
     splitTaskAction: async (id) => {
       const parent = get().tasks.find((t) => t.id === id);
       if (!parent || parent.checklist.length === 0) return;
-      const positions = honeycombPositions(parent.x, parent.y, parent.checklist.length);
+      const positions = latticePositions(parent.x, parent.y, parent.checklist.length);
       const { tasks, parent: archivedParent } = await api.splitTask(id, positions);
       set({
         tasks: [...get().tasks.filter((t) => t.id !== id), archivedParent, ...tasks],
@@ -716,6 +809,18 @@ export const useStore = create<State>((set, get) => {
     // --- view mode & day filter ---
     viewMode: "canvas",
     setViewMode: (mode) => set({ viewMode: mode }),
+    cardDensity: "full",
+    setCardDensity: (density, canvasId) => {
+      set({ cardDensity: density });
+      // Persist per canvas in the settings JSON; fire-and-forget.
+      if (!canvasId) return;
+      const canvas = get().canvases.find((c) => c.id === canvasId);
+      const settings = { ...((canvas?.settings as CanvasSettings) ?? {}), cardDensity: density };
+      api
+        .updateCanvas(canvasId, { settings })
+        .then((saved) => set({ canvases: get().canvases.map((c) => (c.id === canvasId ? saved : c)) }))
+        .catch((e) => console.error(e));
+    },
     dayFilter: null,
     setDayFilter: (day) => set({ dayFilter: day }),
     zoneDraw: false,

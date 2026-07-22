@@ -87,10 +87,11 @@ async function runPoll(connId: string): Promise<SyncSummary> {
     }
 
     // ---- 2. Inbound: project-mode status sweep (field edits don't bump updated_at) ----
-    const statuses = await provider.listStatuses(conn);
+    const sweepTasks = await prisma.task.findMany({ where: { connectionId: conn.id } });
+    const sweepKeys = sweepTasks.map((t) => t.externalKey).filter((k): k is string => k !== null);
+    const statuses = sweepKeys.length > 0 ? await provider.listStatuses(conn, sweepKeys) : null;
     if (statuses) {
-      const tasks = await prisma.task.findMany({ where: { connectionId: conn.id } });
-      const byKey = new Map(tasks.map((t) => [t.externalKey, t]));
+      const byKey = new Map(sweepTasks.map((t) => [t.externalKey, t]));
       for (const entry of statuses) {
         const task = byKey.get(entry.key);
         if (!task) continue;

@@ -31,6 +31,7 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
   const searchQuery = useStore((s) => s.searchQuery);
   const setSearchQuery = useStore((s) => s.setSearchQuery);
   const lens = useStore((s) => s.lens);
+  const cardDensity = useStore((s) => s.cardDensity);
   const setLens = useStore((s) => s.setLens);
   const canvases = useStore((s) => s.canvases);
   const bubbles = useStore((s) => s.bubbles);
@@ -444,6 +445,34 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
               </MenuItem>
 
               <MenuDivider />
+              <MenuItem
+                onClick={() => {
+                  setMenuOpen(false);
+                  useStore.getState().setCardDensity(cardDensity === "mini" ? "full" : "mini", canvasId);
+                }}
+              >
+                {cardDensity === "mini" ? "✓ " : ""}{t("a.toolbar.miniCards")}
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setMenuOpen(false);
+                  void useStore.getState().tidyCanvas().catch((e) => console.error(e));
+                }}
+              >
+                {t("a.toolbar.tidy")}
+              </MenuItem>
+              <MenuLabel>{t("a.toolbar.autoArrange")}</MenuLabel>
+              {(["tag", "status", "priority", "due"] as const).map((mode) => (
+                <MenuItem
+                  key={mode}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void useStore.getState().autoArrangeCanvas(mode).catch((e) => console.error(e));
+                  }}
+                >
+                  {t(`a.toolbar.autoArrange.${mode}`)}
+                </MenuItem>
+              ))}
               <MenuItem
                 onClick={() => {
                   setMenuOpen(false);
