@@ -38,8 +38,8 @@ app.use('/api/zones', zoneRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api', publicRoutes);
 
-// Health check
-app.get('/health', (_req, res) => {
+// Health check — served under /api so it is reachable through the production proxy.
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

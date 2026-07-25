@@ -7,6 +7,8 @@
     "dev:server": "cd server && npm run dev",
     "dev:frontend": "cd frontend && npm run dev",
     "docker:up": "docker compose up -d",
+    "docker:smoke": "./scripts/compose-smoke.sh",
+    "test": "node --test test/*.test.mjs",
     "migrate": "cd server && npx prisma migrate dev"
   }
 }
