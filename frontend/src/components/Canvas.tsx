@@ -73,6 +73,7 @@ export function Canvas({ canvasId, onCreateAt, onEditTask }: CanvasProps) {
     const store = useStore.getState();
     store.refreshTasks(canvasId).catch((e) => console.error(e));
     store.loadBubbles(canvasId).catch((e) => console.error(e));
+    store.loadWorkstreams(canvasId).catch((e) => console.error(e));
     store.loadDependencies(canvasId).catch((e) => console.error(e));
     store.loadPortals(canvasId).catch((e) => console.error(e));
     store.loadZones(canvasId).catch((e) => console.error(e));

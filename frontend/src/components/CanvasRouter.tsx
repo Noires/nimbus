@@ -22,6 +22,7 @@ import { HelpPanel } from "./HelpPanel";
 import { t as tr, useT } from "../i18n";
 import { CanvasRouterLayout } from "./CanvasRouterLayout";
 import { readSpatialCommandCenterShellFlag } from "./spatialCommandCenterFlag";
+import { WorkstreamsPanel } from "./WorkstreamsPanel";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
@@ -40,6 +41,9 @@ export function CanvasRouter() {
   const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
   const viewMode = useStore((s) => s.viewMode);
   const helpOpen = useStore((s) => s.helpOpen);
+  const workstreams = useStore((s) => s.workstreams);
+  const tasks = useStore((s) => s.tasks);
+  const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
   const modalRef = useRef(modal);
   modalRef.current = modal;
   const mainRef = useRef<HTMLElement>(null);
@@ -78,6 +82,8 @@ export function CanvasRouter() {
     const density = (canvas?.settings as CanvasSettings | undefined)?.cardDensity;
     useStore.getState().setCardDensity(density === "mini" ? "mini" : "full");
   }, [canvasId, canvases]);
+
+  useEffect(() => setSelectedWorkstreamId(null), [canvasId]);
 
   // Keyboard: Ctrl+K palette · Ctrl+Z/Y undo/redo · N/F/R · T/G/H lenses · Esc.
   useEffect(() => {
@@ -353,6 +359,30 @@ export function CanvasRouter() {
       onOpenPulse={() => setPulseOpen(true)}
     />
   ) : null;
+  const rail = spatialCommandCenterShell && canvasId ? (
+    <WorkstreamsPanel
+      workstreams={workstreams}
+      selectedId={selectedWorkstreamId}
+      onSelect={setSelectedWorkstreamId}
+      onCreate={(name) => {
+        void useStore.getState().addWorkstream({ canvasId, name })
+          .then((workstream) => setSelectedWorkstreamId(workstream.id))
+          .catch((err) => console.error(err));
+      }}
+      onUpdate={(id, patch) => {
+        void useStore.getState().patchWorkstream(id, patch).catch((err) => console.error(err));
+      }}
+      onDelete={(id) => {
+        void useStore.getState().removeWorkstream(id)
+          .then(() => setSelectedWorkstreamId((selected) => (selected === id ? null : selected)))
+          .catch((err) => console.error(err));
+      }}
+      tasks={tasks.map(({ id, title }) => ({ id, title }))}
+      onSetMembership={(workstreamId, taskId, member) => {
+        void useStore.getState().setWorkstreamMembership(workstreamId, taskId, member).catch((err) => console.error(err));
+      }}
+    />
+  ) : undefined;
   const mainContent = canvasId ? (
     <>
       <Canvas
@@ -398,8 +428,10 @@ export function CanvasRouter() {
       spatialCommandCenterShell={spatialCommandCenterShell}
       navigationLabel={tr("d.shell.navigation")}
       commandLabel={tr("d.shell.globalCommands")}
+      railLabel={tr("workstreams.title")}
       navigation={navigation}
       commands={commands}
+      rail={rail}
       mainRef={mainRef}
       overlays={overlays}
     >

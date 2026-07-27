@@ -17,6 +17,7 @@ const dictionaries: Record<Locale, Record<string, string>> = {
 };
 
 function detectLocale(): Locale {
+  if (typeof window === "undefined") return "en";
   const saved = localStorage.getItem("locale");
   if (saved === "en" || saved === "de") return saved;
   return navigator.language?.toLowerCase().startsWith("de") ? "de" : "en";

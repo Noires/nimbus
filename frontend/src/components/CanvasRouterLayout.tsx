@@ -5,8 +5,10 @@ interface CanvasRouterLayoutProps {
   spatialCommandCenterShell?: boolean;
   navigationLabel: string;
   commandLabel: string;
+  railLabel?: string;
   navigation: ReactNode;
   commands: ReactNode;
+  rail?: ReactNode;
   mainRef?: Ref<HTMLElement>;
   children: ReactNode;
   overlays: ReactNode;
@@ -16,8 +18,10 @@ export function CanvasRouterLayout({
   spatialCommandCenterShell,
   navigationLabel,
   commandLabel,
+  railLabel,
   navigation,
   commands,
+  rail,
   mainRef,
   children,
   overlays,
@@ -28,8 +32,10 @@ export function CanvasRouterLayout({
         <SpatialCommandCenterShell
           navigationLabel={navigationLabel}
           commandLabel={commandLabel}
+          railLabel={railLabel}
           navigation={navigation}
           commands={commands}
+          rail={rail}
           mainRef={mainRef}
         >
           {children}

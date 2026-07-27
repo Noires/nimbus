@@ -20,6 +20,7 @@ export function useLiveSync(canvasId: string | null) {
         const store = useStore.getState();
         store.refreshTasks(canvasId).catch(() => {});
         store.loadBubbles(canvasId).catch(() => {});
+        store.loadWorkstreams(canvasId).catch(() => {});
         store.loadDependencies(canvasId).catch(() => {});
         store.loadPortals(canvasId).catch(() => {});
         store.loadZones(canvasId).catch(() => {});

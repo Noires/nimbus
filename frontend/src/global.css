@@ -38,7 +38,12 @@ html, body, #root {
   font-family: Nunito, Quicksand, Poppins, system-ui, sans-serif;
 }
 
+.command-center-shell--with-rail {
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) minmax(16rem, 22rem);
+}
+
 .command-center-shell__navigation {
+  grid-column: 1;
   grid-row: 1 / -1;
   min-width: 0;
   overflow-y: auto;
@@ -49,12 +54,16 @@ html, body, #root {
 }
 
 .command-center-shell__commands {
+  grid-column: 2;
+  grid-row: 1;
   position: relative;
   z-index: 50;
   min-width: 0;
 }
 
 .command-center-shell__main {
+  grid-column: 2;
+  grid-row: 2;
   position: relative;
   min-width: 0;
   min-height: 0;
@@ -62,6 +71,8 @@ html, body, #root {
 }
 
 .command-center-shell__rail {
+  grid-column: 3;
+  grid-row: 1 / -1;
   min-width: 0;
   overflow-y: auto;
   border-left: 1px solid rgb(255 255 255 / 10%);
@@ -77,5 +88,10 @@ html, body, #root {
   .command-center-shell__navigation,
   .command-center-shell__rail {
     display: none;
+  }
+
+  .command-center-shell__commands,
+  .command-center-shell__main {
+    grid-column: 1;
   }
 }
