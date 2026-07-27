@@ -54,6 +54,9 @@ export const enD: Record<string, string> = {
   "help.subtitle": "Everything the board can do — press ? anytime",
   "help.open": "？ Help & features (?)",
   "help.close": "Close",
+  "d.shell.navigation": "Navigate",
+  "d.shell.globalCommands": "Global commands",
+  "d.shell.contextualRail": "Contextual rail",
 
   // --- help panel: groups ---
   "help.group.canvas": "Canvas basics",
@@ -187,6 +190,9 @@ export const deD: Record<string, string> = {
   "help.subtitle": "Alles, was das Board kann — jederzeit mit ? öffnen",
   "help.open": "？ Hilfe & Funktionen (?)",
   "help.close": "Schließen",
+  "d.shell.navigation": "Navigation",
+  "d.shell.globalCommands": "Globale Befehle",
+  "d.shell.contextualRail": "Kontextleiste",
 
   // --- Hilfe: Gruppen ---
   "help.group.canvas": "Canvas-Grundlagen",

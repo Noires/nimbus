@@ -20,6 +20,8 @@ import { useLiveSync } from "../data/live";
 import { startNotificationLoop } from "../utils/notifications";
 import { HelpPanel } from "./HelpPanel";
 import { t as tr, useT } from "../i18n";
+import { CanvasRouterLayout } from "./CanvasRouterLayout";
+import { readSpatialCommandCenterShellFlag } from "./spatialCommandCenterFlag";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
@@ -35,6 +37,7 @@ export function CanvasRouter() {
   const [modal, setModal] = useState<ModalState | null>(null);
   const [timelapse, setTimelapse] = useState(false);
   const [pulseOpen, setPulseOpen] = useState(false);
+  const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
   const viewMode = useStore((s) => s.viewMode);
   const helpOpen = useStore((s) => s.helpOpen);
   const modalRef = useRef(modal);
@@ -326,67 +329,81 @@ export function CanvasRouter() {
     );
   }
 
-  return (
-    <div className="flex h-screen w-screen overflow-hidden bg-[#0f0f13] text-gray-100 font-sans">
-      <aside className="w-64 flex-shrink-0 border-r border-white/10 bg-[#1a1d24]/90 backdrop-blur-sm p-4 overflow-y-auto">
-        {/* Nimbus wordmark — a glowing halo dot, matching the bubble motif */}
-        <div className="flex items-center gap-2 mb-5 px-1">
-          <span
-            className="w-3.5 h-3.5 rounded-full bubble-pulse shrink-0"
-            style={{
-              background: "radial-gradient(circle, #67e8f9, #6366f1)",
-              boxShadow: "0 0 12px 2px rgba(103,232,249,0.6)",
-            }}
-          />
-          <span className="text-base font-semibold tracking-wide text-gray-100">{tr("app.name")}</span>
-        </div>
-        <CanvasList canvases={canvases} canvasId={canvasId} />
-      </aside>
-
-      <main ref={mainRef} className="flex-1 h-full overflow-hidden relative">
-        {canvasId ? (
-          <>
-            <Toolbar
-              canvasId={canvasId}
-              onAddTask={() => setModal({ mode: "create" })}
-              onOpenTimelapse={() => setTimelapse(true)}
-              onOpenPulse={() => setPulseOpen(true)}
-            />
-            <Canvas
-              canvasId={canvasId}
-              onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
-              onEditTask={(task) => setModal({ mode: "edit", task })}
-            />
-            <InboxDock canvasId={canvasId} viewportRef={mainRef} />
-            <SelectionBar canvasId={canvasId} />
-            <DayDock />
-            <ReviewHud />
-            <FocusTimer />
-            {viewMode === "table" && (
-              <TableView onExit={() => useStore.getState().setViewMode("canvas")} />
-            )}
-            {pulseOpen && <PulsePanel canvasId={canvasId} onClose={() => setPulseOpen(false)} />}
-            {timelapse && <TimelapseBar canvasId={canvasId} onClose={() => setTimelapse(false)} />}
-            {modal && (
-              <CreateModal
-                key={modal.mode === "edit" ? modal.task.id : "create"}
-                initial={modal.mode === "edit" ? modal.task : null}
-                variant={modal.mode === "edit" ? "panel" : "modal"}
-                onClose={() => setModal(null)}
-                onSubmit={handleSubmit}
-              />
-            )}
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
-            {tr("a.router.noCanvases")}
-          </div>
-        )}
-      </main>
-
+  const navigation = (
+    <>
+      {/* Nimbus wordmark — a glowing halo dot, matching the bubble motif */}
+      <div className="flex items-center gap-2 mb-5 px-1">
+        <span
+          className="w-3.5 h-3.5 rounded-full bubble-pulse shrink-0"
+          style={{
+            background: "radial-gradient(circle, #67e8f9, #6366f1)",
+            boxShadow: "0 0 12px 2px rgba(103,232,249,0.6)",
+          }}
+        />
+        <span className="text-base font-semibold tracking-wide text-gray-100">{tr("app.name")}</span>
+      </div>
+      <CanvasList canvases={canvases} canvasId={canvasId} />
+    </>
+  );
+  const commands = canvasId ? (
+    <Toolbar
+      canvasId={canvasId}
+      onAddTask={() => setModal({ mode: "create" })}
+      onOpenTimelapse={() => setTimelapse(true)}
+      onOpenPulse={() => setPulseOpen(true)}
+    />
+  ) : null;
+  const mainContent = canvasId ? (
+    <>
+      <Canvas
+        canvasId={canvasId}
+        onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
+        onEditTask={(task) => setModal({ mode: "edit", task })}
+      />
+      <InboxDock canvasId={canvasId} viewportRef={mainRef} />
+      <SelectionBar canvasId={canvasId} />
+      <DayDock />
+      <ReviewHud />
+      <FocusTimer />
+      {viewMode === "table" && (
+        <TableView onExit={() => useStore.getState().setViewMode("canvas")} />
+      )}
+      {pulseOpen && <PulsePanel canvasId={canvasId} onClose={() => setPulseOpen(false)} />}
+      {timelapse && <TimelapseBar canvasId={canvasId} onClose={() => setTimelapse(false)} />}
+      {modal && (
+        <CreateModal
+          key={modal.mode === "edit" ? modal.task.id : "create"}
+          initial={modal.mode === "edit" ? modal.task : null}
+          variant={modal.mode === "edit" ? "panel" : "modal"}
+          onClose={() => setModal(null)}
+          onSubmit={handleSubmit}
+        />
+      )}
+    </>
+  ) : (
+    <div className="flex items-center justify-center h-full text-gray-500">
+      {tr("a.router.noCanvases")}
+    </div>
+  );
+  const overlays = (
+    <>
       <CommandPalette canvasId={canvasId} onNewTask={() => setModal({ mode: "create" })} />
       {helpOpen && <HelpPanel onClose={() => useStore.getState().setHelpOpen(false)} />}
       <Toast />
-    </div>
+    </>
+  );
+
+  return (
+    <CanvasRouterLayout
+      spatialCommandCenterShell={spatialCommandCenterShell}
+      navigationLabel={tr("d.shell.navigation")}
+      commandLabel={tr("d.shell.globalCommands")}
+      navigation={navigation}
+      commands={commands}
+      mainRef={mainRef}
+      overlays={overlays}
+    >
+      {mainContent}
+    </CanvasRouterLayout>
   );
 }

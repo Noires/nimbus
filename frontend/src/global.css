@@ -23,3 +23,59 @@ html, body, #root {
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(107,127,163,0.3); border-radius: 3px; }
+
+/* Experimental spatial command-center shell. All layout rules stay scoped so
+   the default CanvasRouter composition remains byte-for-byte class compatible. */
+.command-center-shell {
+  display: grid;
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #0f0f13;
+  color: #f3f4f6;
+  font-family: Nunito, Quicksand, Poppins, system-ui, sans-serif;
+}
+
+.command-center-shell__navigation {
+  grid-row: 1 / -1;
+  min-width: 0;
+  overflow-y: auto;
+  border-right: 1px solid rgb(255 255 255 / 10%);
+  background: rgb(26 29 36 / 90%);
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.command-center-shell__commands {
+  position: relative;
+  z-index: 50;
+  min-width: 0;
+}
+
+.command-center-shell__main {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.command-center-shell__rail {
+  min-width: 0;
+  overflow-y: auto;
+  border-left: 1px solid rgb(255 255 255 / 10%);
+  background: rgb(26 29 36 / 90%);
+}
+
+@media (max-width: 768px) {
+  .command-center-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .command-center-shell__navigation,
+  .command-center-shell__rail {
+    display: none;
+  }
+}
