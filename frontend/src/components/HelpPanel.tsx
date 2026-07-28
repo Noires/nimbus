@@ -29,7 +29,13 @@ const GROUPS: Array<{ group: string; features: string[] }> = [
   },
 ];
 
-export function HelpPanel({ onClose }: { onClose: () => void }) {
+export function HelpPanel({
+  onClose,
+  spatialCommandCenterShell = false,
+}: {
+  onClose: () => void;
+  spatialCommandCenterShell?: boolean;
+}) {
   const t = useT();
   const locale = useLocale((s) => s.locale);
   const setLocale = useLocale((s) => s.setLocale);
@@ -70,7 +76,11 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
                 {features.map((key) => (
                   <div key={key}>
                     <div className="text-xs font-medium text-gray-200">{t(`${key}.name`)}</div>
-                    <div className="text-[11px] text-gray-500 leading-relaxed">{t(`${key}.desc`)}</div>
+                    <div className="text-[11px] text-gray-500 leading-relaxed">
+                      {key === "help.inbox"
+                        ? t(spatialCommandCenterShell ? "help.inbox.triage.desc" : "help.inbox.legacy.desc")
+                        : t(`${key}.desc`)}
+                    </div>
                   </div>
                 ))}
               </div>

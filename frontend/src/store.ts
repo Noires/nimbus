@@ -313,6 +313,24 @@ export const useStore = create<State>((set, get) => {
     },
     patchTask: async (id, patch, opts) => {
       const before = get().tasks.find((t) => t.id === id);
+      // Optimistic local update, then reconcile with the server response.
+      set({ tasks: get().tasks.map((t) => (t.id === id ? ({ ...t, ...patch } as Task) : t)) });
+      let saved: Task;
+      try {
+        saved = await api.updateTask(id, patch);
+      } catch (error) {
+        if (before) {
+          set({ tasks: get().tasks.map((task) => (task.id === id ? before : task)) });
+        }
+        throw error;
+      }
+      // Moving to another canvas removes the card from this board.
+      const activeCanvasTasks = get().tasks.filter((t) => t.id !== id);
+      if (before && saved.canvasId !== before.canvasId) {
+        set({ tasks: activeCanvasTasks });
+      } else {
+        set({ tasks: [...activeCanvasTasks, saved] });
+      }
       if (opts?.record !== false && before) {
         const undoPatch: TaskPatch = {};
         for (const key of Object.keys(patch) as (keyof TaskPatch)[]) {
@@ -322,16 +340,6 @@ export const useStore = create<State>((set, get) => {
           op: { kind: "patch", taskId: id, redo: patch, undo: undoPatch },
           label: patchLabel(before, patch),
         });
-      }
-      // Optimistic local update, then reconcile with the server response.
-      set({ tasks: get().tasks.map((t) => (t.id === id ? ({ ...t, ...patch } as Task) : t)) });
-      const saved = await api.updateTask(id, patch);
-      // Moving to another canvas removes the card from this board.
-      const activeCanvasTasks = get().tasks.filter((t) => t.id !== id);
-      if (before && saved.canvasId !== before.canvasId) {
-        set({ tasks: activeCanvasTasks });
-      } else {
-        set({ tasks: [...activeCanvasTasks, saved] });
       }
       // A completed recurring task spawns a successor server-side — refetch.
       if (patch.done === true && before?.recurrence) {

@@ -30,6 +30,7 @@ interface CanvasProps {
   semanticDensity: CardDensity;
   onCreateAt: (x: number, y: number) => void;
   onEditTask: (task: Task) => void;
+  onLoadState?: (state: "loading" | "error" | "ready") => void;
 }
 
 interface Rect {
@@ -39,7 +40,7 @@ interface Rect {
   y2: number;
 }
 
-export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }: CanvasProps) {
+export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask, onLoadState }: CanvasProps) {
   const tasks = useStore((s) => s.tasks);
   const dependencies = useStore((s) => s.dependencies);
   const showDone = useStore((s) => s.showDone);
@@ -73,14 +74,20 @@ export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }: Ca
   useEffect(() => {
     if (readOnly) return; // share view hydrates via loadSharedSnapshot
     const store = useStore.getState();
-    store.refreshTasks(canvasId).catch((e) => console.error(e));
-    store.loadBubbles(canvasId).catch((e) => console.error(e));
-    store.loadWorkstreams(canvasId).catch((e) => console.error(e));
-    store.loadDependencies(canvasId).catch((e) => console.error(e));
-    store.loadPortals(canvasId).catch((e) => console.error(e));
-    store.loadZones(canvasId).catch((e) => console.error(e));
-    store.loadConnections(canvasId).catch((e) => console.error(e));
-  }, [canvasId, readOnly]);
+    onLoadState?.("loading");
+    void store.refreshTasks(canvasId)
+      .then(() => onLoadState?.("ready"))
+      .catch((error) => {
+        console.error(error);
+        onLoadState?.("error");
+      });
+    void store.loadBubbles(canvasId).catch((error) => console.error(error));
+    void store.loadWorkstreams(canvasId).catch((error) => console.error(error));
+    void store.loadDependencies(canvasId).catch((error) => console.error(error));
+    void store.loadPortals(canvasId).catch((error) => console.error(error));
+    void store.loadZones(canvasId).catch((error) => console.error(error));
+    void store.loadConnections(canvasId).catch((error) => console.error(error));
+  }, [canvasId, onLoadState, readOnly]);
 
   // Track viewport size for flyTo / fitView / zoom-around-center.
   useEffect(() => {
