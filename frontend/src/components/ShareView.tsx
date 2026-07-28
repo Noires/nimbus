@@ -53,7 +53,7 @@ export function ShareView() {
         <span className="text-xs text-gray-300">·</span>
         <span className="text-xs text-gray-200">{state.name}</span>
       </div>
-      <Canvas canvasId={state.canvasId!} onCreateAt={() => {}} onEditTask={() => {}} />
+      <Canvas canvasId={state.canvasId!} semanticDensity="normal" onCreateAt={() => {}} onEditTask={() => {}} />
       <Toast />
     </div>
   );

@@ -1,11 +1,12 @@
 import { useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion, type Transition } from "framer-motion";
 import { useStore, visibleTasks, CARD_W, CARD_H, DAY_W, type Task } from "../store";
 import { cardGradient, urgencyColor, stalenessColor } from "../utils/colors";
 import { formatMinutes } from "../utils/capacity";
 import { resolveOverlap } from "../engine/collision";
 import { dayDockHit } from "./DayDock";
 import { useT, dateLocale } from "../i18n";
+import { resolveSemanticDensity, type CardDensity } from "../engine/semanticDensity";
 
 interface TaskCardProps {
   task: Task;
@@ -13,6 +14,7 @@ interface TaskCardProps {
   blocked: boolean;
   focused?: boolean;
   selected?: boolean;
+  semanticDensity?: CardDensity;
   onEdit: (task: Task) => void;
 }
 
@@ -36,8 +38,21 @@ export function projectTimeX(task: Task, originX: number): number {
   return days === null ? originX - TIME_GUTTER_X : originX + days * DAY_W;
 }
 
-export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: TaskCardProps) {
+export function taskCardTransition(reducedMotion: boolean | null, isDragging: boolean): Transition {
+  if (reducedMotion) return { duration: 0 };
+  return {
+    left: isDragging ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 },
+    top: isDragging ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 },
+    opacity: { duration: 0.2, ease: "easeOut" },
+    scale: { type: "spring", stiffness: 480, damping: 20 },
+    y: { type: "spring", stiffness: 480, damping: 22 },
+    default: { type: "spring", stiffness: 400, damping: 28 },
+  };
+}
+
+export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDensity = "normal", onEdit }: TaskCardProps) {
   const t = useT();
+  const reducedMotion = useReducedMotion();
   const isDragging = useStore((s) => s.draggingTaskId === task.id);
   const lens = useStore((s) => s.lens);
   const timeOriginX = useStore((s) => s.timeOriginX);
@@ -67,7 +82,14 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
   );
   const externalRef = task.externalKey?.match(/^[^:]+:(?:[^/]+)\/([^#]+)#(\d+)$/);
   const statusColumns = connection?.columnsCache ?? [];
-  const mini = useStore((s) => s.cardDensity) === "mini";
+  const legacyMini = useStore((s) => s.cardDensity) === "mini";
+  const zoom = useStore((s) => s.zoom);
+  const density = resolveSemanticDensity(semanticDensity, zoom);
+  const isSemanticDensity = semanticDensity !== "normal";
+  const mini = legacyMini && !isSemanticDensity;
+  const showDescription = !isSemanticDensity || density.disclose === "full";
+  const showTags = !isSemanticDensity || density.disclose === "full";
+  const showSummaryMetadata = density.disclose !== "essential";
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0 || readOnly) return;
@@ -296,7 +318,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
       // (scale-pops in place) instead of flying in from the canvas origin.
       // `y` is a transform, independent of the layout position, so it gives a
       // subtle rise-and-settle without moving where the card actually lands.
-      initial={{ opacity: 0, scale: 0.6, y: 12, left: renderX, top: renderY }}
+      initial={reducedMotion ? false : { opacity: 0, scale: 0.6, y: 12, left: renderX, top: renderY }}
       animate={{
         opacity: dimmed ? 0.2 : archived ? 0.5 : task.done ? 0.55 : 1,
         scale: isDragging || focused ? 1.04 : 1,
@@ -304,14 +326,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
         left: renderX,
         top: renderY,
       }}
-      transition={{
-        left: isDragging ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 },
-        top: isDragging ? { duration: 0 } : { type: "spring", stiffness: 320, damping: 30 },
-        opacity: { duration: 0.2, ease: "easeOut" },
-        scale: { type: "spring", stiffness: 480, damping: 20 },
-        y: { type: "spring", stiffness: 480, damping: 22 },
-        default: { type: "spring", stiffness: 400, damping: 28 },
-      }}
+      transition={taskCardTransition(reducedMotion, isDragging)}
       className={`absolute w-64 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border ${
         overdue ? "border-red-500/70" : archived ? "border-dashed border-white/20" : "border-white/10"
       } ${isDragging ? "shadow-2xl ring-2 ring-white/20 cursor-grabbing" : "shadow-lg cursor-grab"} ${
@@ -322,12 +337,15 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
             : selected
               ? "ring-2 ring-purple-400/80"
               : ""
-      } ${overdue && lens === "gravity" ? "animate-pulse" : ""}`}
+      } ${overdue && lens === "gravity" && !reducedMotion ? "animate-pulse" : ""}`}
       style={{
         zIndex: isDragging ? 9999 : task.z,
+        width: CARD_W,
+        height: CARD_H,
+        "--semantic-card-scale": density.scale,
         boxShadow: halo ? `0 0 30px 8px ${halo}` : undefined,
         filter: blocked && !task.done ? "saturate(0.45)" : undefined,
-      }}
+      } as React.CSSProperties}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -338,7 +356,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
       }}
     >
       {/* Accent strip — the task's color, falling back to an id-seeded gradient */}
-      <div className="h-2 rounded-t-xl" style={{ background: task.color || cardGradient(task.id) }} />
+      <div className="rounded-t-xl" style={{ height: 8 * density.scale, background: task.color || cardGradient(task.id) }} />
 
       {/* Dependency port: drag from here onto another card to link */}
       {!readOnly && (
@@ -376,7 +394,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
       )}
 
       {!mini && (
-      <div className="p-4">
+      <div className="p-4" style={{ padding: 16 * density.scale }}>
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className={`text-sm font-semibold ${task.done ? "line-through text-gray-500" : ""}`}>
             {blocked && !task.done && <span title={t("b.card.blocked")}>🔒 </span>}
@@ -391,8 +409,14 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
           </span>
         </div>
 
+        {isSemanticDensity && (
+          <div className="mb-1.5 text-[10px] text-cyan-200">
+            {task.status ?? t(`b.priority.${task.priority}`)}
+          </div>
+        )}
+
         {/* External sync badge + status columns */}
-        {task.externalKey && (
+        {task.externalKey && !isSemanticDensity && (
           <div className="flex items-center gap-1.5 mb-1.5">
             <a
               href={task.externalUrl ?? undefined}
@@ -433,11 +457,11 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
           </div>
         )}
 
-        {task.description && (
+        {showDescription && task.description && (
           <div className="text-xs text-gray-400 line-clamp-2 mb-2">{task.description}</div>
         )}
 
-        {task.tags.length > 0 && (
+        {showTags && task.tags.length > 0 && (
           <div className="flex gap-1 flex-wrap mb-1">
             {task.tags.map((tag) => (
               <span
@@ -453,11 +477,11 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
         {(dueBadge || archived || task.estimateMinutes || task.recurrence || task.checklist.length > 0) && (
           <div className="flex items-center gap-2 text-[10px] mt-1 flex-wrap">
             {dueBadge}
-            {task.estimateMinutes != null && (
+            {showSummaryMetadata && task.estimateMinutes != null && (
               <span className="text-gray-400">⏱ {formatMinutes(task.estimateMinutes)}</span>
             )}
-            {task.recurrence && <span className="text-gray-500" title={t("b.card.recurring")}>↻</span>}
-            {task.checklist.length > 0 && (
+            {showSummaryMetadata && task.recurrence && <span className="text-gray-500" title={t("b.card.recurring")}>↻</span>}
+            {showSummaryMetadata && task.checklist.length > 0 && (
               <span
                 className={`flex items-center gap-1 ${
                   checklistDone === task.checklist.length ? "text-emerald-400" : "text-gray-400"
@@ -485,7 +509,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, onEdit }: T
         )}
 
         {/* Estimate vs actual (fed by the focus timer) */}
-        {task.estimateMinutes != null && task.actualMinutes > 0 && (
+        {showSummaryMetadata && task.estimateMinutes != null && task.actualMinutes > 0 && (
           <div
             className="mt-1.5 h-1 rounded-full bg-white/5 overflow-hidden"
             title={t("b.card.estimateVsActual", { actual: formatMinutes(task.actualMinutes), estimate: formatMinutes(task.estimateMinutes) })}

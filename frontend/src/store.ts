@@ -28,6 +28,8 @@ import { computeAutoArrange, NONE_KEY, type ArrangeMode } from "./engine/autoArr
 import { latticePositions } from "./engine/lattice";
 import { isArrangementPreviewCurrent, type ArrangementPreview } from "./engine/arrangementOperation";
 import { t } from "./i18n";
+import { readDensityPreference, saveDensityPreference } from "./components/densityPreference";
+import type { CardDensity } from "./engine/semanticDensity";
 
 export type { Canvas, Task, Bubble, Dependency, Portal, Zone, Waypoint, CanvasSettings, Connection, Workstream };
 
@@ -143,6 +145,8 @@ interface State {
   setViewMode: (mode: "canvas" | "table") => void;
   cardDensity: "full" | "mini";
   setCardDensity: (density: "full" | "mini", canvasId?: string) => void;
+  semanticDensity: CardDensity;
+  setSemanticDensity: (density: CardDensity) => void;
   dayFilter: string | null;
   setDayFilter: (day: string | null) => void;
   zoneDraw: boolean;
@@ -895,7 +899,6 @@ export const useStore = create<State>((set, get) => {
     cardDensity: "full",
     setCardDensity: (density, canvasId) => {
       set({ cardDensity: density });
-      // Persist per canvas in the settings JSON; fire-and-forget.
       if (!canvasId) return;
       const canvas = get().canvases.find((c) => c.id === canvasId);
       const settings = { ...((canvas?.settings as CanvasSettings) ?? {}), cardDensity: density };
@@ -903,6 +906,11 @@ export const useStore = create<State>((set, get) => {
         .updateCanvas(canvasId, { settings })
         .then((saved) => set({ canvases: get().canvases.map((c) => (c.id === canvasId ? saved : c)) }))
         .catch((e) => console.error(e));
+    },
+    semanticDensity: readDensityPreference(),
+    setSemanticDensity: (density) => {
+      set({ semanticDensity: density });
+      saveDensityPreference(density);
     },
     dayFilter: null,
     setDayFilter: (day) => set({ dayFilter: day }),
