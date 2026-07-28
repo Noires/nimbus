@@ -52,3 +52,15 @@ test('task deletion broadcasts each affected workstream with memberships already
   assert.match(routes, /tx\.workstream\.findMany\([\s\S]*?memberships: \{ select: \{ taskId: true \} \}/);
   assert.match(routes, /for \(const workstream of affectedWorkstreams\) \{[\s\S]*?entity: "workstream", action: "upsert", data: workstream/);
 });
+
+test('bulk task position updates validate one canvas and execute all writes in one transaction', async () => {
+  const routes = await read('server/src/routes/taskRoutes.ts');
+
+  assert.match(routes, /router\.post\("\/positions"/);
+  assert.match(routes, /const positions = parsePositionUpdates\(req\.body\?\.positions\);/);
+  assert.match(routes, /const saved = await prisma\.\$transaction\(async \(tx\) => \{/);
+  assert.match(routes, /const tasks = await tx\.task\.findMany\(\{[\s\S]*?canvasId/);
+  assert.match(routes, /if \(tasks\.length !== positions\.length\)/);
+  assert.match(routes, /await tx\.task\.update\(/);
+  assert.match(routes, /publish\(task\.canvasId, \{ entity: "task", action: "upsert"/);
+});

@@ -1,5 +1,7 @@
-import { CARD_W, CARD_H } from "../store";
 import type { Cluster } from "./proximityDetector";
+
+const CARD_W = 256;
+const CARD_H = 170;
 
 /** Minimum edge-to-edge gap between separated groups. Must keep cards of
  *  DIFFERENT groups outside the 276px cluster hysteresis in the worst case

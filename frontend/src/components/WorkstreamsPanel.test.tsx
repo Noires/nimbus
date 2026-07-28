@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { WorkstreamsPanel } from "./WorkstreamsPanel";
+import { WorkstreamArrangementPreview, WorkstreamsPanel } from "./WorkstreamsPanel";
 
 const workstreams = [{
   id: "ws-1",
@@ -24,8 +24,9 @@ describe("WorkstreamsPanel", () => {
         onCreate={() => {}}
         onUpdate={() => {}}
         onDelete={() => {}}
-        tasks={[{ id: "task-1", title: "Verify rollout" }]}
+        tasks={[{ id: "task-1", title: "Verify rollout", x: 0, y: 0 }]}
         onSetMembership={() => {}}
+        onApplyArrangement={async () => false}
       />,
     );
 
@@ -42,5 +43,32 @@ describe("WorkstreamsPanel", () => {
     expect(html).toContain('type="checkbox" role="switch" checked=""');
     expect(html).toContain("Protected — unprotect before deleting");
     expect(html).toContain('disabled=""');
+  });
+
+  it("renders a no-op preview with disabled Apply and a Cancel escape hatch", () => {
+    const html = renderToStaticMarkup(
+      <WorkstreamArrangementPreview
+        preview={{
+          strategy: "tidy-overlaps",
+          scope: "workstream",
+          moved: [],
+          unchanged: ["task-1"],
+          skipped: [],
+          positions: [],
+          inverse: [],
+          isNoop: true,
+          explanation: "No overlapping eligible cards need to move (1 checked).",
+          explanations: [],
+          revision: "current",
+        }}
+        onApply={async () => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    expect(html).toContain("No eligible overlapping cards need to move.");
+    expect(html).toContain('disabled=""');
+    expect(html).toContain("Apply");
+    expect(html).toContain("Cancel");
   });
 });

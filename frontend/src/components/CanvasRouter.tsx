@@ -377,10 +377,11 @@ export function CanvasRouter() {
           .then(() => setSelectedWorkstreamId((selected) => (selected === id ? null : selected)))
           .catch((err) => console.error(err));
       }}
-      tasks={tasks.map(({ id, title }) => ({ id, title }))}
+      tasks={tasks.map(({ id, title, x, y }) => ({ id, title, x, y }))}
       onSetMembership={(workstreamId, taskId, member) => {
         void useStore.getState().setWorkstreamMembership(workstreamId, taskId, member).catch((err) => console.error(err));
       }}
+      onApplyArrangement={(preview) => useStore.getState().applyArrangementPreview(preview)}
     />
   ) : undefined;
   const mainContent = canvasId ? (

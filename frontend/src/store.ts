@@ -26,6 +26,7 @@ import { computeClusters } from "./engine/proximityDetector";
 import { computeTidyMoves } from "./engine/tidy";
 import { computeAutoArrange, NONE_KEY, type ArrangeMode } from "./engine/autoArrange";
 import { latticePositions } from "./engine/lattice";
+import { isArrangementPreviewCurrent, type ArrangementPreview } from "./engine/arrangementOperation";
 import { t } from "./i18n";
 
 export type { Canvas, Task, Bubble, Dependency, Portal, Zone, Waypoint, CanvasSettings, Connection, Workstream };
@@ -74,6 +75,7 @@ interface State {
   commitClusterMove: (memberIds: string[], startPositions: Map<string, { x: number; y: number }>) => Promise<void>;
   tidyCanvas: () => Promise<void>;
   autoArrangeCanvas: (mode: ArrangeMode) => Promise<void>;
+  applyArrangementPreview: (preview: ArrangementPreview) => Promise<boolean>;
 
   // --- checklist ---
   addChecklistItem: (taskId: string, text: string) => Promise<void>;
@@ -502,6 +504,46 @@ export const useStore = create<State>((set, get) => {
         [...moves.entries()].map(([taskId, pos]) => get().patchTask(taskId, pos, { record: false })),
       );
       get().showToast(t("toast.tidied", { count: moves.size }));
+    },
+
+    applyArrangementPreview: async (preview) => {
+      if (preview.isNoop) return false;
+
+      const state = get();
+      if (!isArrangementPreviewCurrent(preview, state.tasks, state.workstreams)) {
+        state.showToast(t("toast.arrangementOutOfDate"));
+        return false;
+      }
+
+      const currentTasks = new Map(get().tasks.map((task) => [task.id, task]));
+      const moves = preview.positions.filter((position) => {
+        const current = currentTasks.get(position.id);
+        return current && (current.x !== position.x || current.y !== position.y);
+      });
+      if (moves.length === 0) return false;
+
+      let saved: Task[];
+      try {
+        ({ tasks: saved } = await api.updateTaskPositions(moves));
+      } catch {
+        get().showToast(t("toast.arrangementApplyFailed"));
+        return false;
+      }
+
+      const ops: Op[] = moves.map((position) => {
+        const before = currentTasks.get(position.id)!;
+        return {
+          kind: "patch",
+          taskId: position.id,
+          redo: { x: position.x, y: position.y },
+          undo: { x: before.x, y: before.y },
+        };
+      });
+      history.push({ op: { kind: "batch", ops }, label: t("label.arrangedWorkstream") });
+      const savedIds = new Set(saved.map((task) => task.id));
+      set({ tasks: [...get().tasks.filter((task) => !savedIds.has(task.id)), ...saved] });
+      get().showToast(t("toast.arrangementApplied", { count: moves.length }));
+      return true;
     },
 
     autoArrangeCanvas: async (mode) => {
