@@ -27,12 +27,28 @@ import { DensitySelector } from "./DensitySelector";
 import { InspectorRail } from "./InspectorRail";
 import { InboxTriage, type InboxTriageState } from "./InboxTriage";
 import { TodayFocus } from "./TodayFocus";
+import { ReviewRail } from "./ReviewRail";
 import { resolveSelectionContext } from "./selectionContext";
 import { quickParseTokens } from "../utils/quickParse";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
   | { mode: "edit"; task: Task };
+
+export function resolveRailLabel({
+  reviewRailOpen,
+  todayFocusOpen,
+  inboxTriageOpen,
+}: {
+  reviewRailOpen: boolean;
+  todayFocusOpen: boolean;
+  inboxTriageOpen: boolean;
+}): string {
+  if (reviewRailOpen) return tr("review.title");
+  if (todayFocusOpen) return tr("today.label");
+  if (inboxTriageOpen) return tr("inbox.triage.label");
+  return tr("workstreams.title");
+}
 
 export function CanvasRouter() {
   useT();
@@ -56,6 +72,7 @@ export function CanvasRouter() {
   const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
   const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
   const [todayFocusOpen, setTodayFocusOpen] = useState(false);
+  const [reviewRailOpen, setReviewRailOpen] = useState(false);
   const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
   const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
   const modalRef = useRef(modal);
@@ -99,7 +116,7 @@ export function CanvasRouter() {
 
   useEffect(() => setSelectedWorkstreamId(null), [canvasId]);
 
-  // Keyboard: Ctrl+K palette · Ctrl+Z/Y undo/redo · N/F/R · T/G/H lenses · Esc.
+  // Keyboard: Ctrl+K palette · Ctrl+Z/Y undo/redo · N/F/R · V review rail · T/G/H lenses · Esc.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const store = useStore.getState();
@@ -136,6 +153,8 @@ export function CanvasRouter() {
           setInboxTriageOpen(false);
         } else if (spatialCommandCenterShell && todayFocusOpen) {
           setTodayFocusOpen(false);
+        } else if (spatialCommandCenterShell && reviewRailOpen) {
+          setReviewRailOpen(false);
         } else if (spatialCommandCenterShell && (store.selectedIds.length || selectedWorkstreamId)) {
           store.clearSelection();
           setSelectedWorkstreamId(null);
@@ -302,6 +321,7 @@ export function CanvasRouter() {
           e.preventDefault();
           if (spatialCommandCenterShell) {
             setTodayFocusOpen(false);
+            setReviewRailOpen(false);
             setInboxTriageOpen(true);
             setInboxTriageFocusNonce((nonce) => nonce + 1);
           } else {
@@ -312,7 +332,18 @@ export function CanvasRouter() {
           if (spatialCommandCenterShell) {
             e.preventDefault();
             if (!todayFocusOpen) setInboxTriageOpen(false);
+            if (!todayFocusOpen) setReviewRailOpen(false);
             setTodayFocusOpen(!todayFocusOpen);
+          }
+          break;
+        case "v":
+          if (spatialCommandCenterShell) {
+            e.preventDefault();
+            if (!reviewRailOpen) {
+              setTodayFocusOpen(false);
+              setInboxTriageOpen(false);
+            }
+            setReviewRailOpen(!reviewRailOpen);
           }
           break;
         case "w":
@@ -334,7 +365,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
+  }, [canvasId, inboxTriageOpen, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -389,6 +420,7 @@ export function CanvasRouter() {
             type="button"
             onClick={() => {
               if (!todayFocusOpen) setInboxTriageOpen(false);
+              if (!todayFocusOpen) setReviewRailOpen(false);
               setTodayFocusOpen(!todayFocusOpen);
             }}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
@@ -404,6 +436,7 @@ export function CanvasRouter() {
             type="button"
             onClick={() => {
               setTodayFocusOpen(false);
+              setReviewRailOpen(false);
               setInboxTriageOpen(true);
               setInboxTriageFocusNonce((nonce) => nonce + 1);
             }}
@@ -415,6 +448,24 @@ export function CanvasRouter() {
           >
             <span>{tr("inbox.triage.title")}</span>
             <span className="text-purple-300">{tasks.filter((task) => task.inbox && !task.archivedAt).length}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!reviewRailOpen) {
+                setTodayFocusOpen(false);
+                setInboxTriageOpen(false);
+              }
+              setReviewRailOpen(!reviewRailOpen);
+            }}
+            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+              reviewRailOpen
+                ? "border-amber-400/50 bg-amber-400/10 text-amber-100"
+                : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
+            }`}
+          >
+            <span>{tr("review.title")}</span>
+            <span className="text-amber-300">V</span>
           </button>
         </div>
       )}
@@ -440,7 +491,38 @@ export function CanvasRouter() {
     setSelectedWorkstreamId(null);
   };
   const rail = spatialCommandCenterShell && canvasId ? (
-    todayFocusOpen ? (
+    reviewRailOpen ? (
+      <ReviewRail
+        tasks={tasks}
+        dependencies={dependencies}
+        state={inboxTriageState}
+        onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
+        onOpenInspector={(task) => {
+          setReviewRailOpen(false);
+          useStore.getState().setSelected([task.id]);
+        }}
+        onReveal={(task) => {
+          const store = useStore.getState();
+          store.setSelected([task.id]);
+          store.flashTask(task.id);
+          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+          setReviewRailOpen(false);
+        }}
+        onFocus={(task) => {
+          setReviewRailOpen(false);
+          useStore.getState().startFocus([task.id]);
+        }}
+        onOpenToday={() => {
+          setReviewRailOpen(false);
+          setTodayFocusOpen(true);
+        }}
+        onOpenInbox={() => {
+          setReviewRailOpen(false);
+          setInboxTriageOpen(true);
+          setInboxTriageFocusNonce((nonce) => nonce + 1);
+        }}
+      />
+    ) : todayFocusOpen ? (
       <TodayFocus
         tasks={tasks}
         dependencies={dependencies}
@@ -451,6 +533,7 @@ export function CanvasRouter() {
         onOpenInspector={(task) => {
           setInboxTriageOpen(false);
           setTodayFocusOpen(false);
+          setReviewRailOpen(false);
           useStore.getState().setSelected([task.id]);
         }}
         onReveal={(task) => {
@@ -586,7 +669,7 @@ export function CanvasRouter() {
       spatialCommandCenterShell={spatialCommandCenterShell}
       navigationLabel={tr("d.shell.navigation")}
       commandLabel={tr("d.shell.globalCommands")}
-      railLabel={todayFocusOpen ? tr("today.label") : inboxTriageOpen ? tr("inbox.triage.label") : tr("workstreams.title")}
+      railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen })}
       navigation={navigation}
       commands={commands}
       rail={rail}
