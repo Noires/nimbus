@@ -23,6 +23,7 @@ import { t as tr, useT } from "../i18n";
 import { CanvasRouterLayout } from "./CanvasRouterLayout";
 import { readSpatialCommandCenterShellFlag } from "./spatialCommandCenterFlag";
 import { WorkstreamsPanel } from "./WorkstreamsPanel";
+import { DensitySelector } from "./DensitySelector";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
@@ -43,6 +44,7 @@ export function CanvasRouter() {
   const helpOpen = useStore((s) => s.helpOpen);
   const workstreams = useStore((s) => s.workstreams);
   const tasks = useStore((s) => s.tasks);
+  const semanticDensity = useStore((s) => s.semanticDensity);
   const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
   const modalRef = useRef(modal);
   modalRef.current = modal;
@@ -360,7 +362,9 @@ export function CanvasRouter() {
     />
   ) : null;
   const rail = spatialCommandCenterShell && canvasId ? (
-    <WorkstreamsPanel
+    <>
+      <DensitySelector density={semanticDensity} onChange={useStore.getState().setSemanticDensity} />
+      <WorkstreamsPanel
       workstreams={workstreams}
       selectedId={selectedWorkstreamId}
       onSelect={setSelectedWorkstreamId}
@@ -381,13 +385,15 @@ export function CanvasRouter() {
       onSetMembership={(workstreamId, taskId, member) => {
         void useStore.getState().setWorkstreamMembership(workstreamId, taskId, member).catch((err) => console.error(err));
       }}
-      onApplyArrangement={(preview) => useStore.getState().applyArrangementPreview(preview)}
-    />
+        onApplyArrangement={(preview) => useStore.getState().applyArrangementPreview(preview)}
+      />
+    </>
   ) : undefined;
   const mainContent = canvasId ? (
     <>
       <Canvas
         canvasId={canvasId}
+        semanticDensity={spatialCommandCenterShell ? semanticDensity : "normal"}
         onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
         onEditTask={(task) => setModal({ mode: "edit", task })}
       />

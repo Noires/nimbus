@@ -1,7 +1,7 @@
 import { useStore, CARD_W, CARD_H, type Task } from "../store";
 
-// Level-of-detail stand-ins for cards at low zoom. Chips keep title + state;
-// dots are pure landmarks. Both fly the camera in on click.
+// Level-of-detail stand-ins for cards at low zoom. Both retain a readable,
+// keyboard-accessible title and fly the camera in on activation.
 export function TaskChip({ task, dot, dimmed }: { task: Task; dot: boolean; dimmed: boolean }) {
   const flyIn = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -12,21 +12,32 @@ export function TaskChip({ task, dot, dimmed }: { task: Task; dot: boolean; dimm
 
   if (dot) {
     return (
-      <div
-        className="absolute rounded-full cursor-pointer"
+      <button
+        type="button"
+        aria-label={`Open task: ${task.title}`}
+        className="absolute cursor-pointer text-left"
         style={{
-          left: task.x + CARD_W / 2 - 8,
-          top: task.y + CARD_H / 2 - 8,
-          width: 16,
-          height: 16,
-          background: task.color,
+          left: task.x,
+          top: task.y + CARD_H / 2 - 28,
+          width: CARD_W,
+          height: 56,
           opacity: dimmed ? 0.15 : task.done ? 0.35 : 0.9,
-          boxShadow: task.done ? undefined : `0 0 18px 4px ${task.color}55`,
         }}
         onPointerDown={(e) => e.stopPropagation()}
         onClick={flyIn}
-        title={task.title}
-      />
+      >
+        <span
+          aria-hidden="true"
+          className="absolute left-1/2 top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            background: task.color,
+            boxShadow: task.done ? undefined : `0 0 18px 4px ${task.color}55`,
+          }}
+        />
+        <span className={`semantic-dot-title absolute left-0 top-full w-full truncate text-center text-[48px] leading-none drop-shadow-md ${task.done ? "line-through text-gray-500" : "text-gray-100"}`}>
+          {task.title}
+        </span>
+      </button>
     );
   }
 

@@ -11,6 +11,7 @@ import { Minimap } from "./Minimap";
 import { PortalNode } from "./PortalNode";
 import { localDayKey } from "../utils/capacity";
 import { useT } from "../i18n";
+import type { CardDensity } from "../engine/semanticDensity";
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 4;
@@ -26,6 +27,7 @@ function nextLodBand(zoom: number, prev: LodBand): LodBand {
 
 interface CanvasProps {
   canvasId: string;
+  semanticDensity: CardDensity;
   onCreateAt: (x: number, y: number) => void;
   onEditTask: (task: Task) => void;
 }
@@ -37,7 +39,7 @@ interface Rect {
   y2: number;
 }
 
-export function Canvas({ canvasId, onCreateAt, onEditTask }: CanvasProps) {
+export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }: CanvasProps) {
   const tasks = useStore((s) => s.tasks);
   const dependencies = useStore((s) => s.dependencies);
   const showDone = useStore((s) => s.showDone);
@@ -292,6 +294,7 @@ export function Canvas({ canvasId, onCreateAt, onEditTask }: CanvasProps) {
                 <TaskCard
                   key={task.id}
                   task={task}
+                  semanticDensity={semanticDensity}
                   dimmed={isDimmed(task)}
                   blocked={blockedSet.has(task.id)}
                   focused={focusCurrent === task.id}
