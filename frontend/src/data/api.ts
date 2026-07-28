@@ -132,6 +132,20 @@ export const BubbleSchema = z.object({
 });
 export type Bubble = z.infer<typeof BubbleSchema>;
 
+export const WorkstreamMembershipSchema = z.object({ taskId: z.string() });
+export const WorkstreamSchema = z.object({
+  id: z.string(),
+  canvasId: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  pinned: z.boolean(),
+  protected: z.boolean(),
+  memberships: z.array(WorkstreamMembershipSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Workstream = z.infer<typeof WorkstreamSchema>;
+
 export const DependencySchema = z.object({
   id: z.string(),
   blockerId: z.string(),
@@ -326,6 +340,19 @@ export const api = {
   updateBubble: (id: string, patch: { title?: string; hue?: number | null; memberIds?: string[]; pinned?: boolean }) =>
     request(BubbleSchema, `/api/bubbles/${id}`, { method: "PATCH", json: patch }),
   deleteBubble: (id: string) => requestVoid(`/api/bubbles/${id}`, { method: "DELETE" }),
+
+  // --- workstreams (durable, explicit task membership) ---
+  listWorkstreams: (canvasId: string) =>
+    request(z.array(WorkstreamSchema), `/api/workstreams?canvasId=${encodeURIComponent(canvasId)}`),
+  createWorkstream: (input: { canvasId: string; name: string; description?: string | null; pinned?: boolean; protected?: boolean }) =>
+    request(WorkstreamSchema, "/api/workstreams", { method: "POST", json: input }),
+  updateWorkstream: (id: string, patch: { name?: string; description?: string | null; pinned?: boolean; protected?: boolean }) =>
+    request(WorkstreamSchema, `/api/workstreams/${id}`, { method: "PATCH", json: patch }),
+  deleteWorkstream: (id: string) => requestVoid(`/api/workstreams/${id}`, { method: "DELETE" }),
+  addTaskToWorkstream: (workstreamId: string, taskId: string) =>
+    request(WorkstreamSchema, `/api/workstreams/${workstreamId}/tasks/${taskId}`, { method: "PUT" }),
+  removeTaskFromWorkstream: (workstreamId: string, taskId: string) =>
+    request(WorkstreamSchema, `/api/workstreams/${workstreamId}/tasks/${taskId}`, { method: "DELETE" }),
 
   // --- dependencies ---
   listDependencies: (canvasId: string) =>

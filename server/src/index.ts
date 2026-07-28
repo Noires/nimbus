@@ -17,6 +17,7 @@ import portalRoutes from './routes/portalRoutes.js';
 import zoneRoutes from './routes/zoneRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 import connectionRoutes from './routes/connectionRoutes.js';
+import workstreamRoutes from './routes/workstreamRoutes.js';
 import { initSync } from './integrations/syncEngine.js';
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/portals', portalRoutes);
 app.use('/api/zones', zoneRoutes);
 app.use('/api/connections', connectionRoutes);
+app.use('/api/workstreams', workstreamRoutes);
 app.use('/api', publicRoutes);
 
 // Health check — served under /api so it is reachable through the production proxy.
