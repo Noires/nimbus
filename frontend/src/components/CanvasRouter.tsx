@@ -25,7 +25,9 @@ import { readSpatialCommandCenterShellFlag } from "./spatialCommandCenterFlag";
 import { WorkstreamsPanel } from "./WorkstreamsPanel";
 import { DensitySelector } from "./DensitySelector";
 import { InspectorRail } from "./InspectorRail";
+import { InboxTriage, type InboxTriageState } from "./InboxTriage";
 import { resolveSelectionContext } from "./selectionContext";
+import { quickParseTokens } from "../utils/quickParse";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
@@ -51,6 +53,9 @@ export function CanvasRouter() {
   const focus = useStore((s) => s.focus);
   const semanticDensity = useStore((s) => s.semanticDensity);
   const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
+  const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
+  const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
+  const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
   const modalRef = useRef(modal);
   modalRef.current = modal;
   const mainRef = useRef<HTMLElement>(null);
@@ -125,6 +130,8 @@ export function CanvasRouter() {
           store.exitFocus();
         } else if (store.zoneDraw) {
           store.setZoneDraw(false);
+        } else if (spatialCommandCenterShell && inboxTriageOpen) {
+          setInboxTriageOpen(false);
         } else if (spatialCommandCenterShell && (store.selectedIds.length || selectedWorkstreamId)) {
           store.clearSelection();
           setSelectedWorkstreamId(null);
@@ -289,7 +296,12 @@ export function CanvasRouter() {
           break;
         case "i":
           e.preventDefault();
-          store.setInboxOpen(!store.inboxOpen);
+          if (spatialCommandCenterShell) {
+            setInboxTriageOpen(true);
+            setInboxTriageFocusNonce((nonce) => nonce + 1);
+          } else {
+            store.setInboxOpen(!store.inboxOpen);
+          }
           break;
         case "w":
           startReview();
@@ -310,7 +322,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, selectedWorkstreamId, spatialCommandCenterShell]);
+  }, [canvasId, inboxTriageOpen, selectedWorkstreamId, spatialCommandCenterShell]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -359,6 +371,23 @@ export function CanvasRouter() {
         <span className="text-base font-semibold tracking-wide text-gray-100">{tr("app.name")}</span>
       </div>
       <CanvasList canvases={canvases} canvasId={canvasId} />
+      {spatialCommandCenterShell && canvasId && (
+        <button
+          type="button"
+          onClick={() => {
+            setInboxTriageOpen(true);
+            setInboxTriageFocusNonce((nonce) => nonce + 1);
+          }}
+          className={`mt-4 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
+            inboxTriageOpen
+              ? "border-purple-400/50 bg-purple-400/10 text-purple-100"
+              : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
+          }`}
+        >
+          <span>{tr("inbox.triage.title")}</span>
+          <span className="text-purple-300">{tasks.filter((task) => task.inbox && !task.archivedAt).length}</span>
+        </button>
+      )}
     </>
   );
   const commands = canvasId ? (
@@ -381,7 +410,42 @@ export function CanvasRouter() {
     setSelectedWorkstreamId(null);
   };
   const rail = spatialCommandCenterShell && canvasId ? (
-    <InspectorRail
+    inboxTriageOpen ? (
+      <InboxTriage
+        tasks={tasks}
+        workstreams={workstreams}
+        state={inboxTriageState}
+        focusNonce={inboxTriageFocusNonce}
+        onCapture={async (input) => {
+          const { fields } = quickParseTokens(input);
+          if (!fields.title) return;
+          await useStore.getState().addTask({
+            canvasId,
+            title: fields.title,
+            tags: fields.tags,
+            priority: fields.priority ?? undefined,
+            dueDate: fields.dueDate,
+            estimateMinutes: fields.estimateMinutes,
+            inbox: true,
+          });
+        }}
+        onClearInbox={(task) => useStore.getState().patchTask(task.id, { inbox: false })}
+        onSetWorkstream={async (taskId, workstreamId) => {
+          const workstream = useStore.getState().workstreams.find((candidate) => candidate.id === workstreamId);
+          if (!workstream?.memberships.some((membership) => membership.taskId === taskId)) {
+            await useStore.getState().setWorkstreamMembership(workstreamId, taskId, true);
+          }
+        }}
+        onPatchTask={(taskId, patch) => useStore.getState().patchTask(taskId, patch)}
+        onReveal={(task) => {
+          const store = useStore.getState();
+          store.setSelected([task.id]);
+          store.flashTask(task.id);
+          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+          setInboxTriageOpen(false);
+        }}
+      />
+    ) : <InspectorRail
       context={selectionContext}
       tasks={tasks}
       workstreams={workstreams}
@@ -425,8 +489,9 @@ export function CanvasRouter() {
         semanticDensity={spatialCommandCenterShell ? semanticDensity : "normal"}
         onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
         onEditTask={(task) => setModal({ mode: "edit", task })}
+        onLoadState={spatialCommandCenterShell ? setInboxTriageState : undefined}
       />
-      <InboxDock canvasId={canvasId} viewportRef={mainRef} />
+      {!spatialCommandCenterShell && <InboxDock canvasId={canvasId} viewportRef={mainRef} />}
       <SelectionBar canvasId={canvasId} />
       <DayDock />
       <ReviewHud />
@@ -454,7 +519,12 @@ export function CanvasRouter() {
   const overlays = (
     <>
       <CommandPalette canvasId={canvasId} onNewTask={() => setModal({ mode: "create" })} />
-      {helpOpen && <HelpPanel onClose={() => useStore.getState().setHelpOpen(false)} />}
+      {helpOpen && (
+        <HelpPanel
+          spatialCommandCenterShell={spatialCommandCenterShell}
+          onClose={() => useStore.getState().setHelpOpen(false)}
+        />
+      )}
       <Toast />
     </>
   );
@@ -464,7 +534,7 @@ export function CanvasRouter() {
       spatialCommandCenterShell={spatialCommandCenterShell}
       navigationLabel={tr("d.shell.navigation")}
       commandLabel={tr("d.shell.globalCommands")}
-      railLabel={tr("workstreams.title")}
+      railLabel={inboxTriageOpen ? tr("inbox.triage.label") : tr("workstreams.title")}
       navigation={navigation}
       commands={commands}
       rail={rail}
