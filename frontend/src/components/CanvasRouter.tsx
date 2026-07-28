@@ -26,6 +26,7 @@ import { WorkstreamsPanel } from "./WorkstreamsPanel";
 import { DensitySelector } from "./DensitySelector";
 import { InspectorRail } from "./InspectorRail";
 import { InboxTriage, type InboxTriageState } from "./InboxTriage";
+import { TodayFocus } from "./TodayFocus";
 import { resolveSelectionContext } from "./selectionContext";
 import { quickParseTokens } from "../utils/quickParse";
 
@@ -54,6 +55,7 @@ export function CanvasRouter() {
   const semanticDensity = useStore((s) => s.semanticDensity);
   const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
   const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
+  const [todayFocusOpen, setTodayFocusOpen] = useState(false);
   const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
   const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
   const modalRef = useRef(modal);
@@ -132,6 +134,8 @@ export function CanvasRouter() {
           store.setZoneDraw(false);
         } else if (spatialCommandCenterShell && inboxTriageOpen) {
           setInboxTriageOpen(false);
+        } else if (spatialCommandCenterShell && todayFocusOpen) {
+          setTodayFocusOpen(false);
         } else if (spatialCommandCenterShell && (store.selectedIds.length || selectedWorkstreamId)) {
           store.clearSelection();
           setSelectedWorkstreamId(null);
@@ -297,10 +301,18 @@ export function CanvasRouter() {
         case "i":
           e.preventDefault();
           if (spatialCommandCenterShell) {
+            setTodayFocusOpen(false);
             setInboxTriageOpen(true);
             setInboxTriageFocusNonce((nonce) => nonce + 1);
           } else {
             store.setInboxOpen(!store.inboxOpen);
+          }
+          break;
+        case "o":
+          if (spatialCommandCenterShell) {
+            e.preventDefault();
+            if (!todayFocusOpen) setInboxTriageOpen(false);
+            setTodayFocusOpen(!todayFocusOpen);
           }
           break;
         case "w":
@@ -322,7 +334,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, selectedWorkstreamId, spatialCommandCenterShell]);
+  }, [canvasId, inboxTriageOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -372,21 +384,39 @@ export function CanvasRouter() {
       </div>
       <CanvasList canvases={canvases} canvasId={canvasId} />
       {spatialCommandCenterShell && canvasId && (
-        <button
-          type="button"
-          onClick={() => {
-            setInboxTriageOpen(true);
-            setInboxTriageFocusNonce((nonce) => nonce + 1);
-          }}
-          className={`mt-4 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
-            inboxTriageOpen
-              ? "border-purple-400/50 bg-purple-400/10 text-purple-100"
-              : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
-          }`}
-        >
-          <span>{tr("inbox.triage.title")}</span>
-          <span className="text-purple-300">{tasks.filter((task) => task.inbox && !task.archivedAt).length}</span>
-        </button>
+        <div className="mt-4 space-y-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!todayFocusOpen) setInboxTriageOpen(false);
+              setTodayFocusOpen(!todayFocusOpen);
+            }}
+            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
+              todayFocusOpen
+                ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100"
+                : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
+            }`}
+          >
+            <span>{tr("today.title")}</span>
+            <span className="text-cyan-300">O</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTodayFocusOpen(false);
+              setInboxTriageOpen(true);
+              setInboxTriageFocusNonce((nonce) => nonce + 1);
+            }}
+            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
+              inboxTriageOpen
+                ? "border-purple-400/50 bg-purple-400/10 text-purple-100"
+                : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
+            }`}
+          >
+            <span>{tr("inbox.triage.title")}</span>
+            <span className="text-purple-300">{tasks.filter((task) => task.inbox && !task.archivedAt).length}</span>
+          </button>
+        </div>
       )}
     </>
   );
@@ -410,7 +440,29 @@ export function CanvasRouter() {
     setSelectedWorkstreamId(null);
   };
   const rail = spatialCommandCenterShell && canvasId ? (
-    inboxTriageOpen ? (
+    todayFocusOpen ? (
+      <TodayFocus
+        tasks={tasks}
+        dependencies={dependencies}
+        state={inboxTriageState}
+        focusEnabled
+        onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
+        onReturnToInbox={(task) => useStore.getState().patchTask(task.id, { inbox: true })}
+        onOpenInspector={(task) => {
+          setInboxTriageOpen(false);
+          setTodayFocusOpen(false);
+          useStore.getState().setSelected([task.id]);
+        }}
+        onReveal={(task) => {
+          const store = useStore.getState();
+          store.setSelected([task.id]);
+          store.flashTask(task.id);
+          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+          setTodayFocusOpen(false);
+        }}
+        onFocus={(task) => useStore.getState().startFocus([task.id])}
+      />
+    ) : inboxTriageOpen ? (
       <InboxTriage
         tasks={tasks}
         workstreams={workstreams}
@@ -534,7 +586,7 @@ export function CanvasRouter() {
       spatialCommandCenterShell={spatialCommandCenterShell}
       navigationLabel={tr("d.shell.navigation")}
       commandLabel={tr("d.shell.globalCommands")}
-      railLabel={inboxTriageOpen ? tr("inbox.triage.label") : tr("workstreams.title")}
+      railLabel={todayFocusOpen ? tr("today.label") : inboxTriageOpen ? tr("inbox.triage.label") : tr("workstreams.title")}
       navigation={navigation}
       commands={commands}
       rail={rail}
