@@ -24,6 +24,8 @@ import { CanvasRouterLayout } from "./CanvasRouterLayout";
 import { readSpatialCommandCenterShellFlag } from "./spatialCommandCenterFlag";
 import { WorkstreamsPanel } from "./WorkstreamsPanel";
 import { DensitySelector } from "./DensitySelector";
+import { InspectorRail } from "./InspectorRail";
+import { resolveSelectionContext } from "./selectionContext";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
@@ -44,6 +46,9 @@ export function CanvasRouter() {
   const helpOpen = useStore((s) => s.helpOpen);
   const workstreams = useStore((s) => s.workstreams);
   const tasks = useStore((s) => s.tasks);
+  const dependencies = useStore((s) => s.dependencies);
+  const selectedIds = useStore((s) => s.selectedIds);
+  const focus = useStore((s) => s.focus);
   const semanticDensity = useStore((s) => s.semanticDensity);
   const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
   const modalRef = useRef(modal);
@@ -120,6 +125,9 @@ export function CanvasRouter() {
           store.exitFocus();
         } else if (store.zoneDraw) {
           store.setZoneDraw(false);
+        } else if (spatialCommandCenterShell && (store.selectedIds.length || selectedWorkstreamId)) {
+          store.clearSelection();
+          setSelectedWorkstreamId(null);
         } else if (store.selectedIds.length) {
           store.clearSelection();
         } else if (store.dayFilter) {
@@ -302,7 +310,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId]);
+  }, [canvasId, selectedWorkstreamId, spatialCommandCenterShell]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -361,13 +369,33 @@ export function CanvasRouter() {
       onOpenPulse={() => setPulseOpen(true)}
     />
   ) : null;
+  const selectionContext = resolveSelectionContext({
+    selectedIds,
+    tasks,
+    selectedWorkstreamId,
+    workstreams,
+    focusActive: Boolean(focus),
+  });
+  const returnToWorkstreams = () => {
+    useStore.getState().clearSelection();
+    setSelectedWorkstreamId(null);
+  };
   const rail = spatialCommandCenterShell && canvasId ? (
-    <>
+    <InspectorRail
+      context={selectionContext}
+      tasks={tasks}
+      workstreams={workstreams}
+      dependencies={dependencies}
+      onBack={returnToWorkstreams}
+      directory={<>
       <DensitySelector density={semanticDensity} onChange={useStore.getState().setSemanticDensity} />
       <WorkstreamsPanel
       workstreams={workstreams}
-      selectedId={selectedWorkstreamId}
-      onSelect={setSelectedWorkstreamId}
+      selectedId={focus ? null : selectedWorkstreamId}
+      onSelect={(id) => {
+        useStore.getState().clearSelection();
+        setSelectedWorkstreamId(id);
+      }}
       onCreate={(name) => {
         void useStore.getState().addWorkstream({ canvasId, name })
           .then((workstream) => setSelectedWorkstreamId(workstream.id))
@@ -387,7 +415,8 @@ export function CanvasRouter() {
       }}
         onApplyArrangement={(preview) => useStore.getState().applyArrangementPreview(preview)}
       />
-    </>
+      </>}
+    />
   ) : undefined;
   const mainContent = canvasId ? (
     <>

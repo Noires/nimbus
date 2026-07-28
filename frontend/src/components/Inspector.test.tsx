@@ -1,0 +1,102 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { afterEach, describe, expect, it } from "vitest";
+import { useLocale } from "../i18n";
+import type { Dependency, Task, Workstream } from "../store";
+import { TaskInspector, WorkstreamInspector } from "./Inspector";
+
+const task = {
+  id: "task-1",
+  title: "Ship inspector",
+  description: "Confirm the rail uses selection context.",
+  done: false,
+  status: "In progress",
+  dueDate: "2026-08-01T00:00:00.000Z",
+  priority: "high",
+  tags: ["frontend", "a11y"],
+  checklist: [{ id: "check-1", taskId: "task-1", text: "Write tests", done: true, order: 0 }, { id: "check-2", taskId: "task-1", text: "Build", done: false, order: 1 }],
+  provider: "github",
+  externalKey: "#42",
+  externalUrl: "https://example.test/issues/42",
+  syncedAt: "2026-07-28T12:00:00.000Z",
+  lastActivityAt: "2026-07-28T11:00:00.000Z",
+} as Task;
+const workstream = {
+  id: "ws-1",
+  name: "Release readiness",
+  description: "Everything needed before launch.",
+  pinned: true,
+  protected: true,
+  memberships: [{ taskId: task.id }],
+} as Workstream;
+
+describe("inspectors", () => {
+  afterEach(() => useLocale.setState({ locale: "en" }));
+
+  it("renders task state, planning metadata, relationships, sync, and an accessible return action", () => {
+    const html = renderToStaticMarkup(
+      <TaskInspector
+        task={task}
+        workstreams={[workstream]}
+        dependencies={[
+          { id: "dep-1", blockerId: "task-2", blockedId: task.id },
+          { id: "dep-2", blockerId: task.id, blockedId: "task-3" },
+        ] as Dependency[]}
+        tasks={[task, { ...task, id: "task-2", title: "Approve design" }, { ...task, id: "task-3", title: "Publish" }]}
+        onBack={() => {}}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Inspector"');
+    expect(html).toContain("Ship inspector");
+    expect(html).toContain("In progress");
+    expect(html).toContain("Confirm the rail uses selection context.");
+    expect(html).toContain("Release readiness");
+    expect(html).toContain("Aug 1, 2026");
+    expect(html).toContain("High");
+    expect(html).toContain("frontend");
+    expect(html).toContain("1 of 2");
+    expect(html).toContain("Approve design");
+    expect(html).toContain("Publish");
+    expect(html).toContain("GitHub #42");
+    expect(html).toContain("Return to workstreams");
+  });
+
+  it("renders workstream membership and protection state", () => {
+    const html = renderToStaticMarkup(
+      <WorkstreamInspector
+        workstream={workstream}
+        tasks={[task, { ...task, id: "task-2", title: "QA sign-off", done: true }]}
+        onBack={() => {}}
+      />,
+    );
+
+    expect(html).toContain('aria-label="Inspector"');
+    expect(html).toContain("Release readiness");
+    expect(html).toContain("Everything needed before launch.");
+    expect(html).toContain("Pinned");
+    expect(html).toContain("Protected");
+    expect(html).toContain("1 task");
+    expect(html).toContain("Ship inspector");
+    expect(html).toContain("Return to workstreams");
+  });
+
+  it.each([
+    ["en", 0, "0 tasks"],
+    ["en", 1, "1 task"],
+    ["en", 2, "2 tasks"],
+    ["de", 0, "0 Aufgaben"],
+    ["de", 1, "1 Aufgabe"],
+    ["de", 2, "2 Aufgaben"],
+  ] as const)("renders the %s workstream member count for %i members", (locale, count, expected) => {
+    useLocale.setState({ locale });
+    const html = renderToStaticMarkup(
+      <WorkstreamInspector
+        workstream={{ ...workstream, memberships: Array.from({ length: count }, (_, index) => ({ taskId: `task-${index}` })) }}
+        tasks={[]}
+        onBack={() => {}}
+      />,
+    );
+
+    expect(html).toContain(expected);
+  });
+});
