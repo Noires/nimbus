@@ -17,6 +17,9 @@ describe("InspectorRail", () => {
         workstreams={[workstream]}
         dependencies={dependencies}
         onBack={() => {}}
+        onOpenTask={() => {}}
+        onOpenToday={() => {}}
+        onOpenReview={() => {}}
       />,
     );
 
@@ -34,6 +37,9 @@ describe("InspectorRail", () => {
         workstreams={[workstream]}
         dependencies={dependencies}
         onBack={() => {}}
+        onOpenTask={() => {}}
+        onOpenToday={() => {}}
+        onOpenReview={() => {}}
       />,
     );
 

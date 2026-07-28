@@ -66,7 +66,12 @@ describe("inspectors", () => {
       <WorkstreamInspector
         workstream={workstream}
         tasks={[task, { ...task, id: "task-2", title: "QA sign-off", done: true }]}
+        dependencies={[]}
+        now={new Date("2026-08-02T12:00:00.000Z")}
         onBack={() => {}}
+        onOpenTask={() => {}}
+        onOpenToday={() => {}}
+        onOpenReview={() => {}}
       />,
     );
 
@@ -77,6 +82,11 @@ describe("inspectors", () => {
     expect(html).toContain("Protected");
     expect(html).toContain("1 task");
     expect(html).toContain("Ship inspector");
+    expect(html).toContain("At risk");
+    expect(html).toContain("1 overdue · 0 of 1 complete");
+    expect(html).toContain("Open in Inspector");
+    expect(html).toContain("Open Today / Focus");
+    expect(html).toContain("Open Review");
     expect(html).toContain("Return to workstreams");
   });
 
@@ -93,10 +103,52 @@ describe("inspectors", () => {
       <WorkstreamInspector
         workstream={{ ...workstream, memberships: Array.from({ length: count }, (_, index) => ({ taskId: `task-${index}` })) }}
         tasks={[]}
+        dependencies={[]}
         onBack={() => {}}
+        onOpenTask={() => {}}
+        onOpenToday={() => {}}
+        onOpenReview={() => {}}
       />,
     );
 
     expect(html).toContain(expected);
+  });
+
+  it("localizes the workstream health status and reason summary in German", () => {
+    useLocale.setState({ locale: "de" });
+    const html = renderToStaticMarkup(
+      <WorkstreamInspector
+        workstream={workstream}
+        tasks={[task]}
+        dependencies={[]}
+        now={new Date("2026-08-02T12:00:00.000Z")}
+        onBack={() => {}}
+        onOpenTask={() => {}}
+        onOpenToday={() => {}}
+        onOpenReview={() => {}}
+      />,
+    );
+
+    expect(html).toContain("Gefährdet");
+    expect(html).toContain("1 überfällig · 0 von 1 erledigt");
+  });
+
+  it("uses health totals and localizes the missing-membership reason", () => {
+    useLocale.setState({ locale: "de" });
+    const html = renderToStaticMarkup(
+      <WorkstreamInspector
+        workstream={{ ...workstream, memberships: [{ taskId: task.id }, { taskId: "missing-task" }] }}
+        tasks={[{ ...task, done: true }]}
+        dependencies={[]}
+        now={new Date("2026-08-02T12:00:00.000Z")}
+        onBack={() => {}}
+        onOpenTask={() => {}}
+        onOpenToday={() => {}}
+        onOpenReview={() => {}}
+      />,
+    );
+
+    expect(html).toContain("1 von 2");
+    expect(html).toContain("1 Aufgabenmitgliedschaften nicht verfügbar");
   });
 });

@@ -10,6 +10,9 @@ interface InspectorRailProps {
   workstreams: Workstream[];
   dependencies: Dependency[];
   onBack: () => void;
+  onOpenTask: (task: Task) => void;
+  onOpenToday: () => void;
+  onOpenReview: () => void;
 }
 
 /** Shows a selected task or workstream in place of the workstreams directory. */
@@ -20,6 +23,9 @@ export function InspectorRail({
   workstreams,
   dependencies,
   onBack,
+  onOpenTask,
+  onOpenToday,
+  onOpenReview,
 }: InspectorRailProps) {
   return (
     <div data-selection-context={context.kind}>
@@ -32,7 +38,7 @@ export function InspectorRail({
           onBack={onBack}
         />
       ) : context.kind === "workstream" ? (
-        <WorkstreamInspector workstream={context.workstream} tasks={tasks} onBack={onBack} />
+        <WorkstreamInspector workstream={context.workstream} tasks={tasks} dependencies={dependencies} onBack={onBack} onOpenTask={onOpenTask} onOpenToday={onOpenToday} onOpenReview={onOpenReview} />
       ) : directory}
     </div>
   );

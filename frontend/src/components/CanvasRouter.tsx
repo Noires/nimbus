@@ -586,6 +586,12 @@ export function CanvasRouter() {
       workstreams={workstreams}
       dependencies={dependencies}
       onBack={returnToWorkstreams}
+      onOpenTask={(task) => {
+        setSelectedWorkstreamId(null);
+        useStore.getState().setSelected([task.id]);
+      }}
+      onOpenToday={() => setTodayFocusOpen(true)}
+      onOpenReview={() => setReviewRailOpen(true)}
       directory={<>
       <DensitySelector density={semanticDensity} onChange={useStore.getState().setSemanticDensity} />
       <WorkstreamsPanel
@@ -608,7 +614,8 @@ export function CanvasRouter() {
           .then(() => setSelectedWorkstreamId((selected) => (selected === id ? null : selected)))
           .catch((err) => console.error(err));
       }}
-      tasks={tasks.map(({ id, title, x, y }) => ({ id, title, x, y }))}
+      tasks={tasks}
+      dependencies={dependencies}
       onSetMembership={(workstreamId, taskId, member) => {
         void useStore.getState().setWorkstreamMembership(workstreamId, taskId, member).catch((err) => console.error(err));
       }}
