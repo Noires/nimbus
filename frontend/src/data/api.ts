@@ -309,6 +309,8 @@ export const api = {
     request(TaskSchema, "/api/tasks", { method: "POST", json: input }),
   updateTask: (id: string, patch: TaskPatch) =>
     request(TaskSchema, `/api/tasks/${id}`, { method: "PATCH", json: patch }),
+  updateTaskPositions: (positions: Array<{ id: string; x: number; y: number }>) =>
+    request(z.object({ tasks: z.array(TaskSchema) }), "/api/tasks/positions", { method: "POST", json: { positions } }),
   deleteTask: (id: string) => requestVoid(`/api/tasks/${id}`, { method: "DELETE" }),
   taskEvents: (id: string) => request(EventListSchema, `/api/tasks/${id}/events`),
   splitTask: (id: string, positions: Array<{ x: number; y: number }>) =>

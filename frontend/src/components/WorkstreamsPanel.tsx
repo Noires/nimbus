@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Workstream } from "../data/api";
 import { workstreamTaskCount } from "../data/workstreamSelectors";
+import { previewArrangementOperation, type ArrangementPreview } from "../engine/arrangementOperation";
 import { useT } from "../i18n";
 
 interface WorkstreamsPanelProps {
@@ -10,8 +11,43 @@ interface WorkstreamsPanelProps {
   onCreate: (name: string) => void;
   onUpdate: (id: string, patch: { name?: string; pinned?: boolean; protected?: boolean }) => void;
   onDelete: (id: string) => void;
-  tasks: Array<{ id: string; title: string }>;
+  tasks: Array<{ id: string; title: string; x: number; y: number }>;
   onSetMembership: (workstreamId: string, taskId: string, member: boolean) => void;
+  onApplyArrangement: (preview: ArrangementPreview) => Promise<boolean>;
+}
+
+export function WorkstreamArrangementPreview({
+  preview,
+  onApply,
+  onCancel,
+}: {
+  preview: ArrangementPreview;
+  onApply: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="space-y-2" aria-live="polite">
+      <p className="text-xs text-cyan-100">
+        {preview.isNoop
+          ? t("workstreams.arrangementNoop")
+          : t("workstreams.arrangementPreview", { moved: preview.moved.length, skipped: preview.skipped.length })}
+      </p>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={preview.isNoop}
+          onClick={onApply}
+          className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {t("workstreams.applyArrangement")}
+        </button>
+        <button type="button" onClick={onCancel} className="rounded px-2 py-1 text-xs text-gray-300 hover:bg-white/5">
+          {t("workstreams.cancelArrangement")}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 /** Structured, non-canvas navigation for durable manual workstreams. */
@@ -24,13 +60,18 @@ export function WorkstreamsPanel({
   onDelete,
   tasks,
   onSetMembership,
+  onApplyArrangement,
 }: WorkstreamsPanelProps) {
   const t = useT();
   const [name, setName] = useState("");
   const selected = workstreams.find((workstream) => workstream.id === selectedId) ?? null;
   const [selectedName, setSelectedName] = useState("");
+  const [arrangementPreview, setArrangementPreview] = useState<ArrangementPreview | null>(null);
 
-  useEffect(() => setSelectedName(selected?.name ?? ""), [selected?.id, selected?.name]);
+  useEffect(() => {
+    setSelectedName(selected?.name ?? "");
+    setArrangementPreview(null);
+  }, [selected?.id, selected?.name]);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -109,6 +150,40 @@ export function WorkstreamsPanel({
             <span>{t("workstreams.protected")}</span>
           </label>
           {selected.protected && <p className="mt-1 text-xs text-violet-200">{t("workstreams.unprotectBeforeDelete")}</p>}
+          <div className="mt-3 border-t border-white/10 pt-2">
+            {selected.pinned || selected.protected ? (
+              <p className="text-xs text-gray-400">{t("workstreams.arrangementProtected")}</p>
+            ) : arrangementPreview ? (
+              <WorkstreamArrangementPreview
+                preview={arrangementPreview}
+                onApply={async () => {
+                  if (await onApplyArrangement(arrangementPreview)) setArrangementPreview(null);
+                }}
+                onCancel={() => setArrangementPreview(null)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setArrangementPreview(previewArrangementOperation({
+                  scope: {
+                    kind: "workstream",
+                    workstreamId: selected.id,
+                    taskIds: selected.memberships.map((membership) => membership.taskId),
+                  },
+                  tasks,
+                  workstreams: workstreams.map((workstream) => ({
+                    id: workstream.id,
+                    pinned: workstream.pinned,
+                    protected: workstream.protected,
+                    taskIds: workstream.memberships.map((membership) => membership.taskId),
+                  })),
+                }))}
+                className="rounded px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/15"
+              >
+                {t("workstreams.arrange")}
+              </button>
+            )}
+          </div>
           <fieldset className="mt-3 border-t border-white/10 pt-2">
             <legend className="text-xs font-medium text-gray-300">{t("workstreams.members")}</legend>
             {tasks.map((task) => {

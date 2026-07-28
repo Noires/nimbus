@@ -17,6 +17,35 @@ async function canvasSettings(canvasId: string): Promise<CanvasSettings> {
   return (canvas?.settings as CanvasSettings) ?? {};
 }
 
+type PositionUpdate = { id: string; x: number; y: number };
+
+function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const positions: PositionUpdate[] = [];
+  const ids = new Set<string>();
+  for (const candidate of value) {
+    if (
+      !candidate ||
+      typeof candidate !== "object"
+    ) return null;
+    const position = candidate as { id?: unknown; x?: unknown; y?: unknown };
+    if (
+      typeof position.id !== "string" ||
+      !position.id ||
+      typeof position.x !== "number" ||
+      typeof position.y !== "number" ||
+      !Number.isFinite(position.x) ||
+      !Number.isFinite(position.y) ||
+      ids.has(position.id)
+    ) return null;
+    ids.add(position.id);
+    positions.push({ id: position.id, x: position.x, y: position.y });
+  }
+  return positions;
+}
+
+class PositionUpdateError extends Error {}
+
 // GET /api/tasks?canvasId=&done=&archived=&page=&pageSize=
 router.get("/", async (req, res) => {
   try {
@@ -73,6 +102,56 @@ router.get("/", async (req, res) => {
     res.json({ tasks, total });
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// POST /api/tasks/positions — atomically persist a batch of card movements.
+// This static route must stay above all parameterized task routes.
+router.post("/positions", async (req, res) => {
+  const positions = parsePositionUpdates(req.body?.positions);
+  if (!positions) return res.status(400).json({ error: "Expected unique task positions with finite x and y values" });
+
+  try {
+    const saved = await prisma.$transaction(async (tx) => {
+      const tasks = await tx.task.findMany({
+        where: { id: { in: positions.map((position) => position.id) } },
+        include: INCLUDE_CHECKLIST,
+      });
+      if (tasks.length !== positions.length) throw new PositionUpdateError("Tasks not found");
+      const canvasId = tasks[0].canvasId;
+      if (!tasks.every((task) => task.canvasId === canvasId)) {
+        throw new PositionUpdateError("Tasks are on different canvases");
+      }
+
+      const savedTasks = [];
+      for (const position of positions) {
+        savedTasks.push(await tx.task.update({
+          where: { id: position.id },
+          data: { x: position.x, y: position.y },
+          include: INCLUDE_CHECKLIST,
+        }));
+      }
+      return { tasks, savedTasks };
+    });
+
+    void recordEvents(saved.savedTasks.map((task) => {
+      const previous = saved.tasks.find((item) => item.id === task.id)!;
+      return {
+        taskId: task.id,
+        canvasId: task.canvasId,
+        type: "moved" as const,
+        payload: { x: task.x, y: task.y, z: task.z, prev: { x: previous.x, y: previous.y, z: previous.z } },
+      };
+    }));
+    const clientId = req.header("x-client-id");
+    for (const task of saved.savedTasks) {
+      publish(task.canvasId, { entity: "task", action: "upsert", data: task, clientId });
+    }
+
+    return res.json({ tasks: saved.savedTasks });
+  } catch (e) {
+    const status = e instanceof PositionUpdateError ? 400 : 500;
+    return res.status(status).json({ error: (e as Error).message });
   }
 });
 
