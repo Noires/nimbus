@@ -1,0 +1,46 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { WorkstreamsPanel } from "./WorkstreamsPanel";
+
+const workstreams = [{
+  id: "ws-1",
+  canvasId: "canvas-1",
+  name: "Release readiness",
+  description: null,
+  pinned: true,
+  protected: true,
+  memberships: [{ taskId: "task-1" }, { taskId: "task-2" }],
+  createdAt: "2026-07-27T00:00:00.000Z",
+  updatedAt: "2026-07-27T00:00:00.000Z",
+}];
+
+describe("WorkstreamsPanel", () => {
+  it("labels durable workstreams separately from transient proximity suggestions", () => {
+    const html = renderToStaticMarkup(
+      <WorkstreamsPanel
+        workstreams={workstreams}
+        selectedId="ws-1"
+        onSelect={() => {}}
+        onCreate={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+        tasks={[{ id: "task-1", title: "Verify rollout" }]}
+        onSetMembership={() => {}}
+      />,
+    );
+
+    expect(html).toContain("Workstreams");
+    expect(html).toContain("Durable, explicit task membership");
+    expect(html).toContain("Suggested clusters are transient proximity hints");
+    expect(html).toContain("Release readiness");
+    expect(html).toContain("2 tasks");
+    expect(html).toContain("Pinned");
+    expect(html).toContain("Protected");
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain("Verify rollout");
+    expect(html).toContain("Delete");
+    expect(html).toContain('type="checkbox" role="switch" checked=""');
+    expect(html).toContain("Protected — unprotect before deleting");
+    expect(html).toContain('disabled=""');
+  });
+});

@@ -3,7 +3,7 @@ import { EventEmitter } from "events";
 // In-memory per-canvas event bus for SSE live sync. Single-process by design;
 // swapping in Redis pub/sub later only changes this file.
 export interface LiveEvent {
-  entity: "task" | "bubble" | "dependency" | "portal" | "zone" | "canvas" | "connection";
+  entity: "task" | "bubble" | "dependency" | "portal" | "zone" | "canvas" | "connection" | "workstream";
   action: "upsert" | "delete";
   data: unknown;
   clientId?: string;

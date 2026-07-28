@@ -16,6 +16,7 @@ model Canvas {
   portalsIn    Portal[] @relation("PortalTarget")
   zones        Zone[]
   connections  Connection[]
+  workstreams  Workstream[]
   createdAt    DateTime @default(now())
   // --- batch 2 ---
   shareToken   String?  @unique
@@ -80,9 +81,42 @@ model Task {
   checklist       ChecklistItem[]
   blocking        Dependency[]    @relation("Blocker")
   blockedBy       Dependency[]    @relation("Blocked")
+  workstreams     TaskWorkstream[]
 
   @@index([canvasId])
   @@map("tasks")
+}
+
+// A durable, user-owned organizational container. Unlike proximity bubbles,
+// memberships below are explicit and never inferred from card position.
+model Workstream {
+  id          String           @id @default(cuid())
+  canvasId    String
+  canvas      Canvas           @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  name        String
+  description String?          @db.Text
+  pinned      Boolean          @default(false)
+  protected   Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  memberships TaskWorkstream[]
+
+  @@index([canvasId, createdAt])
+  @@map("workstreams")
+}
+
+// Explicit many-to-many membership. The composite key prevents duplicates
+// while allowing each task to intentionally appear in several workstreams.
+model TaskWorkstream {
+  taskId       String
+  workstreamId String
+  task         Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workstream   Workstream @relation(fields: [workstreamId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([taskId, workstreamId])
+  @@index([workstreamId])
+  @@map("task_workstreams")
 }
 
 model ChecklistItem {

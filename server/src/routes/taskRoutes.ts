@@ -491,20 +491,31 @@ router.delete("/:id", async (req, res) => {
   try {
     const existing = await prisma.task.findUnique({
       where: { id: req.params.id },
-      include: INCLUDE_CHECKLIST,
+      include: { ...INCLUDE_CHECKLIST, workstreams: { select: { workstreamId: true } } },
     });
     if (!existing) return res.status(404).json({ error: "Task not found" });
 
-    await prisma.task.delete({ where: { id: req.params.id } });
+    const workstreamIds = existing.workstreams.map((membership) => membership.workstreamId);
+    const { deletedTask, affectedWorkstreams } = await prisma.$transaction(async (tx) => {
+      const deletedTask = await tx.task.delete({ where: { id: req.params.id } });
+      const affectedWorkstreams = await tx.workstream.findMany({
+        where: { id: { in: workstreamIds } },
+        include: { memberships: { select: { taskId: true } } },
+      });
+      return { deletedTask, affectedWorkstreams };
+    });
     void recordEvent({
-      taskId: existing.id,
-      canvasId: existing.canvasId,
+      taskId: deletedTask.id,
+      canvasId: deletedTask.canvasId,
       type: "deleted",
       payload: { snapshot: existing },
     });
-    publish(existing.canvasId, {
-      entity: "task", action: "delete", data: { id: existing.id },
-      clientId: req.header("x-client-id"),
+    const clientId = req.header("x-client-id");
+    for (const workstream of affectedWorkstreams) {
+      publish(deletedTask.canvasId, { entity: "workstream", action: "upsert", data: workstream, clientId });
+    }
+    publish(deletedTask.canvasId, {
+      entity: "task", action: "delete", data: { id: deletedTask.id }, clientId,
     });
     return res.status(204).send();
   } catch (e) {

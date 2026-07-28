@@ -7,6 +7,7 @@ import {
   PortalSchema,
   ZoneSchema,
   ConnectionSchema,
+  WorkstreamSchema,
   type Canvas,
   type Task,
   type TaskPatch,
@@ -18,6 +19,7 @@ import {
   type Waypoint,
   type CanvasSettings,
   type Connection,
+  type Workstream,
 } from "./data/api";
 import { history, type Op } from "./engine/history";
 import { computeClusters } from "./engine/proximityDetector";
@@ -26,10 +28,10 @@ import { computeAutoArrange, NONE_KEY, type ArrangeMode } from "./engine/autoArr
 import { latticePositions } from "./engine/lattice";
 import { t } from "./i18n";
 
-export type { Canvas, Task, Bubble, Dependency, Portal, Zone, Waypoint, CanvasSettings, Connection };
+export type { Canvas, Task, Bubble, Dependency, Portal, Zone, Waypoint, CanvasSettings, Connection, Workstream };
 
 export interface RemoteEvent {
-  entity: "task" | "bubble" | "dependency" | "portal" | "zone" | "canvas" | "connection";
+  entity: "task" | "bubble" | "dependency" | "portal" | "zone" | "canvas" | "connection" | "workstream";
   action: "upsert" | "delete";
   data: unknown;
   clientId?: string;
@@ -85,6 +87,14 @@ interface State {
   titleCluster: (canvasId: string, memberIds: string[], title: string) => Promise<void>;
   updateBubble: (id: string, patch: { title?: string; hue?: number | null; memberIds?: string[]; pinned?: boolean }) => Promise<void>;
   removeBubble: (id: string) => Promise<void>;
+
+  // --- workstreams (durable, explicit task membership) ---
+  workstreams: Workstream[];
+  loadWorkstreams: (canvasId: string) => Promise<void>;
+  addWorkstream: (input: { canvasId: string; name: string; description?: string | null; pinned?: boolean; protected?: boolean }) => Promise<Workstream>;
+  patchWorkstream: (id: string, patch: { name?: string; description?: string | null; pinned?: boolean; protected?: boolean }) => Promise<void>;
+  removeWorkstream: (id: string) => Promise<void>;
+  setWorkstreamMembership: (workstreamId: string, taskId: string, member: boolean) => Promise<void>;
 
   // --- dependencies ---
   dependencies: Dependency[];
@@ -360,7 +370,13 @@ export const useStore = create<State>((set, get) => {
     deleteTask: async (id, opts) => {
       const task = get().tasks.find((t) => t.id === id);
       await api.deleteTask(id);
-      set({ tasks: get().tasks.filter((t) => t.id !== id) });
+      set({
+        tasks: get().tasks.filter((t) => t.id !== id),
+        workstreams: get().workstreams.map((workstream) => ({
+          ...workstream,
+          memberships: workstream.memberships.filter((membership) => membership.taskId !== id),
+        })),
+      });
       if (opts?.record !== false && task) {
         history.push({ op: { kind: "delete", task }, label: t("label.deleted", { title: task.title }) });
       }
@@ -613,6 +629,31 @@ export const useStore = create<State>((set, get) => {
     removeBubble: async (id) => {
       await api.deleteBubble(id);
       set({ bubbles: get().bubbles.filter((b) => b.id !== id) });
+    },
+
+    // --- workstreams ---
+    workstreams: [],
+    loadWorkstreams: async (canvasId) => {
+      set({ workstreams: await api.listWorkstreams(canvasId) });
+    },
+    addWorkstream: async (input) => {
+      const workstream = await api.createWorkstream(input);
+      set({ workstreams: [...get().workstreams, workstream] });
+      return workstream;
+    },
+    patchWorkstream: async (id, patch) => {
+      const saved = await api.updateWorkstream(id, patch);
+      set({ workstreams: get().workstreams.map((workstream) => (workstream.id === id ? saved : workstream)) });
+    },
+    removeWorkstream: async (id) => {
+      await api.deleteWorkstream(id);
+      set({ workstreams: get().workstreams.filter((workstream) => workstream.id !== id) });
+    },
+    setWorkstreamMembership: async (workstreamId, taskId, member) => {
+      const saved = member
+        ? await api.addTaskToWorkstream(workstreamId, taskId)
+        : await api.removeTaskFromWorkstream(workstreamId, taskId);
+      set({ workstreams: get().workstreams.map((workstream) => (workstream.id === workstreamId ? saved : workstream)) });
     },
 
     // --- dependencies ---
@@ -875,7 +916,15 @@ export const useStore = create<State>((set, get) => {
         if (event.entity === "task") {
           if (event.action === "delete") {
             const { id } = event.data as { id: string };
-            set({ tasks: s.tasks.filter((t) => t.id !== id) });
+            set({
+              tasks: s.tasks.filter((t) => t.id !== id),
+              // The server follows with authoritative workstream upserts. Remove
+              // this membership immediately as well so either SSE ordering is safe.
+              workstreams: s.workstreams.map((workstream) => ({
+                ...workstream,
+                memberships: workstream.memberships.filter((membership) => membership.taskId !== id),
+              })),
+            });
             return;
           }
           const task = TaskSchema.parse(event.data);
@@ -921,6 +970,14 @@ export const useStore = create<State>((set, get) => {
           }
           const connection = ConnectionSchema.parse(event.data);
           set({ connections: [...s.connections.filter((c) => c.id !== connection.id), connection] });
+        } else if (event.entity === "workstream") {
+          if (event.action === "delete") {
+            const { id } = event.data as { id: string };
+            set({ workstreams: s.workstreams.filter((workstream) => workstream.id !== id) });
+            return;
+          }
+          const workstream = WorkstreamSchema.parse(event.data);
+          set({ workstreams: [...s.workstreams.filter((item) => item.id !== workstream.id), workstream] });
         }
       } catch (e) {
         console.error("bad live event", e);
