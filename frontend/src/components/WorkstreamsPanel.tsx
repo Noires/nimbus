@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import type { Workstream } from "../data/api";
+import type { Dependency, Task, Workstream } from "../data/api";
 import { workstreamTaskCount } from "../data/workstreamSelectors";
+import { selectWorkstreamHealth, type WorkstreamHealth } from "../data/workstreamHealthSelectors";
 import { previewArrangementOperation, type ArrangementPreview } from "../engine/arrangementOperation";
 import { useT } from "../i18n";
 
@@ -11,9 +12,22 @@ interface WorkstreamsPanelProps {
   onCreate: (name: string) => void;
   onUpdate: (id: string, patch: { name?: string; pinned?: boolean; protected?: boolean }) => void;
   onDelete: (id: string) => void;
-  tasks: Array<{ id: string; title: string; x: number; y: number }>;
+  tasks: Task[];
+  dependencies: Dependency[];
+  now?: Date;
   onSetMembership: (workstreamId: string, taskId: string, member: boolean) => void;
   onApplyArrangement: (preview: ArrangementPreview) => Promise<boolean>;
+}
+
+function healthReason(health: WorkstreamHealth, t: ReturnType<typeof useT>): string {
+  const vars = { blocked: health.blockedCount, overdue: health.overdueCount, inbox: health.inboxCount, completed: health.completedCount, total: health.memberCount, missing: health.missingCount };
+  switch (health.status) {
+    case "complete": return t("workstreams.health.short.complete", vars);
+    case "blocked": return t("workstreams.health.short.blocked", vars);
+    case "at-risk": return t("workstreams.health.short.atRisk", vars);
+    case "needs-triage": return t(`workstreams.health.short.${health.primaryReason}`, vars);
+    case "on-track": return t("workstreams.health.short.onTrack", vars);
+  }
 }
 
 export function WorkstreamArrangementPreview({
@@ -59,6 +73,8 @@ export function WorkstreamsPanel({
   onUpdate,
   onDelete,
   tasks,
+  dependencies,
+  now,
   onSetMembership,
   onApplyArrangement,
 }: WorkstreamsPanelProps) {
@@ -99,6 +115,7 @@ export function WorkstreamsPanel({
       <ul className="mt-3 space-y-1" aria-label={t("workstreams.listLabel")}>
         {workstreams.map((workstream) => {
           const count = workstreamTaskCount(workstream);
+          const health = selectWorkstreamHealth({ workstream, tasks, dependencies, now });
           const selected = selectedId === workstream.id;
           return (
             <li key={workstream.id}>
@@ -111,9 +128,11 @@ export function WorkstreamsPanel({
                 <span className="block truncate font-medium">{workstream.name}</span>
                 <span className="mt-1 flex flex-wrap gap-1 text-[11px] text-gray-400">
                   <span>{t("workstreams.taskCount", { count })}</span>
+                  <span data-workstream-health={health.status} className="rounded bg-white/5 px-1 text-gray-200">{t(`workstreams.health.${health.status}`)}</span>
                   {workstream.pinned && <span className="rounded bg-amber-300/10 px-1 text-amber-200">{t("workstreams.pinned")}</span>}
                   {workstream.protected && <span className="rounded bg-violet-300/10 px-1 text-violet-200">{t("workstreams.protected")}</span>}
                 </span>
+                <span className="mt-1 block text-[11px] text-gray-400">{healthReason(health, t)}</span>
               </button>
             </li>
           );

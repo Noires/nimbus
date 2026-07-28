@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { Dependency, Task } from "../data/api";
 import { WorkstreamArrangementPreview, WorkstreamsPanel } from "./WorkstreamsPanel";
 
 const workstreams = [{
@@ -14,6 +15,14 @@ const workstreams = [{
   updatedAt: "2026-07-27T00:00:00.000Z",
 }];
 
+const tasks = [
+  {
+    id: "task-1", title: "Verify rollout", x: 0, y: 0, done: false, inbox: false,
+    dueDate: "2026-07-27T00:00:00.000Z",
+  },
+  { id: "task-2", title: "Publish notes", x: 1, y: 1, done: true, inbox: false, dueDate: null },
+] as Task[];
+
 describe("WorkstreamsPanel", () => {
   it("labels durable workstreams separately from transient proximity suggestions", () => {
     const html = renderToStaticMarkup(
@@ -24,7 +33,9 @@ describe("WorkstreamsPanel", () => {
         onCreate={() => {}}
         onUpdate={() => {}}
         onDelete={() => {}}
-        tasks={[{ id: "task-1", title: "Verify rollout", x: 0, y: 0 }]}
+        tasks={tasks}
+        dependencies={[] as Dependency[]}
+        now={new Date("2026-07-28T12:00:00.000Z")}
         onSetMembership={() => {}}
         onApplyArrangement={async () => false}
       />,
@@ -35,6 +46,9 @@ describe("WorkstreamsPanel", () => {
     expect(html).toContain("Suggested clusters are transient proximity hints");
     expect(html).toContain("Release readiness");
     expect(html).toContain("2 tasks");
+    expect(html).toContain("At risk");
+    expect(html).toContain("1 overdue · 1 of 2 complete");
+    expect(html).toContain('data-workstream-health="at-risk"');
     expect(html).toContain("Pinned");
     expect(html).toContain("Protected");
     expect(html).toContain('aria-pressed="true"');
