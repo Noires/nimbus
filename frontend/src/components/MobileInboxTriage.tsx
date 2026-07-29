@@ -105,7 +105,7 @@ export function MobileInboxTriage({
                 <button type="button" onClick={() => run(() => onClearInbox(task))}>
                   {t("inbox.triage.clearInbox")}
                 </button>
-                <button type="button" onClick={() => onOpenInspector(task)}>
+                <button type="button" onClick={() => onOpenInspector(task)} data-mobile-inspector-task={task.id}>
                   {t("inbox.triage.openInspector")}
                 </button>
               </div>
