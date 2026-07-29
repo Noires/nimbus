@@ -85,6 +85,7 @@ describe("CanvasRouter task retrieval", () => {
     container.remove();
     localStorage.clear();
     useStore.setState(initialState, true);
+    vi.unstubAllGlobals();
   });
 
   function setStore() {
@@ -174,5 +175,36 @@ describe("CanvasRouter task retrieval", () => {
 
     expect(container.querySelector('[aria-label="Task search"]')).toBeNull();
     expect(container.querySelector('[aria-label="Mobile command center"]')).toBeNull();
+  });
+
+  it("opens the command palette from Ctrl+K, focuses its input, and returns Escape focus to the canvas", async () => {
+    const animationFrames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      animationFrames.push(callback);
+      return animationFrames.length;
+    });
+    setStore();
+    await render(false);
+
+    const canvas = container.querySelector<HTMLElement>('[role="region"]');
+    canvas?.focus();
+    expect(document.activeElement).toBe(canvas);
+
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+    });
+    await act(async () => animationFrames.at(-1)?.(0));
+
+    const input = container.querySelector<HTMLInputElement>('[role="dialog"] input');
+    expect(useStore.getState().paletteOpen).toBe(true);
+    expect(input).toBe(document.activeElement);
+
+    await act(async () => {
+      input?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+    await act(async () => animationFrames.at(-1)?.(0));
+
+    expect(useStore.getState().paletteOpen).toBe(false);
+    expect(document.activeElement).toBe(canvas);
   });
 });

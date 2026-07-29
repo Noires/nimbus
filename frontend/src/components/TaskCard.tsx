@@ -327,7 +327,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         top: renderY,
       }}
       transition={taskCardTransition(reducedMotion, isDragging)}
-      className={`absolute w-64 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border ${
+      className={`absolute w-64 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border focus-visible:outline-solid focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-cyan-200 ${
         overdue ? "border-red-500/70" : archived ? "border-dashed border-white/20" : "border-white/10"
       } ${isDragging ? "shadow-2xl ring-2 ring-white/20 cursor-grabbing" : "shadow-lg cursor-grab"} ${
         flashing
@@ -346,6 +346,8 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         boxShadow: halo ? `0 0 30px 8px ${halo}` : undefined,
         filter: blocked && !task.done ? "saturate(0.45)" : undefined,
       } as React.CSSProperties}
+      tabIndex={0}
+      aria-label={task.title || t("b.card.untitled")}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

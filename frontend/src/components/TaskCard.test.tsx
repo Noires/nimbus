@@ -35,6 +35,27 @@ const task = {
 } satisfies Task;
 
 describe("TaskCard semantic density", () => {
+  it("keeps the existing focus target without listbox option semantics", () => {
+    const html = renderToStaticMarkup(
+      <TaskCard task={task} dimmed={false} blocked={false} selected semanticDensity="normal" onEdit={() => {}} />,
+    );
+
+    expect(html).toMatch(/tabindex="0"/);
+    expect(html).toMatch(/aria-label="Ship density controls"/);
+    expect(html).not.toMatch(/role="option"/);
+    expect(html).not.toMatch(/aria-selected=/);
+  });
+
+  it("gives its focus target a distinct high-contrast focus-visible outline", () => {
+    const html = renderToStaticMarkup(
+      <TaskCard task={task} dimmed={false} blocked={false} semanticDensity="normal" onEdit={() => {}} />,
+    );
+
+    expect(html).toMatch(/focus-visible:outline-4/);
+    expect(html).toMatch(/focus-visible:outline-offset-4/);
+    expect(html).toMatch(/focus-visible:outline-cyan-200/);
+  });
+
   it("keeps the title and a text-backed status while hiding nonessential high-density details", () => {
     const html = renderToStaticMarkup(
       <TaskCard task={task} dimmed={false} blocked={false} semanticDensity="high" onEdit={() => {}} />,

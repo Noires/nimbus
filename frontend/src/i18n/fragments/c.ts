@@ -7,6 +7,8 @@ export const enC: Record<string, string> = {
   "c.canvas.shortcutHint":
     "shift+drag: select · Ctrl+K: jump · arrows: hop · N new · Z zone · L table · Y days · T/G/H lenses",
   "c.canvas.zoneLabelPrompt": "Zone label:",
+  "c.canvas.regionLabel": "Canvas",
+  "c.canvas.taskListLabel": "Tasks on canvas",
 
   // InboxDock
   "c.inbox.title": "Inbox",
@@ -44,6 +46,7 @@ export const enC: Record<string, string> = {
   "c.selection.focus": "Focus",
   "c.selection.delete": "Delete",
   "c.selection.clear": "Esc clear",
+  "c.selection.clearLabel": "Clear selection",
   "c.selection.tagPlaceholder": "tag…",
   "c.selection.bubblePrompt": "Name the new bubble:",
   "c.selection.deleteConfirm": "Delete {count} tasks permanently?",
@@ -144,6 +147,8 @@ export const deC: Record<string, string> = {
   "c.canvas.shortcutHint":
     "Umschalt+Ziehen: auswählen · Strg+K: springen · Pfeile: hüpfen · N neu · Z Zone · L Tabelle · Y Tage · T/G/H Linsen",
   "c.canvas.zoneLabelPrompt": "Zonenbezeichnung:",
+  "c.canvas.regionLabel": "Arbeitsfläche",
+  "c.canvas.taskListLabel": "Aufgaben auf der Arbeitsfläche",
 
   // InboxDock
   "c.inbox.title": "Eingang",
@@ -181,6 +186,7 @@ export const deC: Record<string, string> = {
   "c.selection.focus": "Fokus",
   "c.selection.delete": "Löschen",
   "c.selection.clear": "Esc leeren",
+  "c.selection.clearLabel": "Auswahl aufheben",
   "c.selection.tagPlaceholder": "Tag…",
   "c.selection.bubblePrompt": "Neue Blase benennen:",
   "c.selection.deleteConfirm": "{count} Aufgaben endgültig löschen?",

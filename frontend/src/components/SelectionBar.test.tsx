@@ -100,6 +100,18 @@ describe("SelectionBar selected-task tidy", () => {
     expect(container.textContent).not.toContain("Tidy selected");
   });
 
+  it("announces the localized selected count and gives each bulk action an accessible label", async () => {
+    await act(async () => {
+      root.render(<SelectionBar canvasId="canvas-1" tidyEnabled={false} />);
+    });
+
+    const status = container.querySelector('[role="status"]');
+    expect(status?.getAttribute("aria-live")).toBe("polite");
+    expect(status?.textContent).toBe("2 selected");
+    expect(container.querySelector('button[aria-label="Complete"]')).not.toBeNull();
+    expect(container.querySelector('button[aria-label="Clear selection"]')).not.toBeNull();
+  });
+
   it("keeps selected-task tidy unavailable with fewer than two selected IDs", async () => {
     useStore.setState({ selectedIds: ["a"] });
     await act(async () => {
