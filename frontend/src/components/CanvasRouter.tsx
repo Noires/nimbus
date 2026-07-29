@@ -29,6 +29,7 @@ import { TaskInspector } from "./Inspector";
 import { InboxTriage, type InboxTriageState } from "./InboxTriage";
 import { TodayFocus } from "./TodayFocus";
 import { ReviewRail } from "./ReviewRail";
+import { TaskRetrieval } from "./TaskRetrieval";
 import { resolveSelectionContext } from "./selectionContext";
 import { quickParseTokens } from "../utils/quickParse";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -47,7 +48,7 @@ type ModalState =
   | { mode: "create"; x?: number; y?: number }
   | { mode: "edit"; task: Task };
 
-type MobileInspectorReturnDestination = "inbox" | "today" | "review";
+type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "more";
 
 export function resolveRailLabel({
   reviewRailOpen,
@@ -656,6 +657,19 @@ export function CanvasRouter() {
       onOpenToday={() => setTodayFocusOpen(true)}
       onOpenReview={() => setReviewRailOpen(true)}
       directory={<>
+      <TaskRetrieval
+        tasks={tasks}
+        onOpenInspector={(task) => {
+          setSelectedWorkstreamId(null);
+          useStore.getState().setSelected([task.id]);
+        }}
+        onReveal={(task) => {
+          const store = useStore.getState();
+          store.setSelected([task.id]);
+          store.flashTask(task.id);
+          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+        }}
+      />
       <DensitySelector density={semanticDensity} onChange={useStore.getState().setSemanticDensity} />
       <WorkstreamsPanel
       workstreams={workstreams}
@@ -821,6 +835,22 @@ export function CanvasRouter() {
           }}
           onOpenToday={() => setMobileDestination("today")}
           onOpenInbox={() => setMobileDestination("inbox")}
+        />
+      );
+    }
+
+    if (mobileDestination === "more") {
+      return (
+        <TaskRetrieval
+          tasks={tasks}
+          onOpenInspector={(task) => openMobileInspector(task, "more")}
+          onReveal={(task) => {
+            const store = useStore.getState();
+            store.setSelected([task.id]);
+            store.flashTask(task.id);
+            store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+            setMobileCommandCenterOpen(false);
+          }}
         />
       );
     }
