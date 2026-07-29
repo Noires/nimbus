@@ -61,6 +61,22 @@ describe("inspectors", () => {
     expect(html).toContain("Return to workstreams");
   });
 
+  it("can use an Inbox-specific return action when embedded in mobile triage", () => {
+    const html = renderToStaticMarkup(
+      <TaskInspector
+        task={task}
+        workstreams={[workstream]}
+        dependencies={[]}
+        tasks={[task]}
+        onBack={() => {}}
+        backLabel="Return to Inbox"
+      />,
+    );
+
+    expect(html).toContain(">Return to Inbox<");
+    expect(html).not.toContain(">Return to workstreams<");
+  });
+
   it("renders workstream membership and protection state", () => {
     const html = renderToStaticMarkup(
       <WorkstreamInspector

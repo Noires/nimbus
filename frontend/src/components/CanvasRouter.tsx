@@ -25,11 +25,24 @@ import { readSpatialCommandCenterShellFlag } from "./spatialCommandCenterFlag";
 import { WorkstreamsPanel } from "./WorkstreamsPanel";
 import { DensitySelector } from "./DensitySelector";
 import { InspectorRail } from "./InspectorRail";
+import { TaskInspector } from "./Inspector";
 import { InboxTriage, type InboxTriageState } from "./InboxTriage";
 import { TodayFocus } from "./TodayFocus";
 import { ReviewRail } from "./ReviewRail";
 import { resolveSelectionContext } from "./selectionContext";
 import { quickParseTokens } from "../utils/quickParse";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useCanvasDataLoader } from "../hooks/useCanvasDataLoader";
+import { MobileCommandCenter } from "./MobileCommandCenter";
+import { MobileCapture } from "./MobileCapture";
+import { MobileInboxTriage } from "./MobileInboxTriage";
+import {
+  isMobileCommandCenterEnabled,
+  MOBILE_COMMAND_CENTER_QUERY,
+  resolveMobileCommandDestination,
+  openMobileInboxInspector,
+  type MobileCommandDestination,
+} from "./mobileCommandCenter";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
@@ -61,6 +74,15 @@ export function CanvasRouter() {
   const [timelapse, setTimelapse] = useState(false);
   const [pulseOpen, setPulseOpen] = useState(false);
   const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
+  const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
+  const mobileCommandCenterEligible = isMobileCommandCenterEnabled({
+    commandCenterEnabled: spatialCommandCenterShell,
+    viewport: narrowViewport ? "narrow" : "wide",
+  });
+  const [mobileCommandCenterOpen, setMobileCommandCenterOpen] = useState(true);
+  const [mobileDestination, setMobileDestination] = useState<MobileCommandDestination>("capture");
+  const [mobileInspectorTask, setMobileInspectorTask] = useState<Task | null>(null);
+  const mobileCommandCenter = mobileCommandCenterEligible && mobileCommandCenterOpen;
   const viewMode = useStore((s) => s.viewMode);
   const helpOpen = useStore((s) => s.helpOpen);
   const workstreams = useStore((s) => s.workstreams);
@@ -69,6 +91,7 @@ export function CanvasRouter() {
   const selectedIds = useStore((s) => s.selectedIds);
   const focus = useStore((s) => s.focus);
   const semanticDensity = useStore((s) => s.semanticDensity);
+  const readOnly = useStore((s) => s.readOnly);
   const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
   const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
   const [todayFocusOpen, setTodayFocusOpen] = useState(false);
@@ -84,6 +107,7 @@ export function CanvasRouter() {
   canvasIdRef.current = canvasId;
 
   useLiveSync(canvasId);
+  useCanvasDataLoader(canvasId, readOnly, setInboxTriageState);
 
   // Digest + wake notifications (60s cadence, per-day deduped).
   useEffect(() => startNotificationLoop(() => canvasIdRef.current), []);
@@ -149,6 +173,8 @@ export function CanvasRouter() {
           store.exitFocus();
         } else if (store.zoneDraw) {
           store.setZoneDraw(false);
+        } else if (mobileCommandCenter) {
+          setMobileCommandCenterOpen(false);
         } else if (spatialCommandCenterShell && inboxTriageOpen) {
           setInboxTriageOpen(false);
         } else if (spatialCommandCenterShell && todayFocusOpen) {
@@ -365,7 +391,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
+  }, [canvasId, inboxTriageOpen, mobileCommandCenter, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -631,7 +657,6 @@ export function CanvasRouter() {
         semanticDensity={spatialCommandCenterShell ? semanticDensity : "normal"}
         onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
         onEditTask={(task) => setModal({ mode: "edit", task })}
-        onLoadState={spatialCommandCenterShell ? setInboxTriageState : undefined}
       />
       {!spatialCommandCenterShell && <InboxDock canvasId={canvasId} viewportRef={mainRef} />}
       <SelectionBar canvasId={canvasId} />
@@ -671,19 +696,102 @@ export function CanvasRouter() {
     </>
   );
 
+  const mobileContent = (() => {
+    if (!canvasId) return <p>{tr("mobile.command.unavailable")}</p>;
+
+    if (mobileDestination === "capture") {
+      return (
+        <MobileCapture
+          onCapture={async (input) => {
+            const { fields } = quickParseTokens(input);
+            if (!fields.title) return;
+            await useStore.getState().addTask({
+              canvasId,
+              title: fields.title,
+              tags: fields.tags,
+              priority: fields.priority ?? undefined,
+              dueDate: fields.dueDate,
+              estimateMinutes: fields.estimateMinutes,
+              inbox: true,
+            });
+          }}
+        />
+      );
+    }
+
+    if (mobileDestination === "inbox") {
+      return (
+        <MobileInboxTriage
+          tasks={tasks}
+          workstreams={workstreams}
+          state={inboxTriageState}
+          onClearInbox={(task) => useStore.getState().patchTask(task.id, { inbox: false })}
+          onSetWorkstream={async (taskId, workstreamId) => {
+            const workstream = useStore.getState().workstreams.find((candidate) => candidate.id === workstreamId);
+            if (!workstream?.memberships.some((membership) => membership.taskId === taskId)) {
+              await useStore.getState().setWorkstreamMembership(workstreamId, taskId, true);
+            }
+          }}
+          onPatchTask={(taskId, patch) => useStore.getState().patchTask(taskId, patch)}
+          onOpenInspector={(task) => openMobileInboxInspector(task, setMobileInspectorTask, setMobileDestination)}
+        />
+      );
+    }
+
+    if (mobileDestination === "inspector") {
+      return mobileInspectorTask ? (
+        <TaskInspector
+          task={mobileInspectorTask}
+          tasks={tasks}
+          workstreams={workstreams}
+          dependencies={dependencies}
+          onBack={() => {
+            setMobileInspectorTask(null);
+            setMobileDestination("inbox");
+          }}
+          backLabel={tr("mobile.command.returnToInbox")}
+        />
+      ) : <p>{tr("mobile.command.selectInboxTask")}</p>;
+    }
+
+    return <p>{tr("mobile.command.unavailable")}</p>;
+  })();
+
+  if (mobileCommandCenter) {
+    return (
+      <MobileCommandCenter
+        destination={resolveMobileCommandDestination(mobileDestination)}
+        onDestinationChange={(destination) => {
+          setMobileInspectorTask(null);
+          setMobileDestination(destination);
+        }}
+        onClose={() => setMobileCommandCenterOpen(false)}
+      >
+        {mobileContent}
+      </MobileCommandCenter>
+    );
+  }
+
   return (
-    <CanvasRouterLayout
-      spatialCommandCenterShell={spatialCommandCenterShell}
-      navigationLabel={tr("d.shell.navigation")}
-      commandLabel={tr("d.shell.globalCommands")}
-      railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen })}
-      navigation={navigation}
-      commands={commands}
-      rail={rail}
-      mainRef={mainRef}
-      overlays={overlays}
-    >
-      {mainContent}
-    </CanvasRouterLayout>
+    <>
+      <CanvasRouterLayout
+        spatialCommandCenterShell={spatialCommandCenterShell}
+        navigationLabel={tr("d.shell.navigation")}
+        commandLabel={tr("d.shell.globalCommands")}
+        railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen })}
+        navigation={navigation}
+        commands={commands}
+        rail={rail}
+        mainRef={mainRef}
+        overlays={overlays}
+      >
+        {mainContent}
+      </CanvasRouterLayout>
+      {mobileCommandCenterEligible && (
+        <button type="button" className="mobile-command-center-launcher" onClick={() => setMobileCommandCenterOpen(true)}>
+          {tr("mobile.command.label")}
+        </button>
+      )}
+    </>
   );
 }

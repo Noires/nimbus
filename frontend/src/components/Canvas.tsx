@@ -30,7 +30,6 @@ interface CanvasProps {
   semanticDensity: CardDensity;
   onCreateAt: (x: number, y: number) => void;
   onEditTask: (task: Task) => void;
-  onLoadState?: (state: "loading" | "error" | "ready") => void;
 }
 
 interface Rect {
@@ -40,7 +39,7 @@ interface Rect {
   y2: number;
 }
 
-export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask, onLoadState }: CanvasProps) {
+export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }: CanvasProps) {
   const tasks = useStore((s) => s.tasks);
   const dependencies = useStore((s) => s.dependencies);
   const showDone = useStore((s) => s.showDone);
@@ -70,24 +69,6 @@ export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask, onLo
   const bandRef = useRef<LodBand>("full");
   const clusters = useClusters();
 
-  // Load everything canvas-scoped when the canvas changes.
-  useEffect(() => {
-    if (readOnly) return; // share view hydrates via loadSharedSnapshot
-    const store = useStore.getState();
-    onLoadState?.("loading");
-    void store.refreshTasks(canvasId)
-      .then(() => onLoadState?.("ready"))
-      .catch((error) => {
-        console.error(error);
-        onLoadState?.("error");
-      });
-    void store.loadBubbles(canvasId).catch((error) => console.error(error));
-    void store.loadWorkstreams(canvasId).catch((error) => console.error(error));
-    void store.loadDependencies(canvasId).catch((error) => console.error(error));
-    void store.loadPortals(canvasId).catch((error) => console.error(error));
-    void store.loadZones(canvasId).catch((error) => console.error(error));
-    void store.loadConnections(canvasId).catch((error) => console.error(error));
-  }, [canvasId, onLoadState, readOnly]);
 
   // Track viewport size for flyTo / fitView / zoom-around-center.
   useEffect(() => {
