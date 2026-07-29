@@ -1,16 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "../store";
 import { clusterHue } from "../utils/colors";
 import { history, type Op } from "../engine/history";
+import { previewArrangementOperation, type ArrangementPreview } from "../engine/arrangementOperation";
 import { useT } from "../i18n";
 
 // Floating bulk-action bar for the lasso selection. Every action is a single
 // batch history op — one Ctrl+Z reverts the whole thing.
-export function SelectionBar({ canvasId }: { canvasId: string }) {
+export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: string; tidyEnabled?: boolean }) {
   const selectedIds = useStore((s) => s.selectedIds);
   const [tagInput, setTagInput] = useState<string | null>(null);
+  const [tidyPreview, setTidyPreview] = useState<ArrangementPreview | null>(null);
   const t = useT();
+  const selectedKey = [...selectedIds].sort().join("\u0000");
+
+  useEffect(() => {
+    setTidyPreview(null);
+  }, [selectedKey]);
 
   const run = (fn: () => Promise<void>) => fn().catch((e) => console.error(e));
 
@@ -46,6 +53,21 @@ export function SelectionBar({ canvasId }: { canvasId: string }) {
       await store.patchTask(t.id, { tags: [...t.tags, tag] }, { record: false });
     }
     store.showToast(t("c.selection.tagged", { count: targets.length, tag }));
+  };
+
+  const previewSelectedTidy = () => {
+    const store = useStore.getState();
+    if (store.selectedIds.length < 2) return;
+    setTidyPreview(previewArrangementOperation({
+      scope: { kind: "selected", taskIds: [...store.selectedIds] },
+      tasks: store.tasks,
+      workstreams: store.workstreams.map((workstream) => ({
+        id: workstream.id,
+        pinned: workstream.pinned,
+        protected: workstream.protected,
+        taskIds: workstream.memberships.map((membership) => membership.taskId),
+      })),
+    }));
   };
 
   return (
@@ -99,6 +121,17 @@ export function SelectionBar({ canvasId }: { canvasId: string }) {
             label={`⇶ ${t("c.selection.flowFill")}`}
             onClick={() => run(() => useStore.getState().autoScheduleTasks(selectedIds))}
           />
+          {tidyEnabled && selectedIds.length >= 2 && (tidyPreview ? (
+            <SelectionTidyPreview
+              preview={tidyPreview}
+              onApply={async () => {
+                if (await useStore.getState().applyArrangementPreview(tidyPreview)) setTidyPreview(null);
+              }}
+              onCancel={() => setTidyPreview(null)}
+            />
+          ) : (
+            <BarButton label={`⇄ ${t("c.selection.tidy")}`} onClick={previewSelectedTidy} />
+          ))}
           <BarButton label={`◯ ${t("c.selection.bubbleIt")}`} onClick={() => run(bubbleIt)} />
           {selectedIds.length >= 2 && (
             <BarButton
@@ -130,12 +163,66 @@ export function SelectionBar({ canvasId }: { canvasId: string }) {
   );
 }
 
-function BarButton({ label, onClick, danger }: { label: string; onClick: () => void; danger?: boolean }) {
+export function SelectionTidyPreview({
+  preview,
+  onApply,
+  onCancel,
+}: {
+  preview: ArrangementPreview;
+  onApply: () => Promise<void>;
+  onCancel: () => void;
+}) {
+  const t = useT();
+  const [isApplying, setIsApplying] = useState(false);
+  const skippedByReason = preview.skipped.reduce<Record<string, number>>((counts, skipped) => {
+    counts[skipped.reason] = (counts[skipped.reason] ?? 0) + 1;
+    return counts;
+  }, {});
+  const skipReasonKeys: Record<string, string> = {
+    "missing-task": "c.selection.tidySkippedMissing",
+    "protected-task": "c.selection.tidySkippedProtectedTask",
+    "pinned-workstream": "c.selection.tidySkippedPinnedWorkstream",
+    "protected-workstream": "c.selection.tidySkippedProtectedWorkstream",
+  };
+  const apply = async () => {
+    if (isApplying) return;
+    setIsApplying(true);
+    try {
+      await onApply();
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2" aria-live="polite" aria-busy={isApplying}>
+      <span className="text-[10px] text-cyan-100">
+        {t("c.selection.tidyPreview", {
+          moved: preview.moved.length,
+          unchanged: preview.unchanged.length,
+          skipped: preview.skipped.length,
+        })}
+      </span>
+      {Object.entries(skippedByReason).map(([reason, count]) => (
+        <span key={reason} className="text-[10px] text-amber-200">
+          {t(skipReasonKeys[reason], { count })}
+        </span>
+      ))}
+      <BarButton label={t("c.selection.applyTidy")} onClick={() => void apply()} disabled={isApplying} />
+      <BarButton label={t("c.selection.cancelTidy")} onClick={onCancel} />
+    </div>
+  );
+}
+
+function BarButton({ label, onClick, danger, disabled = false }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={`text-[11px] whitespace-nowrap px-2 py-1 rounded-md transition-colors ${
-        danger ? "text-gray-400 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-white hover:bg-white/10"
+        disabled
+          ? "cursor-not-allowed text-gray-500"
+          : danger ? "text-gray-400 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-white hover:bg-white/10"
       }`}
     >
       {label}

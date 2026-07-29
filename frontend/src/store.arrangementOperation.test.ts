@@ -32,7 +32,7 @@ function task(id: string, x: number, y: number) {
 describe("applyArrangementPreview", () => {
   beforeEach(() => {
     history.clear();
-    useStore.setState({ tasks: [task("a", 0, 0), task("b", 0, 0), task("c", 0, 0)] });
+    useStore.setState({ tasks: [task("a", 0, 0), task("b", 0, 0), task("c", 0, 0)], workstreams: [] });
   });
 
   afterEach(() => {
@@ -104,6 +104,31 @@ describe("applyArrangementPreview", () => {
     expect(history.canUndo).toBe(false);
   });
 
+  it("rejects a selected preview with fewer than two unique valid scope task IDs before requesting or recording history", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const before = taskPositionsInIdOrder(useStore.getState().tasks);
+    const generated = previewArrangementOperation({
+      scope: { kind: "selected", taskIds: ["a", "a", "missing"] },
+      tasks: useStore.getState().tasks,
+      workstreams: [],
+      revision: arrangementRevision(useStore.getState().tasks, []),
+    });
+    const preview = {
+      ...generated,
+      moved: [{ id: "a", x: 100, y: 100 }],
+      positions: [{ id: "a", x: 100, y: 100 }],
+      inverse: [{ id: "a", x: 0, y: 0 }],
+      isNoop: false,
+    };
+
+    await expect(useStore.getState().applyArrangementPreview(preview)).resolves.toBe(false);
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(taskPositionsInIdOrder(useStore.getState().tasks)).toEqual(before);
+    expect(history.canUndo).toBe(false);
+  });
+
   it("rejects a stale preview after a remote position or protection change without calling the bulk endpoint", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
@@ -143,6 +168,70 @@ describe("applyArrangementPreview", () => {
     expect(taskPositionsInIdOrder(useStore.getState().tasks)).toEqual(before);
     expect(history.canUndo).toBe(false);
     expect(useStore.getState().toast?.message).toBe("Could not apply arrangement. Your preview is still available.");
+  });
+
+  it("allows only one delayed apply to persist and create an undo entry", async () => {
+    let resolveResponse!: (response: Response) => void;
+    let requestCount = 0;
+    const fetch = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (requestCount++ === 0) {
+        return new Promise<Response>((resolve) => {
+          resolveResponse = resolve;
+        });
+      }
+      const patch = JSON.parse(String(init?.body));
+      const id = url.replace("/api/tasks/", "");
+      return Promise.resolve(new Response(JSON.stringify({
+        ...useStore.getState().tasks.find((task) => task.id === id)!,
+        ...patch,
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    });
+    vi.stubGlobal("fetch", fetch);
+    const preview = previewForCurrentWorkstream();
+
+    const firstApply = useStore.getState().applyArrangementPreview(preview);
+    const secondApply = useStore.getState().applyArrangementPreview(preview);
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    resolveResponse(new Response(JSON.stringify({
+      tasks: preview.positions.map((position) => ({
+        ...useStore.getState().tasks.find((task) => task.id === position.id)!,
+        ...position,
+      })),
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+
+    await expect(firstApply).resolves.toBe(true);
+    await expect(secondApply).resolves.toBe(false);
+    expect(history.canUndo).toBe(true);
+
+    await useStore.getState().undo();
+    expect(fetch).toHaveBeenCalledTimes(3);
+    await useStore.getState().undo();
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects a stale selected-task tidy preview without creating an undo entry", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const state = useStore.getState();
+    const preview = previewArrangementOperation({
+      scope: { kind: "selected", taskIds: ["b", "a"] },
+      tasks: state.tasks,
+      workstreams: state.workstreams.map((workstream) => ({
+        id: workstream.id,
+        pinned: workstream.pinned,
+        protected: workstream.protected,
+        taskIds: workstream.memberships.map((membership) => membership.taskId),
+      })),
+      revision: arrangementRevision(state.tasks, state.workstreams),
+    });
+
+    useStore.getState().applyRemote({ entity: "task", action: "upsert", data: task("b", 75, 20) });
+
+    await expect(useStore.getState().applyArrangementPreview(preview)).resolves.toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(history.canUndo).toBe(false);
+    expect(useStore.getState().toast?.message).toBe("Arrangement preview is out of date. Create a new preview.");
   });
 });
 

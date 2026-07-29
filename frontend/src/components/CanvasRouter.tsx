@@ -710,7 +710,7 @@ export function CanvasRouter() {
         onEditTask={(task) => setModal({ mode: "edit", task })}
       />
       {!spatialCommandCenterShell && <InboxDock canvasId={canvasId} viewportRef={mainRef} />}
-      <SelectionBar canvasId={canvasId} />
+      <SelectionBar canvasId={canvasId} tidyEnabled={spatialCommandCenterShell} />
       <DayDock />
       <ReviewHud />
       <FocusTimer />
