@@ -89,7 +89,7 @@ export function ReviewRail({
               <p className={`min-w-0 text-xs font-medium ${completedQueue ? "text-gray-500 line-through" : "text-gray-100"}`}>{task.title}</p>
               <div className="mt-2 flex flex-wrap gap-1">
                 {!completedQueue && <ActionButton label={t("review.complete")} onClick={() => run(() => onComplete(task))} />}
-                <ActionButton label={t("review.openInspector")} onClick={() => onOpenInspector(task)} />
+                <ActionButton label={t("review.openInspector")} onClick={() => onOpenInspector(task)} inspectorTaskId={task.id} />
                 <ActionButton label={t("review.reveal")} onClick={() => onReveal(task)} />
                 {!completedQueue && <ActionButton label={t("review.focus")} onClick={() => onFocus(task)} />}
               </div>
@@ -106,6 +106,6 @@ export function ReviewRail({
   );
 }
 
-function ActionButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className="rounded border border-white/15 px-2 py-1 text-[10px] text-gray-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">{label}</button>;
+function ActionButton({ label, onClick, inspectorTaskId }: { label: string; onClick: () => void; inspectorTaskId?: string }) {
+  return <button type="button" onClick={onClick} data-mobile-inspector-task={inspectorTaskId} className="rounded border border-white/15 px-2 py-1 text-[10px] text-gray-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">{label}</button>;
 }

@@ -45,6 +45,22 @@ const inboxTask: Task = {
   checklist: [],
 };
 
+const todayTask: Task = {
+  ...inboxTask,
+  id: "task-today",
+  title: "Ship Mobile Today",
+  description: "Mobile Today must return here after inspection.",
+  inbox: false,
+  dueDate: "2026-07-29T18:00:00.000Z",
+};
+
+const reviewTask: Task = {
+  ...todayTask,
+  id: "task-review",
+  title: "Review an overdue mobile task",
+  dueDate: "2026-07-28T18:00:00.000Z",
+};
+
 const workstream: Workstream = {
   id: "workstream-1",
   canvasId: canvas.id,
@@ -155,10 +171,128 @@ describe("CanvasRouter mobile command center", () => {
     const inspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
     expect(inspectorButton).toBeDefined();
 
+    inspectorButton?.focus();
     await act(async () => inspectorButton?.click());
 
     expect(container.querySelector('[aria-label="Inspector"]')).not.toBeNull();
     expect(container.textContent).toContain(inboxTask.description);
     expect(container.textContent).toContain("Return to Inbox");
+
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Return to Inbox")?.click();
+    });
+
+    expect(container.textContent).toContain(inboxTask.title);
+    const restoredInspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
+    expect(document.activeElement).toBe(restoredInspectorButton);
+  });
+
+  it("opens Today on mobile and returns an Inspector action to Today with its trigger focused", async () => {
+    const optionalLoad = vi.fn(async () => {});
+    useStore.setState({
+      canvases: [canvas],
+      tasks: [todayTask],
+      workstreams: [],
+      dependencies: [],
+      readOnly: false,
+      loadCanvases: vi.fn(async () => [canvas]),
+      refreshTasks: vi.fn(async () => {}),
+      loadWorkstreams: vi.fn(async () => {}),
+      loadBubbles: optionalLoad,
+      loadDependencies: optionalLoad,
+      loadPortals: optionalLoad,
+      loadZones: optionalLoad,
+      loadConnections: optionalLoad,
+      setCardDensity: vi.fn(),
+      setLiveConnected: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}>
+          <Routes>
+            <Route path="/canvas/:id" element={<CanvasRouter />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Today")?.click();
+    });
+    expect(container.textContent).toContain(todayTask.title);
+
+    const inspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
+    expect(inspectorButton).toBeDefined();
+    inspectorButton?.focus();
+    await act(async () => inspectorButton?.click());
+
+    expect(container.querySelector('[aria-label="Inspector"]')).not.toBeNull();
+    expect(container.textContent).toContain("Return to Today");
+
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Return to Today")?.click();
+    });
+
+    expect(container.textContent).toContain(todayTask.title);
+    const restoredInspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
+    expect(document.activeElement).toBe(restoredInspectorButton);
+  });
+
+  it("opens one Review queue at a time and Escape returns its Inspector action before closing focus mode", async () => {
+    const optionalLoad = vi.fn(async () => {});
+    useStore.setState({
+      canvases: [canvas],
+      tasks: [reviewTask],
+      workstreams: [],
+      dependencies: [],
+      readOnly: false,
+      loadCanvases: vi.fn(async () => [canvas]),
+      refreshTasks: vi.fn(async () => {}),
+      loadWorkstreams: vi.fn(async () => {}),
+      loadBubbles: optionalLoad,
+      loadDependencies: optionalLoad,
+      loadPortals: optionalLoad,
+      loadZones: optionalLoad,
+      loadConnections: optionalLoad,
+      setCardDensity: vi.fn(),
+      setLiveConnected: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}>
+          <Routes>
+            <Route path="/canvas/:id" element={<CanvasRouter />} />
+          </Routes>
+        </MemoryRouter>,
+      );
+    });
+
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Review")?.click();
+    });
+    expect(container.textContent).toContain(reviewTask.title);
+    expect(container.querySelectorAll('button[aria-pressed="true"]')).toHaveLength(1);
+
+    const inspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
+    expect(inspectorButton).toBeDefined();
+    inspectorButton?.focus();
+    await act(async () => inspectorButton?.click());
+    expect(container.textContent).toContain("Return to Review");
+
+    const focusBeforeEscape = { members: [reviewTask.id], index: 0, prevView: { zoom: 1, panX: 0, panY: 0 } };
+    await act(async () => {
+      useStore.setState({ focus: focusBeforeEscape });
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    });
+
+    expect(container.textContent).toContain(reviewTask.title);
+    expect(useStore.getState().focus).toEqual(focusBeforeEscape);
+    const restoredInspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
+    expect(document.activeElement).toBe(restoredInspectorButton);
   });
 });

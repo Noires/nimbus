@@ -40,13 +40,14 @@ import {
   isMobileCommandCenterEnabled,
   MOBILE_COMMAND_CENTER_QUERY,
   resolveMobileCommandDestination,
-  openMobileInboxInspector,
   type MobileCommandDestination,
 } from "./mobileCommandCenter";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
   | { mode: "edit"; task: Task };
+
+type MobileInspectorReturnDestination = "inbox" | "today" | "review";
 
 export function resolveRailLabel({
   reviewRailOpen,
@@ -82,6 +83,7 @@ export function CanvasRouter() {
   const [mobileCommandCenterOpen, setMobileCommandCenterOpen] = useState(true);
   const [mobileDestination, setMobileDestination] = useState<MobileCommandDestination>("capture");
   const [mobileInspectorTask, setMobileInspectorTask] = useState<Task | null>(null);
+  const [mobileInspectorReturnDestination, setMobileInspectorReturnDestination] = useState<MobileInspectorReturnDestination>("inbox");
   const mobileCommandCenter = mobileCommandCenterEligible && mobileCommandCenterOpen;
   const viewMode = useStore((s) => s.viewMode);
   const helpOpen = useStore((s) => s.helpOpen);
@@ -101,6 +103,39 @@ export function CanvasRouter() {
   const modalRef = useRef(modal);
   modalRef.current = modal;
   const mainRef = useRef<HTMLElement>(null);
+  const mobileInspectorTriggerRef = useRef<HTMLElement | null>(null);
+  const mobileInspectorTaskIdRef = useRef<string | null>(null);
+  const mobileRestoreInspectorFocusRef = useRef(false);
+
+  const openMobileInspector = (task: Task, returnDestination: MobileInspectorReturnDestination) => {
+    mobileInspectorTriggerRef.current = typeof document !== "undefined" && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    mobileInspectorTaskIdRef.current = task.id;
+    setMobileInspectorReturnDestination(returnDestination);
+    setMobileInspectorTask(task);
+    setMobileDestination("inspector");
+  };
+
+  const returnFromMobileInspector = () => {
+    mobileRestoreInspectorFocusRef.current = true;
+    setMobileInspectorTask(null);
+    setMobileDestination(mobileInspectorReturnDestination);
+  };
+
+  useEffect(() => {
+    if (mobileRestoreInspectorFocusRef.current && mobileDestination !== "inspector") {
+      mobileRestoreInspectorFocusRef.current = false;
+      const trigger = mobileInspectorTriggerRef.current;
+      if (trigger?.isConnected) {
+        trigger.focus();
+      } else {
+        [...document.querySelectorAll<HTMLButtonElement>("button[data-mobile-inspector-task]")]
+          .find((button) => button.dataset.mobileInspectorTask === mobileInspectorTaskIdRef.current)
+          ?.focus();
+      }
+    }
+  }, [mobileDestination]);
 
   const canvasId = params.id ?? null;
   const canvasIdRef = useRef(canvasId);
@@ -167,6 +202,8 @@ export function CanvasRouter() {
           store.setPaletteOpen(false);
         } else if (modalRef.current) {
           setModal(null);
+        } else if (mobileCommandCenter && mobileDestination === "inspector") {
+          returnFromMobileInspector();
         } else if (store.review) {
           exitReview();
         } else if (store.focus) {
@@ -391,7 +428,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, mobileCommandCenter, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
+  }, [canvasId, inboxTriageOpen, mobileCommandCenter, mobileDestination, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -733,7 +770,57 @@ export function CanvasRouter() {
             }
           }}
           onPatchTask={(taskId, patch) => useStore.getState().patchTask(taskId, patch)}
-          onOpenInspector={(task) => openMobileInboxInspector(task, setMobileInspectorTask, setMobileDestination)}
+          onOpenInspector={(task) => openMobileInspector(task, "inbox")}
+        />
+      );
+    }
+
+    if (mobileDestination === "today") {
+      return (
+        <TodayFocus
+          tasks={tasks}
+          dependencies={dependencies}
+          state={inboxTriageState}
+          focusEnabled
+          onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
+          onReturnToInbox={(task) => useStore.getState().patchTask(task.id, { inbox: true })}
+          onOpenInspector={(task) => openMobileInspector(task, "today")}
+          onReveal={(task) => {
+            const store = useStore.getState();
+            store.setSelected([task.id]);
+            store.flashTask(task.id);
+            store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+            setMobileCommandCenterOpen(false);
+          }}
+          onFocus={(task) => {
+            useStore.getState().startFocus([task.id]);
+            setMobileCommandCenterOpen(false);
+          }}
+        />
+      );
+    }
+
+    if (mobileDestination === "review") {
+      return (
+        <ReviewRail
+          tasks={tasks}
+          dependencies={dependencies}
+          state={inboxTriageState}
+          onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
+          onOpenInspector={(task) => openMobileInspector(task, "review")}
+          onReveal={(task) => {
+            const store = useStore.getState();
+            store.setSelected([task.id]);
+            store.flashTask(task.id);
+            store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+            setMobileCommandCenterOpen(false);
+          }}
+          onFocus={(task) => {
+            useStore.getState().startFocus([task.id]);
+            setMobileCommandCenterOpen(false);
+          }}
+          onOpenToday={() => setMobileDestination("today")}
+          onOpenInbox={() => setMobileDestination("inbox")}
         />
       );
     }
@@ -745,11 +832,8 @@ export function CanvasRouter() {
           tasks={tasks}
           workstreams={workstreams}
           dependencies={dependencies}
-          onBack={() => {
-            setMobileInspectorTask(null);
-            setMobileDestination("inbox");
-          }}
-          backLabel={tr("mobile.command.returnToInbox")}
+          onBack={returnFromMobileInspector}
+          backLabel={tr(`mobile.command.returnTo${mobileInspectorReturnDestination[0].toUpperCase()}${mobileInspectorReturnDestination.slice(1)}`)}
         />
       ) : <p>{tr("mobile.command.selectInboxTask")}</p>;
     }
