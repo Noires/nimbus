@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useStore, CARD_W, CARD_H, type Task } from "../store";
@@ -9,6 +9,7 @@ import { useT, useLocale, dateLocale } from "../i18n";
 interface PaletteProps {
   canvasId: string | null;
   onNewTask: () => void;
+  fallbackFocusRef?: RefObject<HTMLElement | null>;
 }
 
 interface Result {
@@ -33,7 +34,7 @@ function score(text: string, q: string): number {
   return i === q.length ? 10 : -1;
 }
 
-export function CommandPalette({ canvasId, onNewTask }: PaletteProps) {
+export function CommandPalette({ canvasId, onNewTask, fallbackFocusRef }: PaletteProps) {
   const open = useStore((s) => s.paletteOpen);
   const tasks = useStore((s) => s.tasks);
   const canvases = useStore((s) => s.canvases);
@@ -41,17 +42,29 @@ export function CommandPalette({ canvasId, onNewTask }: PaletteProps) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const wasOpenRef = useRef(false);
   const navigate = useNavigate();
   const t = useT();
   const locale = useLocale((s) => s.locale);
 
   useEffect(() => {
     if (open) {
+      openerRef.current = document.activeElement instanceof HTMLElement && document.activeElement !== document.body
+        ? document.activeElement
+        : null;
       setQuery("");
       setSelected(0);
       requestAnimationFrame(() => inputRef.current?.focus());
+    } else if (wasOpenRef.current) {
+      const opener = openerRef.current;
+      requestAnimationFrame(() => {
+        if (opener?.isConnected) opener.focus();
+        else if (fallbackFocusRef?.current?.isConnected) fallbackFocusRef.current.focus();
+      });
     }
-  }, [open]);
+    wasOpenRef.current = open;
+  }, [open, fallbackFocusRef]);
 
   const close = () => useStore.getState().setPaletteOpen(false);
 
@@ -213,15 +226,43 @@ export function CommandPalette({ canvasId, onNewTask }: PaletteProps) {
     r.run();
   };
 
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      close();
+      return;
+    }
+    if (e.key !== "Tab") return;
+
+    const focusable = [...e.currentTarget.querySelectorAll<HTMLElement>(
+      'input:not([disabled]), button:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+    )];
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   const kindIcon = { task: "◈", canvas: "▦", bubble: "◯", action: "⌘" } as const;
 
   return (
     <div className="fixed inset-0 z-[150] flex items-start justify-center pt-[15vh] px-4">
-      <div className="absolute inset-0 bg-black/50" onClick={close} />
+      <div className="absolute inset-0 bg-black/50" aria-hidden="true" onClick={close} />
       <motion.div
         initial={{ opacity: 0, y: -12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 420, damping: 32 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("a.palette.dialogLabel")}
+        onKeyDown={handleDialogKeyDown}
         className="relative w-full max-w-lg rounded-xl bg-[#1a1d24]/95 backdrop-blur-xl border border-white/15 shadow-2xl overflow-hidden"
       >
         <input
@@ -240,9 +281,6 @@ export function CommandPalette({ canvasId, onNewTask }: PaletteProps) {
               setSelected((s) => Math.max(s - 1, 0));
             } else if (e.key === "Enter" && results[selected]) {
               pick(results[selected]);
-            } else if (e.key === "Escape") {
-              e.stopPropagation();
-              close();
             }
           }}
           placeholder={t("a.palette.placeholder")}

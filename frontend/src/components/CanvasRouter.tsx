@@ -104,6 +104,7 @@ export function CanvasRouter() {
   const modalRef = useRef(modal);
   modalRef.current = modal;
   const mainRef = useRef<HTMLElement>(null);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const mobileInspectorTriggerRef = useRef<HTMLElement | null>(null);
   const mobileInspectorTaskIdRef = useRef<string | null>(null);
   const mobileRestoreInspectorFocusRef = useRef(false);
@@ -704,6 +705,7 @@ export function CanvasRouter() {
   const mainContent = canvasId ? (
     <>
       <Canvas
+        ref={canvasRef}
         canvasId={canvasId}
         semanticDensity={spatialCommandCenterShell ? semanticDensity : "normal"}
         onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
@@ -736,7 +738,7 @@ export function CanvasRouter() {
   );
   const overlays = (
     <>
-      <CommandPalette canvasId={canvasId} onNewTask={() => setModal({ mode: "create" })} />
+      <CommandPalette canvasId={canvasId} onNewTask={() => setModal({ mode: "create" })} fallbackFocusRef={canvasRef} />
       {helpOpen && (
         <HelpPanel
           spatialCommandCenterShell={spatialCommandCenterShell}

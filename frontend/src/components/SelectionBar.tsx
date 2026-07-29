@@ -79,17 +79,21 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
           exit={{ opacity: 0, y: 16 }}
           className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border border-purple-500/40 px-4 py-2.5 shadow-2xl"
         >
-          <span className="text-xs text-purple-300 whitespace-nowrap">{t("c.selection.count", { count: selectedIds.length })}</span>
+          <span role="status" aria-live="polite" aria-atomic="true" className="text-xs text-purple-300 whitespace-nowrap">
+            {t("c.selection.count", { count: selectedIds.length })}
+          </span>
           <div className="w-px h-5 bg-white/10" />
 
           <BarButton
             label={`✓ ${t("c.selection.complete")}`}
+            ariaLabel={t("c.selection.complete")}
             onClick={() =>
               run(() => useStore.getState().bulkPatch(selectedIds, { done: true }, `completed ${selectedIds.length} tasks`))
             }
           />
           <BarButton
             label={`⏱ ${t("c.selection.snooze")}`}
+            ariaLabel={t("c.selection.snooze")}
             onClick={() =>
               run(() =>
                 useStore.getState().bulkPatch(
@@ -101,7 +105,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
             }
           />
           {tagInput === null ? (
-            <BarButton label={`# ${t("c.selection.tag")}`} onClick={() => setTagInput("")} />
+            <BarButton label={`# ${t("c.selection.tag")}`} ariaLabel={t("c.selection.tag")} onClick={() => setTagInput("")} />
           ) : (
             <input
               autoFocus
@@ -119,6 +123,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
           )}
           <BarButton
             label={`⇶ ${t("c.selection.flowFill")}`}
+            ariaLabel={t("c.selection.flowFill")}
             onClick={() => run(() => useStore.getState().autoScheduleTasks(selectedIds))}
           />
           {tidyEnabled && selectedIds.length >= 2 && (tidyPreview ? (
@@ -130,18 +135,20 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
               onCancel={() => setTidyPreview(null)}
             />
           ) : (
-            <BarButton label={`⇄ ${t("c.selection.tidy")}`} onClick={previewSelectedTidy} />
+            <BarButton label={`⇄ ${t("c.selection.tidy")}`} ariaLabel={t("c.selection.tidy")} onClick={previewSelectedTidy} />
           ))}
-          <BarButton label={`◯ ${t("c.selection.bubbleIt")}`} onClick={() => run(bubbleIt)} />
+          <BarButton label={`◯ ${t("c.selection.bubbleIt")}`} ariaLabel={t("c.selection.bubbleIt")} onClick={() => run(bubbleIt)} />
           {selectedIds.length >= 2 && (
             <BarButton
               label={`⇢ ${t("c.selection.merge")}`}
+              ariaLabel={t("c.selection.merge")}
               onClick={() => run(() => useStore.getState().mergeTasksAction(selectedIds))}
             />
           )}
-          <BarButton label={`▶ ${t("c.selection.focus")}`} onClick={() => useStore.getState().startFocus(selectedIds)} />
+          <BarButton label={`▶ ${t("c.selection.focus")}`} ariaLabel={t("c.selection.focus")} onClick={() => useStore.getState().startFocus(selectedIds)} />
           <BarButton
             label={`🗑 ${t("c.selection.delete")}`}
+            ariaLabel={t("c.selection.delete")}
             danger
             onClick={() => {
               if (confirm(t("c.selection.deleteConfirm", { count: selectedIds.length }))) {
@@ -153,7 +160,8 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
           <div className="w-px h-5 bg-white/10" />
           <button
             onClick={() => useStore.getState().clearSelection()}
-            className="text-[10px] text-gray-500 hover:text-gray-200 transition-colors"
+            aria-label={t("c.selection.clearLabel")}
+            className="min-w-11 min-h-11 text-[10px] text-gray-500 hover:text-gray-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300"
           >
             {t("c.selection.clear")}
           </button>
@@ -214,12 +222,13 @@ export function SelectionTidyPreview({
   );
 }
 
-function BarButton({ label, onClick, danger, disabled = false }: { label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
+function BarButton({ label, ariaLabel = label, onClick, danger, disabled = false }: { label: string; ariaLabel?: string; onClick: () => void; danger?: boolean; disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`text-[11px] whitespace-nowrap px-2 py-1 rounded-md transition-colors ${
+      aria-label={ariaLabel}
+      className={`min-w-11 min-h-11 text-[11px] whitespace-nowrap px-2 py-1 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
         disabled
           ? "cursor-not-allowed text-gray-500"
           : danger ? "text-gray-400 hover:text-red-400 hover:bg-red-500/10" : "text-gray-300 hover:text-white hover:bg-white/10"

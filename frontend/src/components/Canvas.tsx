@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { useStore, visibleTasks, matchesSearch, CARD_W, CARD_H, type Task } from "../store";
 import { useClusters } from "../engine/proximityDetector";
 import { TaskCard } from "./TaskCard";
@@ -39,7 +39,7 @@ interface Rect {
   y2: number;
 }
 
-export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }: CanvasProps) {
+export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }, ref) {
   const tasks = useStore((s) => s.tasks);
   const dependencies = useStore((s) => s.dependencies);
   const showDone = useStore((s) => s.showDone);
@@ -229,10 +229,17 @@ export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }: Ca
 
   return (
     <div
-      ref={containerRef}
+      ref={(element) => {
+        containerRef.current = element;
+        if (typeof ref === "function") ref(element);
+        else if (ref) ref.current = element;
+      }}
       className={`relative w-full h-full overflow-hidden select-none ${
         zoneDraw ? "cursor-crosshair" : isPanning ? "cursor-grabbing" : "cursor-grab"
       }`}
+      role="region"
+      aria-label={t("c.canvas.regionLabel")}
+      tabIndex={-1}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -323,7 +330,7 @@ export function Canvas({ canvasId, semanticDensity, onCreateAt, onEditTask }: Ca
       </div>
     </div>
   );
-}
+});
 
 function normalizeRect(r: Rect): { x: number; y: number; w: number; h: number } {
   return {

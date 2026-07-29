@@ -86,6 +86,7 @@ export const enA: Record<string, string> = {
 
   // CommandPalette
   "a.palette.placeholder": "Jump to task, bubble, canvas — or run a command…",
+  "a.palette.dialogLabel": "Command center",
   "a.palette.noMatches": "No matches.",
   "a.palette.create": "Create: {title}",
   "a.palette.dueHint": "due {date}",
@@ -276,6 +277,7 @@ export const deA: Record<string, string> = {
 
   // CommandPalette
   "a.palette.placeholder": "Zu Aufgabe, Blase oder Canvas springen — oder Befehl ausführen…",
+  "a.palette.dialogLabel": "Befehlszentrale",
   "a.palette.noMatches": "Keine Treffer.",
   "a.palette.create": "Erstellen: {title}",
   "a.palette.dueHint": "fällig {date}",
