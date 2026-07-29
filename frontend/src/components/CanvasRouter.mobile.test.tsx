@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Canvas, Task, Workstream } from "../store";
-import { useStore } from "../store";
+import { CARD_H, CARD_W, useStore } from "../store";
 import { SPATIAL_COMMAND_CENTER_SHELL_FLAG } from "./spatialCommandCenterFlag";
 import { CanvasRouter } from "./CanvasRouter";
 
@@ -73,6 +73,15 @@ const workstream: Workstream = {
   updatedAt: "2026-07-29T00:00:00.000Z",
 };
 
+const operationsTask: Task = {
+  ...todayTask,
+  id: "task-operations",
+  title: "Run Operations integration",
+  description: "Operations uses the shared Inspector callback.",
+  x: 120,
+  y: 240,
+};
+
 function deferred() {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => { resolve = done; });
@@ -112,6 +121,8 @@ describe("CanvasRouter mobile command center", () => {
     container.remove();
     localStorage.clear();
     useStore.setState(initialState, true);
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("shows Inbox loading until required data settles, then opens the real Inspector route", async () => {
@@ -294,5 +305,130 @@ describe("CanvasRouter mobile command center", () => {
     expect(useStore.getState().focus).toEqual(focusBeforeEscape);
     const restoredInspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
     expect(document.activeElement).toBe(restoredInspectorButton);
+  });
+
+  it("renders Operations only when the command-center flag is enabled, without requests or mutations", async () => {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      disconnect() {}
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+    const optionalLoad = vi.fn(async () => {});
+    const patchTask = vi.fn(async () => {});
+    const setWorkstreamMembership = vi.fn(async () => {});
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    useStore.setState({
+      canvases: [canvas], tasks: [operationsTask], workstreams: [workstream], dependencies: [], readOnly: true,
+      loadCanvases: vi.fn(async () => [canvas]), refreshTasks: vi.fn(async () => {}), loadWorkstreams: vi.fn(async () => {}),
+      loadBubbles: optionalLoad, loadDependencies: optionalLoad, loadPortals: optionalLoad, loadZones: optionalLoad, loadConnections: optionalLoad,
+      patchTask, setWorkstreamMembership, setCardDensity: vi.fn(), setLiveConnected: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Operations")?.click();
+    });
+
+    expect(container.textContent).toContain(operationsTask.title);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(patchTask).not.toHaveBeenCalled();
+    expect(setWorkstreamMembership).not.toHaveBeenCalled();
+
+    localStorage.setItem(SPATIAL_COMMAND_CENTER_SHELL_FLAG, "false");
+    await act(async () => {
+      root.unmount();
+      root = createRoot(container);
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+
+    expect(container.querySelector(".mobile-command-center")).toBeNull();
+  });
+
+  it("renders Operations in the desktop command-center rail and uses its shared callbacks", async () => {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      disconnect() {}
+    });
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
+    });
+    const optionalLoad = vi.fn(async () => {});
+    const setSelected = vi.fn();
+    const flashTask = vi.fn();
+    const flyTo = vi.fn();
+    useStore.setState({
+      canvases: [canvas], tasks: [operationsTask], workstreams: [workstream], dependencies: [], readOnly: true,
+      loadCanvases: vi.fn(async () => [canvas]), refreshTasks: vi.fn(async () => {}), loadWorkstreams: vi.fn(async () => {}),
+      loadBubbles: optionalLoad, loadDependencies: optionalLoad, loadPortals: optionalLoad, loadZones: optionalLoad, loadConnections: optionalLoad,
+      setSelected, flashTask, flyTo, setCardDensity: vi.fn(), setLiveConnected: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+
+    expect(container.textContent).toContain(operationsTask.title);
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector")?.click();
+    });
+    expect(setSelected).toHaveBeenCalledWith([operationsTask.id]);
+
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Back")?.click();
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Reveal")?.click();
+    });
+    expect(flashTask).toHaveBeenCalledWith(operationsTask.id);
+    expect(flyTo).toHaveBeenCalledWith(operationsTask.x + CARD_W / 2, operationsTask.y + CARD_H / 2, 1);
+  });
+
+  it("opens Operations tasks in the shared mobile Inspector and reveals them on the canvas", async () => {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      disconnect() {}
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+    const optionalLoad = vi.fn(async () => {});
+    const setSelected = vi.fn();
+    const flashTask = vi.fn();
+    const flyTo = vi.fn();
+    useStore.setState({
+      canvases: [canvas], tasks: [operationsTask], workstreams: [workstream], dependencies: [], readOnly: true,
+      loadCanvases: vi.fn(async () => [canvas]), refreshTasks: vi.fn(async () => {}), loadWorkstreams: vi.fn(async () => {}),
+      loadBubbles: optionalLoad, loadDependencies: optionalLoad, loadPortals: optionalLoad, loadZones: optionalLoad, loadConnections: optionalLoad,
+      setSelected, flashTask, flyTo, setCardDensity: vi.fn(), setLiveConnected: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Operations")?.click();
+    });
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector")?.click();
+    });
+
+    expect(container.querySelector('[aria-label="Inspector"]')).not.toBeNull();
+    expect(container.textContent).toContain("Return to Operations");
+
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Return to Operations")?.click();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain(operationsTask.title);
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "Reveal")?.click();
+    });
+
+    expect(setSelected).toHaveBeenCalledWith([operationsTask.id]);
+    expect(flashTask).toHaveBeenCalledWith(operationsTask.id);
+    expect(flyTo).toHaveBeenCalledWith(operationsTask.x + CARD_W / 2, operationsTask.y + CARD_H / 2, 1);
+    expect(container.querySelector(".mobile-command-center")).toBeNull();
   });
 });
