@@ -257,6 +257,7 @@ function patchLabel(task: Task | undefined, patch: TaskPatch): string {
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 let flyRaf = 0;
 let toastSeq = 0;
+let arrangementApplyInFlight = false;
 
 export const useStore = create<State>((set, get) => {
   // Execute an op in the given direction without recording history.
@@ -520,6 +521,7 @@ export const useStore = create<State>((set, get) => {
 
     applyArrangementPreview: async (preview) => {
       if (preview.isNoop) return false;
+      if (arrangementApplyInFlight) return false;
 
       const state = get();
       if (!isArrangementPreviewCurrent(preview, state.tasks, state.workstreams)) {
@@ -528,34 +530,43 @@ export const useStore = create<State>((set, get) => {
       }
 
       const currentTasks = new Map(get().tasks.map((task) => [task.id, task]));
+      if (preview.scope === "selected") {
+        const validScopeTaskIds = new Set(
+          [...preview.moved, ...preview.unchanged]
+            .map((task) => typeof task === "string" ? task : task.id)
+            .filter((taskId) => currentTasks.has(taskId)),
+        );
+        if (validScopeTaskIds.size < 2) return false;
+      }
       const moves = preview.positions.filter((position) => {
         const current = currentTasks.get(position.id);
         return current && (current.x !== position.x || current.y !== position.y);
       });
       if (moves.length === 0) return false;
 
-      let saved: Task[];
+      arrangementApplyInFlight = true;
       try {
-        ({ tasks: saved } = await api.updateTaskPositions(moves));
+        const { tasks: saved } = await api.updateTaskPositions(moves);
+        const ops: Op[] = moves.map((position) => {
+          const before = currentTasks.get(position.id)!;
+          return {
+            kind: "patch",
+            taskId: position.id,
+            redo: { x: position.x, y: position.y },
+            undo: { x: before.x, y: before.y },
+          };
+        });
+        history.push({ op: { kind: "batch", ops }, label: t("label.arrangedWorkstream") });
+        const savedIds = new Set(saved.map((task) => task.id));
+        set({ tasks: [...get().tasks.filter((task) => !savedIds.has(task.id)), ...saved] });
+        get().showToast(t("toast.arrangementApplied", { count: moves.length }));
+        return true;
       } catch {
         get().showToast(t("toast.arrangementApplyFailed"));
         return false;
+      } finally {
+        arrangementApplyInFlight = false;
       }
-
-      const ops: Op[] = moves.map((position) => {
-        const before = currentTasks.get(position.id)!;
-        return {
-          kind: "patch",
-          taskId: position.id,
-          redo: { x: position.x, y: position.y },
-          undo: { x: before.x, y: before.y },
-        };
-      });
-      history.push({ op: { kind: "batch", ops }, label: t("label.arrangedWorkstream") });
-      const savedIds = new Set(saved.map((task) => task.id));
-      set({ tasks: [...get().tasks.filter((task) => !savedIds.has(task.id)), ...saved] });
-      get().showToast(t("toast.arrangementApplied", { count: moves.length }));
-      return true;
     },
 
     autoArrangeCanvas: async (mode) => {
