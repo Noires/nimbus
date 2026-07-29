@@ -6,10 +6,11 @@ import { selectWorkstreamHealth } from "../data/workstreamHealthSelectors";
 interface InspectorFrameProps {
   title: string;
   onBack: () => void;
+  backLabel?: string;
   children: React.ReactNode;
 }
 
-function InspectorFrame({ title, onBack, children }: InspectorFrameProps) {
+function InspectorFrame({ title, onBack, backLabel, children }: InspectorFrameProps) {
   const t = useT();
   return (
     <section className="border-t border-white/10 pt-4 mt-4" aria-label={t("inspector.label")}>
@@ -20,7 +21,7 @@ function InspectorFrame({ title, onBack, children }: InspectorFrameProps) {
           onClick={onBack}
           className="rounded px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
         >
-          {t("inspector.back")}
+          {backLabel ?? t("inspector.back")}
         </button>
       </div>
       {children}
@@ -65,12 +66,14 @@ export function TaskInspector({
   workstreams,
   dependencies,
   onBack,
+  backLabel,
 }: {
   task: Task;
   tasks: Task[];
   workstreams: Workstream[];
   dependencies: Dependency[];
   onBack: () => void;
+  backLabel?: string;
 }) {
   const t = useT();
   const memberships = workstreamsForTask(workstreams, task.id);
@@ -82,7 +85,7 @@ export function TaskInspector({
   const source = task.provider ? `${providerName(task.provider)}${task.externalKey ? ` ${task.externalKey}` : ""}` : null;
 
   return (
-    <InspectorFrame title={t("inspector.task")} onBack={onBack}>
+    <InspectorFrame title={t("inspector.task")} onBack={onBack} backLabel={backLabel}>
       <div className="mt-3 space-y-4">
         <div>
           <h3 className="text-sm font-semibold text-white">{task.title}</h3>
