@@ -9,6 +9,7 @@ type ViewConfig = { done?: boolean; tag?: string; priority?: string; group?: str
 function validConfig(value: unknown): value is ViewConfig {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const config = value as Record<string, unknown>;
+  if (Object.keys(config).some((key) => !["done", "tag", "priority", "group", "sort", "direction"].includes(key))) return false;
   return (!("done" in config) || typeof config.done === "boolean")
     && (!("tag" in config) || typeof config.tag === "string")
     && (!("priority" in config) || typeof config.priority === "string")
