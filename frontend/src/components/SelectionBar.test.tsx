@@ -223,13 +223,13 @@ describe("SelectionBar selected-task tidy", () => {
     });
     await act(async () => { root.render(<SelectionBar canvasId="canvas-1" tidyEnabled />); });
     await act(async () => (container.querySelector('button[aria-label="Arrange in zones"]') as HTMLButtonElement).click());
-    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply tidy")?.disabled).toBe(false);
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply zone arrangement")?.disabled).toBe(false);
 
     await act(async () => {
       useStore.setState({ zones: [{ id: "zone", canvasId: "canvas-1", x: 20, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }] });
     });
 
-    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply tidy")?.disabled).toBe(true);
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply zone arrangement")?.disabled).toBe(true);
     expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Cancel")?.disabled).toBe(false);
   });
 });

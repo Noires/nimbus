@@ -5,6 +5,7 @@ import { clusterHue } from "../utils/colors";
 import { history, type Op } from "../engine/history";
 import { isArrangementPreviewCurrent, previewArrangementOperation, type ArrangementPreview } from "../engine/arrangementOperation";
 import type { ArrangementStrategy } from "../engine/arrangementOperation";
+import { selectEffectiveZone } from "../data/spatialZoneSelectors";
 import { useT } from "../i18n";
 
 // Floating bulk-action bar for the lasso selection. Every action is a single
@@ -166,11 +167,11 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
             />
           ) : (
             <>
-              <label className="sr-only" htmlFor="selected-arrange-mode">Arrange selected by</label>
-              <select id="selected-arrange-mode" aria-label="Arrange selected by" value={arrangeStrategy} onChange={(event) => setArrangeStrategy(event.target.value as ArrangementStrategy)} className="max-w-24 bg-[#0f0f13] text-xs">
-                <option value="tidy-overlaps">Tidy overlaps</option><option value="grid">Grid</option><option value="tag">Tag</option><option value="status">Status</option><option value="priority">Priority</option><option value="due">Due date</option>
+              <label className="sr-only" htmlFor="selected-arrange-mode">{t("c.selection.arrangeSelectedBy")}</label>
+              <select id="selected-arrange-mode" aria-label={t("c.selection.arrangeSelectedBy")} value={arrangeStrategy} onChange={(event) => setArrangeStrategy(event.target.value as ArrangementStrategy)} className="max-w-24 bg-[#0f0f13] text-xs">
+                <option value="tidy-overlaps">{t("c.selection.modeTidy")}</option><option value="grid">{t("c.selection.modeGrid")}</option><option value="tag">{t("c.selection.modeTag")}</option><option value="status">{t("c.selection.modeStatus")}</option><option value="priority">{t("c.selection.modePriority")}</option><option value="due">{t("c.selection.modeDue")}</option>
               </select>
-              <BarButton label={`⇄ ${arrangeStrategy === "tidy-overlaps" ? t("c.selection.tidy") : "Preview arrange"}`} ariaLabel="Preview selected arrangement" onClick={previewSelectedTidy} />
+              <BarButton label={`⇄ ${arrangeStrategy === "tidy-overlaps" ? t("c.selection.tidy") : arrangeStrategy === "grid" ? t("c.selection.arrangeGrid") : t("c.selection.previewArrange")}`} ariaLabel={t("c.selection.previewSelectedArrangement")} onClick={previewSelectedTidy} />
               <button ref={zoneTrigger} onClick={previewSelectedZones} aria-label={t("c.selection.arrangeZones")} disabled={zoneEligibleCount < 2} title={zoneEligibleCount < 2 ? t("c.selection.zoneNeedsEligible") : undefined} className="min-w-11 min-h-11 text-[11px] whitespace-nowrap px-2 py-1 rounded-md text-gray-300 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 disabled:cursor-not-allowed disabled:text-gray-500">⌑ {t("c.selection.arrangeZones")}</button>
             </>
           ))}
@@ -251,6 +252,14 @@ export function SelectionTidyPreview({
     return zone?.label || t("c.selection.unnamedZone");
   };
   const taskLabel = (title: string | undefined, missing = false) => title?.trim() || t(missing ? "c.selection.missingTask" : "c.selection.untitledTask");
+  const unchangedZoneDetails = isZonePreview
+    ? preview.unchanged.flatMap((taskId) => {
+      const task = useStore.getState().tasks.find((candidate) => candidate.id === taskId);
+      if (!task) return [];
+      const resolution = selectEffectiveZone(task, useStore.getState().zones);
+      return resolution.kind === "assigned" ? [{ id: task.id, title: task.title, zoneId: resolution.zone.id }] : [];
+    })
+    : [];
   const apply = async () => {
     if (isApplying || !isCurrent) return;
     setIsApplying(true);
@@ -279,7 +288,7 @@ export function SelectionTidyPreview({
         }
       }}
     >
-      {isZonePreview && <span className="sr-only">{t("c.selection.zonePreviewScope")}</span>}
+      {isZonePreview && <span className="text-[10px] font-medium text-cyan-50">{t("c.selection.arrangeZones")} · {t("c.selection.zonePreviewScope")}</span>}
       <span className="text-[10px] text-cyan-100">
         {t("c.selection.tidyPreview", {
           moved: preview.moved.length,
@@ -296,10 +305,11 @@ export function SelectionTidyPreview({
         <button type="button" aria-expanded={showZoneDetails} aria-controls="zone-arrangement-details" onClick={() => setShowZoneDetails((shown) => !shown)} className="min-w-11 min-h-11 text-[11px] px-2 py-1 rounded-md text-gray-300 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300">{t("c.selection.zoneDetails")}</button>
         {showZoneDetails && <div id="zone-arrangement-details" className="absolute bottom-full left-0 z-10 mb-2 max-h-48 w-72 overflow-auto rounded-md border border-white/15 bg-[#0f0f13] p-2 text-[11px] text-gray-200 shadow-xl">
           {preview.moved.map((move) => <p key={move.id}>{t("c.selection.zoneMovedDetail", { task: taskLabel(move.title), zone: zoneLabel(move.zoneId) })}</p>)}
+          {unchangedZoneDetails.map((task) => <p key={task.id}>{t("c.selection.zoneUnchangedDetail", { task: taskLabel(task.title), zone: zoneLabel(task.zoneId) })}</p>)}
           {preview.skipped.map((skipped) => <p key={skipped.id}>{t("c.selection.zoneSkippedDetail", { task: taskLabel(skipped.title, skipped.reason === "missing-task"), reason: t(skipReasonKeys[skipped.reason]) })}</p>)}
         </div>}
       </div>}
-      <BarButton label={t("c.selection.applyTidy")} onClick={() => void apply()} disabled={isApplying || !isCurrent} />
+      <BarButton label={isZonePreview ? t("c.selection.applyZones") : t("c.selection.applyTidy")} onClick={() => void apply()} disabled={isApplying || !isCurrent} />
       <BarButton label={t("c.selection.cancelTidy")} onClick={onCancel} />
     </div>
   );

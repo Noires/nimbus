@@ -560,7 +560,7 @@ export const useStore = create<State>((set, get) => {
             undo: { x: before.x, y: before.y },
           };
         });
-        history.push({ op: { kind: "batch", ops }, label: t("label.arrangedWorkstream") });
+        history.push({ op: { kind: "batch", ops }, label: t(preview.scope === "selected-zones" ? "label.arrangedZones" : "label.arrangedWorkstream") });
         const savedIds = new Set(saved.map((task) => task.id));
         set({ tasks: [...get().tasks.filter((task) => !savedIds.has(task.id)), ...saved] });
         get().showToast(t("toast.arrangementApplied", { count: moves.length }));
