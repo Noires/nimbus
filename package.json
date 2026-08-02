@@ -9,6 +9,12 @@
     "docker:up": "docker compose up -d",
     "docker:smoke": "./scripts/compose-smoke.sh",
     "test": "node --test test/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test --grep axe",
     "migrate": "cd server && npx prisma migrate dev"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "axe-core": "^4.12.1"
   }
 }
