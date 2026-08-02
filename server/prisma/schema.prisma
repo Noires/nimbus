@@ -139,6 +139,7 @@ model Dependency {
   blocked   Task   @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
 
   @@unique([blockerId, blockedId])
+  @@unique([blockedId])
   @@index([blockedId])
   @@map("dependencies")
 }

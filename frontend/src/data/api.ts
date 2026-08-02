@@ -362,6 +362,9 @@ export const api = {
   createDependency: (blockerId: string, blockedId: string) =>
     request(DependencySchema, "/api/dependencies", { method: "POST", json: { blockerId, blockedId } }),
   deleteDependency: (id: string) => requestVoid(`/api/dependencies/${id}`, { method: "DELETE" }),
+  setTaskBlocker: (taskId: string, blockerId: string) =>
+    request(DependencySchema, `/api/tasks/${taskId}/blocker`, { method: "PUT", json: { blockerId } }),
+  clearTaskBlocker: (taskId: string) => requestVoid(`/api/tasks/${taskId}/blocker`, { method: "DELETE" }),
 
   // --- portals ---
   listPortals: (canvasId: string) =>

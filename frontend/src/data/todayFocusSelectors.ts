@@ -24,7 +24,7 @@ function priorityRank(task: Task): number {
 function compareOpenTasks(a: Task, b: Task): number {
   const priority = priorityRank(a) - priorityRank(b);
   if (priority !== 0) return priority;
-  return a.title.localeCompare(b.title);
+  return a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
 }
 
 function compareDueTasks(a: Task, b: Task): number {
@@ -65,7 +65,7 @@ export function selectTodayFocus({ tasks, dependencies, now = new Date(), limit 
     .slice(0, limit);
   const recentlyCompleted = tasks
     .filter((task) => task.done && !task.inbox && !task.archivedAt)
-    .sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt) || a.title.localeCompare(b.title))
+    .sort((a, b) => Date.parse(b.lastActivityAt) - Date.parse(a.lastActivityAt) || a.title.localeCompare(b.title) || a.id.localeCompare(b.id))
     .slice(0, limit);
 
   return { ready, due, blocked, recentlyCompleted };

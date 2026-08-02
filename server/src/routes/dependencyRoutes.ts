@@ -1,6 +1,7 @@
 import { Router } from "express";
 import prisma from "../prisma-client.js";
 import { publish } from "../bus.js";
+import { BlockerLinkError, replaceTaskBlocker } from "./taskRoutes.js";
 
 const router = Router();
 
@@ -21,43 +22,14 @@ router.get("/", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const { blockerId, blockedId } = req.body ?? {};
-    if (!blockerId || !blockedId) return res.status(400).json({ error: "Missing blockerId/blockedId" });
-    if (blockerId === blockedId) return res.status(400).json({ error: "A task cannot block itself" });
-
-    const [blocker, blocked] = await Promise.all([
-      prisma.task.findUnique({ where: { id: blockerId } }),
-      prisma.task.findUnique({ where: { id: blockedId } }),
-    ]);
-    if (!blocker || !blocked) return res.status(404).json({ error: "Task not found" });
-    if (blocker.canvasId !== blocked.canvasId)
-      return res.status(400).json({ error: "Tasks are on different canvases" });
-
-    // Cycle check: would blockerId become reachable from blockedId?
-    const deps = await prisma.dependency.findMany({ where: { blocker: { canvasId: blocker.canvasId } } });
-    const edges = new Map<string, string[]>();
-    for (const d of deps) {
-      const list = edges.get(d.blockerId);
-      if (list) list.push(d.blockedId);
-      else edges.set(d.blockerId, [d.blockedId]);
-    }
-    const stack = [blockedId as string];
-    const seen = new Set<string>();
-    while (stack.length) {
-      const cur = stack.pop()!;
-      if (cur === blockerId) return res.status(400).json({ error: "Would create a dependency cycle" });
-      if (seen.has(cur)) continue;
-      seen.add(cur);
-      for (const next of edges.get(cur) ?? []) stack.push(next);
-    }
-
-    const dep = await prisma.dependency.create({ data: { blockerId, blockedId } });
-    publish(blocker.canvasId, { entity: "dependency", action: "upsert", data: dep, clientId: req.header("x-client-id") });
-    return res.status(201).json(dep);
+    if (typeof blockerId !== "string" || typeof blockedId !== "string" || !blockerId || !blockedId)
+      return res.status(400).json({ error: "Missing blockerId/blockedId" });
+    const change = await replaceTaskBlocker(blockedId, blockerId, false);
+    publish(change.task.canvasId, { entity: "dependency", action: "upsert", data: change.dependency!, clientId: req.header("x-client-id") });
+    return res.status(201).json(change.dependency);
   } catch (e) {
-    // Unique constraint → the thread already exists
-    if ((e as { code?: string }).code === "P2002")
-      return res.status(409).json({ error: "Dependency already exists" });
-    return res.status(500).json({ error: (e as Error).message });
+    const status = e instanceof BlockerLinkError ? e.status : (e as { code?: string }).code === "P2034" ? 409 : 500;
+    return res.status(status).json({ error: (e as Error).message });
   }
 });
 

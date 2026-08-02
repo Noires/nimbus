@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { Dependency, Task, Workstream } from "../store";
 import { dateLocale, useT } from "../i18n";
 import { workstreamsForTask } from "../data/workstreamSelectors";
@@ -67,6 +68,7 @@ export function TaskInspector({
   dependencies,
   onBack,
   backLabel,
+  blockerEditor,
 }: {
   task: Task;
   tasks: Task[];
@@ -74,6 +76,10 @@ export function TaskInspector({
   dependencies: Dependency[];
   onBack: () => void;
   backLabel?: string;
+  blockerEditor?: {
+    enabled: boolean;
+    onSetBlocker: (taskId: string, blockerId: string | null) => Promise<void>;
+  };
 }) {
   const t = useT();
   const memberships = workstreamsForTask(workstreams, task.id);
@@ -83,6 +89,39 @@ export function TaskInspector({
   const checklistDone = task.checklist.filter((item) => item.done).length;
   const status = task.status ?? (task.done ? t("inspector.done") : t("inspector.open"));
   const source = task.provider ? `${providerName(task.provider)}${task.externalKey ? ` ${task.externalKey}` : ""}` : null;
+  const currentBlocker = blockers[0] ? taskById.get(blockers[0].blockerId) : undefined;
+  const activeCurrentBlocker = currentBlocker && !currentBlocker.done ? currentBlocker : undefined;
+  const blockerV1Enabled = blockerEditor?.enabled === true;
+  const candidates = tasks
+    .filter((candidate) => candidate.canvasId === task.canvasId && candidate.id !== task.id && !candidate.done)
+    .sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
+  const [selectedBlockerId, setSelectedBlockerId] = useState(currentBlocker?.id ?? "");
+  const [blockerError, setBlockerError] = useState<string | null>(null);
+  const [blockerNotice, setBlockerNotice] = useState<string | null>(null);
+  const [savingBlocker, setSavingBlocker] = useState(false);
+  const savingBlockerRef = useRef(false);
+
+  useEffect(() => {
+    setSelectedBlockerId(currentBlocker?.id ?? "");
+  }, [task.id, currentBlocker?.id]);
+
+  const saveBlocker = async (blockerId: string | null) => {
+    if (!blockerV1Enabled || savingBlockerRef.current) return;
+    savingBlockerRef.current = true;
+    setSavingBlocker(true);
+    setBlockerError(null);
+    setBlockerNotice(null);
+    try {
+      await blockerEditor!.onSetBlocker(task.id, blockerId);
+      setSelectedBlockerId(blockerId ?? "");
+      setBlockerNotice(t(blockerId ? "inspector.blockerSaved" : "inspector.blockerCleared"));
+    } catch {
+      setBlockerError(t("inspector.blockerSaveFailed"));
+    } finally {
+      savingBlockerRef.current = false;
+      setSavingBlocker(false);
+    }
+  };
 
   return (
     <InspectorFrame title={t("inspector.task")} onBack={onBack} backLabel={backLabel}>
@@ -103,11 +142,13 @@ export function TaskInspector({
           <Detail label={t("inspector.tags")}>{task.tags.length ? task.tags.map((tag) => `#${tag}`).join(" ") : t("inspector.none")}</Detail>
           <Detail label={t("inspector.checklist")}>{t("inspector.checklistProgress", { done: checklistDone, total: task.checklist.length })}</Detail>
         </dl>
-        {(blockers.length > 0 || blocking.length > 0) && (
+        {((blockerV1Enabled ? Boolean(activeCurrentBlocker) : blockers.length > 0) || blocking.length > 0) && (
           <dl className="space-y-2 border-t border-white/10 pt-3">
-            {blockers.length > 0 && (
+            {(blockerV1Enabled ? activeCurrentBlocker : blockers.length > 0) && (
               <Detail label={t("inspector.blockedBy")}>
-                {blockers.map((dependency) => taskById.get(dependency.blockerId)?.title ?? dependency.blockerId).join(", ")}
+                {blockerV1Enabled
+                  ? activeCurrentBlocker!.title
+                  : blockers.map((dependency) => taskById.get(dependency.blockerId)?.title ?? dependency.blockerId).join(", ")}
               </Detail>
             )}
             {blocking.length > 0 && (
@@ -116,6 +157,24 @@ export function TaskInspector({
               </Detail>
             )}
           </dl>
+        )}
+        {blockerV1Enabled && (
+          <section className="space-y-2 border-t border-white/10 pt-3" aria-label={t("inspector.blockerControls")}>
+            <label className="block text-xs font-medium uppercase tracking-wide text-gray-400" htmlFor={`blocker-${task.id}`}>{t("inspector.blocker")}</label>
+            <div className="flex flex-wrap gap-2">
+              <select id={`blocker-${task.id}`} value={selectedBlockerId} disabled={savingBlocker} onChange={(event) => setSelectedBlockerId(event.target.value)} className="min-w-0 flex-1 rounded border border-white/15 bg-[#15171d] px-2 py-1 text-xs text-gray-100 disabled:opacity-50">
+                <option value="">{t("inspector.selectBlocker")}</option>
+                {candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}
+              </select>
+              <button type="button" disabled={savingBlocker || !selectedBlockerId} onClick={() => void saveBlocker(selectedBlockerId)} className="rounded border border-white/15 px-2 py-1 text-xs text-cyan-100 disabled:opacity-50">
+                {currentBlocker ? t("inspector.replaceBlocker") : t("inspector.setBlocker")}
+              </button>
+              {currentBlocker && <button type="button" disabled={savingBlocker} onClick={() => void saveBlocker(null)} className="rounded border border-white/15 px-2 py-1 text-xs text-gray-200 disabled:opacity-50">{t("inspector.clearBlocker")}</button>}
+            </div>
+            {savingBlocker && <p role="status" aria-live="polite" className="text-xs text-cyan-100">{t("inspector.savingBlocker")}</p>}
+            {blockerNotice && <p role="status" aria-live="polite" className="text-xs text-cyan-100">{blockerNotice}</p>}
+            {blockerError && <p role="alert" className="text-xs text-red-300">{blockerError}</p>}
+          </section>
         )}
         {(task.provider || task.lastActivityAt) && (
           <dl className="space-y-2 border-t border-white/10 pt-3">

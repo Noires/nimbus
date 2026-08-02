@@ -105,6 +105,7 @@ interface State {
   loadDependencies: (canvasId: string) => Promise<void>;
   addDependency: (blockerId: string, blockedId: string) => Promise<void>;
   removeDependency: (id: string) => Promise<void>;
+  setTaskBlocker: (taskId: string, blockerId: string | null) => Promise<void>;
   linking: { fromId: string; x: number; y: number } | null;
   setLinking: (linking: { fromId: string; x: number; y: number } | null) => void;
 
@@ -737,6 +738,20 @@ export const useStore = create<State>((set, get) => {
     removeDependency: async (id) => {
       await api.deleteDependency(id);
       set({ dependencies: get().dependencies.filter((d) => d.id !== id) });
+    },
+    setTaskBlocker: async (taskId, blockerId) => {
+      if (blockerId === null) {
+        await api.clearTaskBlocker(taskId);
+        set({ dependencies: get().dependencies.filter((dependency) => dependency.blockedId !== taskId) });
+        return;
+      }
+      const dependency = await api.setTaskBlocker(taskId, blockerId);
+      set({
+        dependencies: [
+          ...get().dependencies.filter((candidate) => candidate.blockedId !== taskId && candidate.id !== dependency.id),
+          dependency,
+        ],
+      });
     },
     linking: null,
     setLinking: (linking) => set({ linking }),

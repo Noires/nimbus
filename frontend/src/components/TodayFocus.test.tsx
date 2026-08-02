@@ -74,6 +74,25 @@ describe("TodayFocus", () => {
     expect(html).toContain("Reveal on canvas");
     expect(html).toContain("Return to Inbox");
     expect(html).toContain("Focus");
+    // Blocker Links v1 details are absent from the legacy (flag-off) path.
+    expect(html).not.toContain("Blocked by: Wait for review");
+  });
+
+  it("shows an active blocker only when the desktop spatial blocker path is enabled", () => {
+    const render = (blockerStatusEnabled: boolean, blockerDone = false) => renderToStaticMarkup(
+      <TodayFocus
+        state="ready"
+        now={new Date("2026-07-28T12:00:00.000Z")}
+        tasks={[task("blocked", "Publish release"), task("blocker", "Wait for review", { done: blockerDone })]}
+        dependencies={dependencies}
+        blockerStatusEnabled={blockerStatusEnabled}
+        {...actions}
+      />,
+    );
+
+    expect(render(false)).not.toContain("Blocked by: Wait for review");
+    expect(render(true)).toContain("Blocked by: Wait for review");
+    expect(render(true, true)).not.toContain("Blocked by: Wait for review");
   });
 
   it.each([
