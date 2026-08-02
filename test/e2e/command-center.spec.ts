@@ -61,3 +61,51 @@ test("axe: mobile command-center destinations are flag-gated and announced", asy
   await expect(page.getByRole("main", { name: "Today" })).toBeVisible();
   await assertAxe(page);
 });
+
+test("tutorial: safe sample completes, resumes, replays, and stays isolated", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
+  await page.goto(`/canvas/${canvas.id}`);
+  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toBeVisible();
+  await page.getByRole("button", { name: "Start tutorial" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Welcome to your safe sample");
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Capture sample task" }).click();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Exit tutorial" }).click();
+
+  await page.reload();
+  await page.getByRole("button", { name: "Resume tutorial" }).click();
+  await expect(dialog).toContainText("Triage the sample Inbox");
+  await dialog.getByRole("button", { name: "Triage sample task" }).click();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Place sample task in Today" }).click();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Complete sample task" }).click();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Finish tutorial" }).click();
+  await expect(dialog).toHaveCount(0);
+
+  await page.keyboard.press("?");
+  await page.getByRole("button", { name: "Replay safe sample tutorial" }).click();
+  await expect(dialog).toContainText("Welcome to your safe sample");
+  await assertAxe(page);
+});
+
+test("tutorial: German first-run copy stays localized and skip remains non-blocking", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.addInitScript(() => {
+    localStorage.setItem("nimbus:spatial-command-center-shell", "true");
+    localStorage.setItem("locale", "de");
+  });
+  await page.goto(`/canvas/${canvas.id}`);
+  await expect(page.getByText("Nimbus sicher ausprobieren")).toBeVisible();
+  await page.getByRole("button", { name: "Tutorial starten" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("Willkommen bei deinem sicheren Beispiel");
+  await expect(dialog).toContainText("Es werden keine echten Nimbus-Daten gezeigt oder verändert.");
+  await dialog.getByRole("button", { name: "Tutorial überspringen" }).click();
+  await expect(dialog).toHaveCount(0);
+});
