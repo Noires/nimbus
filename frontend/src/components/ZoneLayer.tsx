@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
-import { useStore, CARD_W, CARD_H, type Zone } from "../store";
+import { useStore, type Zone } from "../store";
 import { useT } from "../i18n";
+import { selectZonesContainingTask } from "../data/spatialZoneSelectors";
 
 // User-drawn labeled regions under the cards: quadrants, swimlanes,
 // territories. Dragging the header moves the zone AND the cards inside it.
@@ -35,15 +36,7 @@ export function ZoneLayer() {
       // Cards ride along only on move, captured at drag start.
       memberIds:
         mode === "move"
-          ? tasks
-              .filter(
-                (t) =>
-                  t.x + CARD_W / 2 >= zone.x &&
-                  t.x + CARD_W / 2 <= zone.x + zone.w &&
-                  t.y + CARD_H / 2 >= zone.y &&
-                  t.y + CARD_H / 2 <= zone.y + zone.h,
-              )
-              .map((t) => t.id)
+          ? tasks.filter((task) => selectZonesContainingTask(task, [zone]).length > 0).map((task) => task.id)
           : [],
     };
   };
@@ -182,12 +175,11 @@ export function ZoneLayer() {
                   title={t("b.zone.focusTitle")}
                   onClick={() => {
                     const tasks = useStore.getState().tasks.filter(
-                      (t) =>
-                        t.x + CARD_W / 2 >= zone.x &&
-                        t.x + CARD_W / 2 <= zone.x + zone.w &&
-                        t.y + CARD_H / 2 >= zone.y &&
-                        t.y + CARD_H / 2 <= zone.y + zone.h &&
-                        !t.done && !t.archivedAt && !t.inbox,
+                      (task) =>
+                        selectZonesContainingTask(task, [zone]).length > 0 &&
+                        !task.done &&
+                        !task.archivedAt &&
+                        !task.inbox,
                     );
                     if (tasks.length) useStore.getState().startFocus(tasks.map((t) => t.id));
                   }}

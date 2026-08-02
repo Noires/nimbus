@@ -7,6 +7,7 @@ import { resolveOverlap } from "../engine/collision";
 import { dayDockHit } from "./DayDock";
 import { useT, dateLocale } from "../i18n";
 import { resolveSemanticDensity, type CardDensity } from "../engine/semanticDensity";
+import { selectZonesContainingTask } from "../data/spatialZoneSelectors";
 
 interface TaskCardProps {
   task: Task;
@@ -240,14 +241,8 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
     const topZ = Math.max(0, ...store.tasks.map((t) => t.z)) + 1;
 
     // Zones: entering applies the zone's auto-tag, leaving removes it.
-    const zonesAt = (x: number, y: number) =>
-      store.zones.filter(
-        (z) =>
-          x + CARD_W / 2 >= z.x && x + CARD_W / 2 <= z.x + z.w &&
-          y + CARD_H / 2 >= z.y && y + CARD_H / 2 <= z.y + z.h,
-      );
-    const before = zonesAt(d.taskX, d.taskY);
-    const after = zonesAt(finalX, finalY);
+    const before = selectZonesContainingTask({ x: d.taskX, y: d.taskY }, store.zones);
+    const after = selectZonesContainingTask({ x: finalX, y: finalY }, store.zones);
     const leaveTags = before
       .filter((z) => z.autoTag && !after.some((a) => a.id === z.id))
       .map((z) => z.autoTag!);
