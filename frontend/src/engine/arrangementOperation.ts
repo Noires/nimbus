@@ -1,5 +1,6 @@
 import { computeTidyMoves } from "./tidy";
 import { latticePositions } from "./lattice";
+import { computeAutoArrange, type ArrangeMode } from "./autoArrange";
 
 const CARD_W = 256;
 const CARD_H = 170;
@@ -9,7 +10,15 @@ export interface ArrangementTask {
   id: string;
   x: number;
   y: number;
+  title?: string;
+  tags?: string[];
+  priority?: string;
+  status?: string | null;
+  dueDate?: string | null;
 }
+
+/** Grid reuses the deterministic status lattice, rather than a hidden auto-run. */
+export type ArrangementStrategy = "tidy-overlaps" | "grid" | ArrangeMode;
 
 export interface ArrangementWorkstream {
   id: string;
@@ -35,7 +44,7 @@ export interface SkippedArrangementEntity {
 }
 
 export interface ArrangementPreview {
-  strategy: "tidy-overlaps";
+  strategy: ArrangementStrategy;
   scope: ArrangementScope["kind"];
   moved: ArrangementMove[];
   unchanged: string[];
@@ -51,6 +60,7 @@ export interface ArrangementPreview {
 
 export interface ArrangementPreviewInput {
   scope: ArrangementScope;
+  strategy?: ArrangementStrategy;
   tasks: ArrangementTask[];
   /** Task ids that must remain fixed even when the caller selects them. */
   protectedTaskIds?: Iterable<string>;
@@ -101,6 +111,7 @@ export function isArrangementPreviewCurrent(
  * otherwise out-of-scope cards.
  */
 export function previewArrangementOperation(input: ArrangementPreviewInput): ArrangementPreview {
+  const strategy = input.strategy ?? "tidy-overlaps";
   const workstreams = input.workstreams ?? [];
   const revision = input.revision ?? arrangementRevision(input.tasks, workstreams);
   const workstreamId = getWorkstreamId(input.scope);
@@ -109,7 +120,7 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     : undefined;
   if (scopeWorkstream?.protected || scopeWorkstream?.pinned) {
     const reason = scopeWorkstream.protected ? "protected-workstream" : "pinned-workstream";
-    return emptyPreview(input.scope.kind, [{ id: scopeWorkstream.id, reason }], revision);
+    return emptyPreview(input.scope.kind, strategy, [{ id: scopeWorkstream.id, reason }], revision);
   }
 
   const tasksById = new Map(input.tasks.map((task) => [task.id, task]));
@@ -149,23 +160,23 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
   }
 
   const byId = new Map(candidates.map((task) => [task.id, task]));
-  const clusters = computeCandidateClusters(candidates);
   const moves = new Map<string, { x: number; y: number }>();
-  for (const cluster of clusters) {
-    const members = cluster.members.map((id) => byId.get(id)).filter((task): task is ArrangementTask => !!task);
-    if (members.length < 2 || !membersOverlap(members)) continue;
-    const center = {
-      x: members.reduce((sum, task) => sum + task.x, 0) / members.length,
-      y: members.reduce((sum, task) => sum + task.y, 0) / members.length,
-    };
-    const ordered = [...members].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id));
-    latticePositions(center.x, center.y, ordered.length).forEach((position, index) => {
-      moves.set(ordered[index].id, { x: Math.round(position.x), y: Math.round(position.y) });
-    });
+  if (strategy === "tidy-overlaps") {
+    const clusters = computeCandidateClusters(candidates);
+    for (const cluster of clusters) {
+      const members = cluster.members.map((id) => byId.get(id)).filter((task): task is ArrangementTask => !!task);
+      if (members.length < 2 || !membersOverlap(members)) continue;
+      const center = { x: members.reduce((sum, task) => sum + task.x, 0) / members.length, y: members.reduce((sum, task) => sum + task.y, 0) / members.length };
+      const ordered = [...members].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id));
+      latticePositions(center.x, center.y, ordered.length).forEach((position, index) => moves.set(ordered[index].id, { x: Math.round(position.x), y: Math.round(position.y) }));
+    }
+    const compacted = candidates.map((task) => ({ ...task, ...(moves.get(task.id) ?? {}) }));
+    for (const [taskId, position] of computeTidyMoves(compacted, clusters)) moves.set(taskId, position);
+  } else {
+    const mode: ArrangeMode = strategy === "grid" ? "status" : strategy;
+    const arrangeable = candidates.map((task) => ({ ...task, title: task.title ?? "", tags: task.tags ?? [], priority: task.priority ?? "medium", status: task.status ?? null, dueDate: task.dueDate ?? null }));
+    for (const [taskId, position] of computeAutoArrange(arrangeable, mode).moves) moves.set(taskId, position);
   }
-
-  const compacted = candidates.map((task) => ({ ...task, ...(moves.get(task.id) ?? {}) }));
-  for (const [taskId, position] of computeTidyMoves(compacted, clusters)) moves.set(taskId, position);
 
   const moved: ArrangementMove[] = [];
   const unchanged: string[] = [];
@@ -182,14 +193,16 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     return { id, x: task.x, y: task.y };
   });
   const explanation = moved.length
-    ? `Tidy overlaps will move ${moved.length} of ${candidates.length} eligible cards.`
-    : `No overlapping eligible cards need to move (${candidates.length} checked).`;
+    ? `${strategy === "tidy-overlaps" ? "Tidy overlaps" : `Arrange by ${strategy}`} will move ${moved.length} of ${candidates.length} eligible cards.`
+    : strategy === "tidy-overlaps"
+      ? `No overlapping eligible cards need to move (${candidates.length} checked).`
+      : `No eligible cards need to move (${candidates.length} checked).`;
   const explanations = [
     explanation,
     ...(skipped.length > 0 ? [`Skipped ${skipped.length} selected cards.`] : []),
   ];
   return {
-    strategy: "tidy-overlaps",
+    strategy,
     scope: input.scope.kind,
     moved,
     unchanged,
@@ -211,12 +224,13 @@ function membersOverlap(members: ArrangementTask[]): boolean {
 
 function emptyPreview(
   scope: ArrangementScope["kind"],
+  strategy: ArrangementStrategy,
   skipped: SkippedArrangementEntity[],
   revision: string,
 ): ArrangementPreview {
   const explanation = "This protected scope cannot be arranged.";
   return {
-    strategy: "tidy-overlaps", scope, moved: [], unchanged: [], skipped,
+    strategy, scope, moved: [], unchanged: [], skipped,
     positions: [], inverse: [], isNoop: true, explanation, explanations: [explanation], revision,
   };
 }

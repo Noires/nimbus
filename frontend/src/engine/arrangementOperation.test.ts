@@ -70,6 +70,21 @@ describe("previewArrangementOperation", () => {
     expect(preview.explanations).toContain("Skipped 2 selected cards.");
   });
 
+  it("previews explicit arrange modes without persistence and keeps protected items fixed", () => {
+    const tasks = [
+      { ...task("b", 0, 0), title: "same", tags: ["z", "a"], priority: "medium", status: "open", dueDate: "2026-08-02" },
+      { ...task("a", 0, 0), title: "same", tags: ["a", "z"], priority: "medium", status: "open", dueDate: "2026-08-02" },
+      { ...task("protected", 0, 0), title: "fixed", tags: ["a"], priority: "high", status: "open", dueDate: "2026-08-02" },
+    ];
+    const preview = previewArrangementOperation({
+      scope: { kind: "canvas", taskIds: ["protected", "b", "a"] }, tasks, strategy: "tag", protectedTaskIds: ["protected"],
+    });
+    expect(preview.strategy).toBe("tag");
+    expect(preview.skipped).toEqual([{ id: "protected", reason: "protected-task" }]);
+    expect(tasks.map(({ id, x, y }) => ({ id, x, y }))).toEqual([task("b", 0, 0), task("a", 0, 0), task("protected", 0, 0)]);
+    expect(preview.moved.map((move) => move.id)).toEqual(["a", "b"]);
+  });
+
   it("reports an explicit no-op when eligible candidates do not overlap", () => {
     const preview = previewArrangementOperation({
       scope: { kind: "canvas", taskIds: ["a", "b"] },
