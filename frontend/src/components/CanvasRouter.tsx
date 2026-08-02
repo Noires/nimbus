@@ -80,6 +80,7 @@ export function CanvasRouter() {
   const [timelapse, setTimelapse] = useState(false);
   const [pulseOpen, setPulseOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialReplay, setTutorialReplay] = useState(false);
   const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
   const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
   const mobileCommandCenterEligible = isMobileCommandCenterEnabled({
@@ -803,11 +804,21 @@ export function CanvasRouter() {
         <HelpPanel
           spatialCommandCenterShell={spatialCommandCenterShell}
           onClose={() => useStore.getState().setHelpOpen(false)}
-          onStartTutorial={() => { useStore.getState().setHelpOpen(false); setTutorialOpen(true); }}
+          onStartTutorial={() => {
+            useStore.getState().setHelpOpen(false);
+            setTutorialReplay(true);
+            setTutorialOpen(true);
+          }}
         />
       )}
-      {spatialCommandCenterShell && <CommandCenterTutorialOffer onStart={() => setTutorialOpen(true)} />}
-      {spatialCommandCenterShell && <CommandCenterTutorial open={tutorialOpen} onClose={() => setTutorialOpen(false)} />}
+      {spatialCommandCenterShell && <CommandCenterTutorialOffer onStart={() => {
+        setTutorialReplay(false);
+        setTutorialOpen(true);
+      }} />}
+      {spatialCommandCenterShell && <CommandCenterTutorial open={tutorialOpen} replay={tutorialReplay} onClose={() => {
+        setTutorialOpen(false);
+        setTutorialReplay(false);
+      }} />}
       <Toast />
     </>
   );
