@@ -17,7 +17,9 @@ async function canvasSettings(canvasId: string): Promise<CanvasSettings> {
   return (canvas?.settings as CanvasSettings) ?? {};
 }
 
-type PositionUpdate = { id: string; x: number; y: number };
+/** Preview positions are optional compare-and-set preconditions. */
+type PositionUpdate = { id: string; x: number; y: number; expectedX?: number; expectedY?: number };
+type ZoneSnapshot = { id: string; canvasId: string; x: number; y: number; w: number; h: number; label: string; z: number };
 
 function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
@@ -28,7 +30,7 @@ function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
       !candidate ||
       typeof candidate !== "object"
     ) return null;
-    const position = candidate as { id?: unknown; x?: unknown; y?: unknown };
+    const position = candidate as { id?: unknown; x?: unknown; y?: unknown; expectedX?: unknown; expectedY?: unknown };
     if (
       typeof position.id !== "string" ||
       !position.id ||
@@ -36,12 +38,39 @@ function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
       typeof position.y !== "number" ||
       !Number.isFinite(position.x) ||
       !Number.isFinite(position.y) ||
-      ids.has(position.id)
+      ids.has(position.id) ||
+      (position.expectedX !== undefined && (typeof position.expectedX !== "number" || !Number.isFinite(position.expectedX))) ||
+      (position.expectedY !== undefined && (typeof position.expectedY !== "number" || !Number.isFinite(position.expectedY))) ||
+      ((position.expectedX === undefined) !== (position.expectedY === undefined))
     ) return null;
     ids.add(position.id);
-    positions.push({ id: position.id, x: position.x, y: position.y });
+    positions.push({ id: position.id, x: position.x, y: position.y, expectedX: position.expectedX, expectedY: position.expectedY });
   }
   return positions;
+}
+
+function parseZoneSnapshot(value: unknown): ZoneSnapshot[] | null | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return null;
+  const ids = new Set<string>();
+  const zones: ZoneSnapshot[] = [];
+  for (const candidate of value) {
+    if (!candidate || typeof candidate !== "object") return null;
+    const zone = candidate as Partial<ZoneSnapshot>;
+    if (typeof zone.id !== "string" || !zone.id || ids.has(zone.id) || typeof zone.canvasId !== "string" || !zone.canvasId ||
+      ![zone.x, zone.y, zone.w, zone.h, zone.z].every((number) => typeof number === "number" && Number.isFinite(number)) || typeof zone.label !== "string") return null;
+    ids.add(zone.id);
+    zones.push(zone as ZoneSnapshot);
+  }
+  return zones.sort((left, right) => left.id.localeCompare(right.id));
+}
+
+async function lockCanvas(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], canvasId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${canvasId}))`;
+}
+
+function sameZoneSnapshot(actual: ZoneSnapshot[], expected: ZoneSnapshot[]) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
 }
 
 class PositionUpdateError extends Error {}
@@ -183,6 +212,8 @@ router.get("/", async (req, res) => {
 router.post("/positions", async (req, res) => {
   const positions = parsePositionUpdates(req.body?.positions);
   if (!positions) return res.status(400).json({ error: "Expected unique task positions with finite x and y values" });
+  const expectedZones = parseZoneSnapshot(req.body?.expectedZones);
+  if (expectedZones === null) return res.status(400).json({ error: "Expected a valid Zone snapshot" });
 
   try {
     const saved = await prisma.$transaction(async (tx) => {
@@ -195,14 +226,37 @@ router.post("/positions", async (req, res) => {
       if (!tasks.every((task) => task.canvasId === canvasId)) {
         throw new PositionUpdateError("Tasks are on different canvases");
       }
+      // Serialize selected-zone Apply with Zone CRUD. Comparing the full
+      // canvas snapshot here closes the browser-check/request race, including
+      // a newly-created overlapping Zone.
+      if (expectedZones !== undefined) {
+        await lockCanvas(tx, canvasId);
+        const actualZones = (await tx.zone.findMany({
+          where: { canvasId },
+          select: { id: true, canvasId: true, x: true, y: true, w: true, h: true, label: true, z: true },
+          orderBy: { id: "asc" },
+        })) as ZoneSnapshot[];
+        if (!sameZoneSnapshot(actualZones, expectedZones)) throw new PositionUpdateError("Arrangement preview is out of date");
+      }
 
       const savedTasks = [];
       for (const position of positions) {
-        savedTasks.push(await tx.task.update({
-          where: { id: position.id },
-          data: { x: position.x, y: position.y },
-          include: INCLUDE_CHECKLIST,
-        }));
+        // Keep the comparison in the write operation: a remote movement can
+        // happen after the client created its preview but before Apply.
+        if (position.expectedX !== undefined) {
+          const result = await tx.task.updateMany({
+            where: { id: position.id, x: position.expectedX, y: position.expectedY },
+            data: { x: position.x, y: position.y },
+          });
+          if (result.count !== 1) throw new PositionUpdateError("Arrangement preview is out of date");
+          const task = await tx.task.findUnique({ where: { id: position.id }, include: INCLUDE_CHECKLIST });
+          if (!task) throw new PositionUpdateError("Tasks not found");
+          savedTasks.push(task);
+        } else {
+          savedTasks.push(await tx.task.update({
+            where: { id: position.id }, data: { x: position.x, y: position.y }, include: INCLUDE_CHECKLIST,
+          }));
+        }
       }
       return { tasks, savedTasks };
     });
@@ -223,7 +277,9 @@ router.post("/positions", async (req, res) => {
 
     return res.json({ tasks: saved.savedTasks });
   } catch (e) {
-    const status = e instanceof PositionUpdateError ? 400 : 500;
+    const status = e instanceof PositionUpdateError
+      ? (e.message === "Arrangement preview is out of date" ? 409 : 400)
+      : 500;
     return res.status(status).json({ error: (e as Error).message });
   }
 });

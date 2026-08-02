@@ -525,13 +525,13 @@ export const useStore = create<State>((set, get) => {
       if (arrangementApplyInFlight) return false;
 
       const state = get();
-      if (!isArrangementPreviewCurrent(preview, state.tasks, state.workstreams)) {
+      if (!isArrangementPreviewCurrent(preview, state.tasks, state.workstreams, preview.scope === "selected-zones" ? state.zones : [])) {
         state.showToast(t("toast.arrangementOutOfDate"));
         return false;
       }
 
       const currentTasks = new Map(get().tasks.map((task) => [task.id, task]));
-      if (preview.scope === "selected") {
+      if (preview.scope === "selected" || preview.scope === "selected-zones") {
         const validScopeTaskIds = new Set(
           [...preview.moved, ...preview.unchanged]
             .map((task) => typeof task === "string" ? task : task.id)
@@ -547,7 +547,10 @@ export const useStore = create<State>((set, get) => {
 
       arrangementApplyInFlight = true;
       try {
-        const { tasks: saved } = await api.updateTaskPositions(moves);
+        const { tasks: saved } = await api.updateTaskPositions(moves.map((position) => {
+          const before = currentTasks.get(position.id)!;
+          return { ...position, expectedX: before.x, expectedY: before.y };
+        }), preview.scope === "selected-zones" ? preview.zoneSnapshot : undefined);
         const ops: Op[] = moves.map((position) => {
           const before = currentTasks.get(position.id)!;
           return {
@@ -557,7 +560,7 @@ export const useStore = create<State>((set, get) => {
             undo: { x: before.x, y: before.y },
           };
         });
-        history.push({ op: { kind: "batch", ops }, label: t("label.arrangedWorkstream") });
+        history.push({ op: { kind: "batch", ops }, label: t(preview.scope === "selected-zones" ? "label.arrangedZones" : "label.arrangedWorkstream") });
         const savedIds = new Set(saved.map((task) => task.id));
         set({ tasks: [...get().tasks.filter((task) => !savedIds.has(task.id)), ...saved] });
         get().showToast(t("toast.arrangementApplied", { count: moves.length }));

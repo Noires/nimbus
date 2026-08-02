@@ -98,6 +98,7 @@ describe("SelectionBar selected-task tidy", () => {
     });
 
     expect(container.textContent).not.toContain("Tidy selected");
+    expect(container.textContent).not.toContain("Arrange in zones");
   });
 
   it("announces the localized selected count and gives each bulk action an accessible label", async () => {
@@ -195,5 +196,40 @@ describe("SelectionBar selected-task tidy", () => {
     }), { status: 200, headers: { "Content-Type": "application/json" } }));
     await act(async () => {});
     expect(history.canUndo).toBe(true);
+  });
+
+  it("opens an accessible zone preview and Escape cancels without a request", async () => {
+    useStore.setState({
+      zones: [{ id: "zone", canvasId: "canvas-1", x: 0, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }],
+    });
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    await act(async () => { root.render(<SelectionBar canvasId="canvas-1" tidyEnabled />); });
+    const trigger = container.querySelector('button[aria-label="Arrange in zones"]') as HTMLButtonElement;
+    await act(async () => trigger.click());
+    const preview = container.querySelector('[aria-label="Arrange selected tasks in zones"]') as HTMLDivElement;
+    expect(preview).not.toBeNull();
+    expect(preview.getAttribute("aria-live")).toBe("polite");
+    expect(document.activeElement).toBe(preview);
+    await act(async () => preview.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(fetch).not.toHaveBeenCalled();
+    expect(container.querySelector('[aria-label="Arrange selected tasks in zones"]')).toBeNull();
+    expect(document.activeElement).toBe(container.querySelector('button[aria-label="Arrange in zones"]'));
+  });
+
+  it("disables zone Apply when a zone update makes its preview stale while leaving Cancel available", async () => {
+    useStore.setState({
+      zones: [{ id: "zone", canvasId: "canvas-1", x: 0, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }],
+    });
+    await act(async () => { root.render(<SelectionBar canvasId="canvas-1" tidyEnabled />); });
+    await act(async () => (container.querySelector('button[aria-label="Arrange in zones"]') as HTMLButtonElement).click());
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply zone arrangement")?.disabled).toBe(false);
+
+    await act(async () => {
+      useStore.setState({ zones: [{ id: "zone", canvasId: "canvas-1", x: 20, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }] });
+    });
+
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply zone arrangement")?.disabled).toBe(true);
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Cancel")?.disabled).toBe(false);
   });
 });

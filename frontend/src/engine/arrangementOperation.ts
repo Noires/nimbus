@@ -1,15 +1,26 @@
 import { computeTidyMoves } from "./tidy";
 import { latticePositions } from "./lattice";
+import { computeAutoArrange, type ArrangeMode } from "./autoArrange";
+import { CARD_H, CARD_W, type Zone } from "../store";
+import { selectEffectiveZone } from "../data/spatialZoneSelectors";
 
-const CARD_W = 256;
-const CARD_H = 170;
 const CLUSTER_THRESHOLD = 240;
+export const ARRANGE_GAP_X = 16;
+export const ARRANGE_GAP_Y = 16;
 
 export interface ArrangementTask {
   id: string;
   x: number;
   y: number;
+  title?: string;
+  tags?: string[];
+  priority?: string;
+  status?: string | null;
+  dueDate?: string | null;
 }
+
+/** Grid reuses the deterministic status lattice, rather than a hidden auto-run. */
+export type ArrangementStrategy = "tidy-overlaps" | "grid" | ArrangeMode;
 
 export interface ArrangementWorkstream {
   id: string;
@@ -21,21 +32,27 @@ export interface ArrangementWorkstream {
 export type ArrangementScope =
   | { kind: "selected"; taskIds: string[] }
   | { kind: "canvas"; taskIds: string[] }
-  | { kind: "workstream"; workstreamId: string; taskIds: string[] };
+  | { kind: "workstream"; workstreamId: string; taskIds: string[] }
+  | { kind: "selected-zones"; taskIds: string[] };
 
 export interface ArrangementMove {
   id: string;
   x: number;
   y: number;
+  /** Present only for selected-zone previews; it is explanation metadata, not membership. */
+  zoneId?: string;
+  title?: string;
 }
 
 export interface SkippedArrangementEntity {
   id: string;
-  reason: "missing-task" | "protected-task" | "pinned-workstream" | "protected-workstream";
+  reason: "missing-task" | "protected-task" | "pinned-workstream" | "protected-workstream" | "outside-zone" | "ambiguous-zone" | "zone-too-small";
+  zoneIds?: string[];
+  title?: string;
 }
 
 export interface ArrangementPreview {
-  strategy: "tidy-overlaps";
+  strategy: ArrangementStrategy;
   scope: ArrangementScope["kind"];
   moved: ArrangementMove[];
   unchanged: string[];
@@ -47,13 +64,19 @@ export interface ArrangementPreview {
   explanations: string[];
   /** Snapshot of the task positions and workstream safeguards used for this preview. */
   revision: string;
+  /** Server-side stale precondition for selected-zone previews, never task membership. */
+  zoneSnapshot?: ZoneRevisionEntry[];
 }
+
+export type ZoneRevisionEntry = Pick<Zone, "id" | "canvasId" | "x" | "y" | "w" | "h" | "label" | "z">;
 
 export interface ArrangementPreviewInput {
   scope: ArrangementScope;
+  strategy?: ArrangementStrategy;
   tasks: ArrangementTask[];
   /** Task ids that must remain fixed even when the caller selects them. */
   protectedTaskIds?: Iterable<string>;
+  zones?: Zone[];
   /** Retained for the in-progress workstream use case; callers may omit it. */
   workstreams?: ArrangementWorkstream[];
   /** Optional revision calculated from the caller's authoritative store state. */
@@ -71,6 +94,7 @@ type RevisionWorkstream = Pick<ArrangementWorkstream, "id" | "pinned" | "protect
 export function arrangementRevision(
   tasks: Iterable<ArrangementTask>,
   workstreams: Iterable<RevisionWorkstream>,
+  zones: Iterable<Pick<Zone, "id" | "canvasId" | "x" | "y" | "w" | "h" | "label" | "z">> = [],
 ): string {
   const taskState = [...tasks]
     .map(({ id, x, y }) => [id, x, y] as const)
@@ -83,7 +107,14 @@ export function arrangementRevision(
       [...workstreamTaskIds(workstream)].sort(compareIds),
     ] as const)
     .sort(([left], [right]) => compareIds(left, right));
-  return JSON.stringify([taskState, workstreamState]);
+  const zoneState = [...zones].map(({ id, canvasId, x, y, w, h, label, z }) => [id, canvasId, x, y, w, h, label, z] as const).sort(([left], [right]) => compareIds(left, right));
+  return JSON.stringify([taskState, workstreamState, zoneState]);
+}
+
+export function zoneRevisionSnapshot(zones: Iterable<ZoneRevisionEntry>): ZoneRevisionEntry[] {
+  return [...zones]
+    .map(({ id, canvasId, x, y, w, h, label, z }) => ({ id, canvasId, x, y, w, h, label, z }))
+    .sort((left, right) => compareIds(left.id, right.id));
 }
 
 /** Returns whether a preview still represents the supplied authoritative state. */
@@ -91,8 +122,9 @@ export function isArrangementPreviewCurrent(
   preview: ArrangementPreview,
   tasks: Iterable<ArrangementTask>,
   workstreams: Iterable<RevisionWorkstream>,
+  zones: Iterable<Pick<Zone, "id" | "canvasId" | "x" | "y" | "w" | "h" | "label" | "z">> = [],
 ): boolean {
-  return preview.revision === arrangementRevision(tasks, workstreams);
+  return preview.revision === arrangementRevision(tasks, workstreams, zones);
 }
 
 /**
@@ -101,15 +133,16 @@ export function isArrangementPreviewCurrent(
  * otherwise out-of-scope cards.
  */
 export function previewArrangementOperation(input: ArrangementPreviewInput): ArrangementPreview {
+  const strategy = input.strategy ?? "tidy-overlaps";
   const workstreams = input.workstreams ?? [];
-  const revision = input.revision ?? arrangementRevision(input.tasks, workstreams);
+  const revision = input.revision ?? arrangementRevision(input.tasks, workstreams, input.scope.kind === "selected-zones" ? input.zones : []);
   const workstreamId = getWorkstreamId(input.scope);
   const scopeWorkstream = workstreamId
     ? workstreams.find((workstream) => workstream.id === workstreamId)
     : undefined;
   if (scopeWorkstream?.protected || scopeWorkstream?.pinned) {
     const reason = scopeWorkstream.protected ? "protected-workstream" : "pinned-workstream";
-    return emptyPreview(input.scope.kind, [{ id: scopeWorkstream.id, reason }], revision);
+    return emptyPreview(input.scope.kind, strategy, [{ id: scopeWorkstream.id, reason }], revision);
   }
 
   const tasksById = new Map(input.tasks.map((task) => [task.id, task]));
@@ -138,41 +171,70 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     }
     const reason = protectedMemberships.get(taskId);
     if (reason) {
-      skipped.push({ id: taskId, reason });
+      skipped.push({ id: taskId, title: task.title, reason });
       continue;
     }
     if (protectedTaskIds.has(taskId)) {
-      skipped.push({ id: taskId, reason: "protected-task" });
+      skipped.push({ id: taskId, title: task.title, reason: "protected-task" });
       continue;
     }
     candidates.push(task);
   }
 
   const byId = new Map(candidates.map((task) => [task.id, task]));
-  const clusters = computeCandidateClusters(candidates);
-  const moves = new Map<string, { x: number; y: number }>();
-  for (const cluster of clusters) {
-    const members = cluster.members.map((id) => byId.get(id)).filter((task): task is ArrangementTask => !!task);
-    if (members.length < 2 || !membersOverlap(members)) continue;
-    const center = {
-      x: members.reduce((sum, task) => sum + task.x, 0) / members.length,
-      y: members.reduce((sum, task) => sum + task.y, 0) / members.length,
-    };
-    const ordered = [...members].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id));
-    latticePositions(center.x, center.y, ordered.length).forEach((position, index) => {
-      moves.set(ordered[index].id, { x: Math.round(position.x), y: Math.round(position.y) });
-    });
+  const moves = new Map<string, { x: number; y: number; zoneId?: string }>();
+  if (input.scope.kind === "selected-zones") {
+    const zoneTasks = new Map<string, ArrangementTask[]>();
+    for (const task of candidates) {
+      const resolution = selectEffectiveZone(task, input.zones ?? []);
+      if (resolution.kind === "outside") { skipped.push({ id: task.id, title: task.title, reason: "outside-zone" }); continue; }
+      if (resolution.kind === "ambiguous") { skipped.push({ id: task.id, title: task.title, reason: "ambiguous-zone", zoneIds: resolution.zoneIds }); continue; }
+      if (resolution.zone.w < CARD_W || resolution.zone.h < CARD_H) { skipped.push({ id: task.id, title: task.title, reason: "zone-too-small", zoneIds: [resolution.zone.id] }); continue; }
+      const group = zoneTasks.get(resolution.zone.id) ?? [];
+      group.push(task); zoneTasks.set(resolution.zone.id, group);
+    }
+    for (const [zoneId, group] of [...zoneTasks].sort(([a], [b]) => compareIds(a, b))) {
+      const zone = (input.zones ?? []).find((item) => item.id === zoneId)!;
+      const columns = Math.max(1, Math.floor((zone.w - CARD_W) / (CARD_W + ARRANGE_GAP_X)) + 1);
+      // A Zone is never resized and no card may be clipped. Capacity is thus
+      // deliberately finite: later deterministic rows are explained as skipped
+      // instead of spilling beyond the persisted rectangle.
+      const rows = Math.max(1, Math.floor((zone.h - CARD_H) / (CARD_H + ARRANGE_GAP_Y)) + 1);
+      const capacity = columns * rows;
+      [...group].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id)).forEach((task, index) => {
+        if (index >= capacity) {
+          skipped.push({ id: task.id, title: task.title, reason: "zone-too-small", zoneIds: [zone.id] });
+          return;
+        }
+        moves.set(task.id, {
+          x: zone.x + (index % columns) * (CARD_W + ARRANGE_GAP_X), y: zone.y + Math.floor(index / columns) * (CARD_H + ARRANGE_GAP_Y), zoneId: zone.id,
+        });
+      });
+    }
+  } else if (strategy === "tidy-overlaps") {
+    const clusters = computeCandidateClusters(candidates);
+    for (const cluster of clusters) {
+      const members = cluster.members.map((id) => byId.get(id)).filter((task): task is ArrangementTask => !!task);
+      if (members.length < 2 || !membersOverlap(members)) continue;
+      const center = { x: members.reduce((sum, task) => sum + task.x, 0) / members.length, y: members.reduce((sum, task) => sum + task.y, 0) / members.length };
+      const ordered = [...members].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id));
+      latticePositions(center.x, center.y, ordered.length).forEach((position, index) => moves.set(ordered[index].id, { x: Math.round(position.x), y: Math.round(position.y) }));
+    }
+    const compacted = candidates.map((task) => ({ ...task, ...(moves.get(task.id) ?? {}) }));
+    for (const [taskId, position] of computeTidyMoves(compacted, clusters)) moves.set(taskId, position);
+  } else {
+    const mode: ArrangeMode = strategy === "grid" ? "status" : strategy;
+    const arrangeable = candidates.map((task) => ({ ...task, title: task.title ?? "", tags: task.tags ?? [], priority: task.priority ?? "medium", status: task.status ?? null, dueDate: task.dueDate ?? null }));
+    for (const [taskId, position] of computeAutoArrange(arrangeable, mode).moves) moves.set(taskId, position);
   }
-
-  const compacted = candidates.map((task) => ({ ...task, ...(moves.get(task.id) ?? {}) }));
-  for (const [taskId, position] of computeTidyMoves(compacted, clusters)) moves.set(taskId, position);
 
   const moved: ArrangementMove[] = [];
   const unchanged: string[] = [];
   for (const task of candidates) {
-    const position = moves.get(task.id) ?? task;
+    const plannedPosition = moves.get(task.id);
+    const position = plannedPosition ?? task;
     if (position.x === task.x && position.y === task.y) unchanged.push(task.id);
-    else moved.push({ id: task.id, x: position.x, y: position.y });
+    else moved.push({ id: task.id, x: position.x, y: position.y, ...(plannedPosition?.zoneId ? { zoneId: plannedPosition.zoneId, ...(task.title ? { title: task.title } : {}) } : {}) });
   }
   moved.sort((a, b) => compareIds(a.id, b.id));
   unchanged.sort(compareIds);
@@ -182,14 +244,16 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     return { id, x: task.x, y: task.y };
   });
   const explanation = moved.length
-    ? `Tidy overlaps will move ${moved.length} of ${candidates.length} eligible cards.`
-    : `No overlapping eligible cards need to move (${candidates.length} checked).`;
+    ? `${strategy === "tidy-overlaps" ? "Tidy overlaps" : `Arrange by ${strategy}`} will move ${moved.length} of ${candidates.length} eligible cards.`
+    : strategy === "tidy-overlaps"
+      ? `No overlapping eligible cards need to move (${candidates.length} checked).`
+      : `No eligible cards need to move (${candidates.length} checked).`;
   const explanations = [
     explanation,
     ...(skipped.length > 0 ? [`Skipped ${skipped.length} selected cards.`] : []),
   ];
   return {
-    strategy: "tidy-overlaps",
+    strategy,
     scope: input.scope.kind,
     moved,
     unchanged,
@@ -200,6 +264,7 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     explanation,
     explanations,
     revision,
+    ...(input.scope.kind === "selected-zones" ? { zoneSnapshot: zoneRevisionSnapshot(input.zones ?? []) } : {}),
   };
 }
 
@@ -211,12 +276,13 @@ function membersOverlap(members: ArrangementTask[]): boolean {
 
 function emptyPreview(
   scope: ArrangementScope["kind"],
+  strategy: ArrangementStrategy,
   skipped: SkippedArrangementEntity[],
   revision: string,
 ): ArrangementPreview {
   const explanation = "This protected scope cannot be arranged.";
   return {
-    strategy: "tidy-overlaps", scope, moved: [], unchanged: [], skipped,
+    strategy, scope, moved: [], unchanged: [], skipped,
     positions: [], inverse: [], isNoop: true, explanation, explanations: [explanation], revision,
   };
 }

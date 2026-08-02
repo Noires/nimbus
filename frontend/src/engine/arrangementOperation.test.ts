@@ -26,7 +26,11 @@ describe("previewArrangementOperation", () => {
   });
 
   it("skips a protected scope and task members of pinned or protected workstreams", () => {
-    const tasks = [task("free", 0, 0), task("pinned-member", 0, 0), task("protected-member", 0, 0)];
+    const tasks = [
+      { ...task("free", 0, 0), title: "Free" },
+      { ...task("pinned-member", 0, 0), title: "Pinned member" },
+      { ...task("protected-member", 0, 0), title: "Protected member" },
+    ];
     const protectedScope = previewArrangementOperation({
       scope: { kind: "workstream", workstreamId: "protected", taskIds: ["free"] },
       tasks,
@@ -44,8 +48,8 @@ describe("previewArrangementOperation", () => {
     expect(protectedScope.moved).toEqual([]);
     expect(protectedScope.skipped).toEqual([{ id: "protected", reason: "protected-workstream" }]);
     expect(mixedScope.skipped).toEqual([
-      { id: "pinned-member", reason: "pinned-workstream" },
-      { id: "protected-member", reason: "protected-workstream" },
+      { id: "pinned-member", reason: "pinned-workstream", title: "Pinned member" },
+      { id: "protected-member", reason: "protected-workstream", title: "Protected member" },
     ]);
     expect(mixedScope.unchanged).toEqual(["free"]);
   });
@@ -68,6 +72,21 @@ describe("previewArrangementOperation", () => {
     expect(preview.inverse).toEqual([{ id: "b", x: 0, y: 0 }]);
     expect(preview.isNoop).toBe(false);
     expect(preview.explanations).toContain("Skipped 2 selected cards.");
+  });
+
+  it("previews explicit arrange modes without persistence and keeps protected items fixed", () => {
+    const tasks = [
+      { ...task("b", 0, 0), title: "same", tags: ["z", "a"], priority: "medium", status: "open", dueDate: "2026-08-02" },
+      { ...task("a", 0, 0), title: "same", tags: ["a", "z"], priority: "medium", status: "open", dueDate: "2026-08-02" },
+      { ...task("protected", 0, 0), title: "fixed", tags: ["a"], priority: "high", status: "open", dueDate: "2026-08-02" },
+    ];
+    const preview = previewArrangementOperation({
+      scope: { kind: "canvas", taskIds: ["protected", "b", "a"] }, tasks, strategy: "tag", protectedTaskIds: ["protected"],
+    });
+    expect(preview.strategy).toBe("tag");
+    expect(preview.skipped).toEqual([{ id: "protected", reason: "protected-task", title: "fixed" }]);
+    expect(tasks.map(({ id, x, y }) => ({ id, x, y }))).toEqual([task("b", 0, 0), task("a", 0, 0), task("protected", 0, 0)]);
+    expect(preview.moved.map((move) => move.id)).toEqual(["a", "b"]);
   });
 
   it("reports an explicit no-op when eligible candidates do not overlap", () => {
@@ -102,6 +121,37 @@ describe("previewArrangementOperation", () => {
     expect(isArrangementPreviewCurrent(preview, [task("a", 0, 0), task("b", 30, 0)], workstreams)).toBe(false);
     expect(isArrangementPreviewCurrent(preview, tasks, [{ ...workstreams[0], pinned: true }])).toBe(false);
     expect(isArrangementPreviewCurrent(preview, tasks, [{ ...workstreams[0], taskIds: ["a"] }])).toBe(false);
+  });
+
+  it("packs only unambiguous selected-zone tasks and goes stale on zone geometry", () => {
+    const zones = [
+      { id: "zone-a", canvasId: "canvas", x: 0, y: 0, w: 800, h: 400, label: "A", hue: 0, autoTag: null, z: 0 },
+      { id: "zone-overlap", canvasId: "canvas", x: 100, y: 0, w: 400, h: 400, label: "B", hue: 0, autoTag: null, z: 0 },
+      { id: "zone-small", canvasId: "canvas", x: 1000, y: 0, w: 100, h: 100, label: "Small", hue: 0, autoTag: null, z: 0 },
+    ] as any;
+    const tasks = [task("outside", 2000, 0), task("small", 920, 0), task("ambiguous", 50, 0)];
+    const preview = previewArrangementOperation({ scope: { kind: "selected-zones", taskIds: tasks.map(({ id }) => id) }, tasks, zones });
+    expect(preview.skipped).toEqual(expect.arrayContaining([
+      { id: "outside", reason: "outside-zone" }, { id: "small", reason: "zone-too-small", zoneIds: ["zone-small"] },
+      { id: "ambiguous", reason: "ambiguous-zone", zoneIds: ["zone-a", "zone-overlap"] },
+    ]));
+    expect(isArrangementPreviewCurrent(preview, tasks, [], zones)).toBe(true);
+    expect(isArrangementPreviewCurrent(preview, tasks, [], [{ ...zones[0], x: 1 }, ...zones.slice(1)])).toBe(false);
+  });
+
+  it("keeps every zone-arranged card fully contained and skips deterministic overflow", () => {
+    const zones = [{ id: "zone", canvasId: "canvas", x: 10, y: 20, w: 300, h: 170, label: "Zone", hue: 0, autoTag: null, z: 0 }] as any;
+    // All card centres start in the Zone, but it has capacity for only one full card.
+    const tasks = [task("b", 20, 30), task("a", 30, 40)];
+    const preview = previewArrangementOperation({ scope: { kind: "selected-zones", taskIds: ["b", "a"] }, tasks, zones });
+    expect(preview.moved).toEqual([{ id: "b", x: 10, y: 20, zoneId: "zone" }]);
+    expect(preview.skipped).toEqual([{ id: "a", reason: "zone-too-small", zoneIds: ["zone"] }]);
+    for (const move of preview.moved) {
+      expect(move.x).toBeGreaterThanOrEqual(zones[0].x);
+      expect(move.y).toBeGreaterThanOrEqual(zones[0].y);
+      expect(move.x + 256).toBeLessThanOrEqual(zones[0].x + zones[0].w);
+      expect(move.y + 170).toBeLessThanOrEqual(zones[0].y + zones[0].h);
+    }
   });
 
   it.each([100, 500, 1000])("previews %i overlapping cards without mutation", (count) => {

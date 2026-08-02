@@ -28,7 +28,7 @@ export function CanvasList({ canvases, canvasId }: CanvasListProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm uppercase tracking-wider text-gray-500 font-semibold px-2">
+        <h2 className="text-sm uppercase tracking-wider text-gray-300 font-semibold px-2">
           {t("a.canvasList.heading")}
         </h2>
         <button

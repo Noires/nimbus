@@ -6,7 +6,12 @@ export const DEFAULT_ESTIMATE_MINUTES = 60;
 
 /** Local-timezone yyyy-mm-dd key (toISOString would shift days near midnight). */
 export function localDayKey(dateInput: string | Date): string {
-  const d = new Date(dateInput);
+  // A date input is a local calendar date.  Parsing YYYY-MM-DD directly uses
+  // UTC midnight and otherwise makes western timezones display the prior day.
+  const match = typeof dateInput === "string" && /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateInput);
+  const d = match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(dateInput);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 

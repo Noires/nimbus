@@ -31,13 +31,26 @@ const DUE_ORDER: Record<string, number> = { overdue: 0, today: 1, week: 2, later
  *  groups never merge into one bubble. */
 const GROUP_GAP = 300;
 
-function groupKey(task: TaskLike, mode: ArrangeMode, now: number): string {
-  if (mode === "tag") return task.tags[0] ?? NONE_KEY;
+function localDay(value: string): number | null {
+  // Date-only values are calendar dates, not UTC instants.  Parse those in the
+  // user's local calendar; timestamps are first converted to their local day.
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
+function groupKey(task: TaskLike, mode: ArrangeMode, today: number): string {
+  if (mode === "tag") return [...task.tags].sort((a, b) => a.localeCompare(b))[0] ?? NONE_KEY;
   if (mode === "status") return task.status ?? NONE_KEY;
   if (mode === "priority") return PRIO_ORDER[task.priority] !== undefined ? task.priority : "medium";
   // due buckets
   if (!task.dueDate) return NONE_KEY;
-  const days = Math.floor((Date.parse(task.dueDate) - now) / DAY);
+  const dueDay = localDay(task.dueDate);
+  if (dueDay === null) return NONE_KEY;
+  const days = Math.round((dueDay - today) / DAY);
   if (days < 0) return "overdue";
   if (days === 0) return "today";
   if (days <= 7) return "week";
@@ -56,14 +69,15 @@ function groupOrder(key: string, mode: ArrangeMode): number {
 export function computeAutoArrange(
   tasks: TaskLike[],
   mode: ArrangeMode,
+  now = new Date(),
 ): { moves: Map<string, { x: number; y: number }>; groups: ArrangeGroup[] } {
   const moves = new Map<string, { x: number; y: number }>();
   if (tasks.length === 0) return { moves, groups: [] };
-  const now = Date.now();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
   const byKey = new Map<string, TaskLike[]>();
   for (const task of tasks) {
-    const key = groupKey(task, mode, now);
+    const key = groupKey(task, mode, today);
     const list = byKey.get(key);
     if (list) list.push(task);
     else byKey.set(key, [task]);
@@ -73,14 +87,14 @@ export function computeAutoArrange(
     (a, b) => groupOrder(a, mode) - groupOrder(b, mode) || a.localeCompare(b),
   );
 
-  const dueOf = (t: TaskLike) => (t.dueDate ? Date.parse(t.dueDate) : Number.MAX_SAFE_INTEGER);
+  const dueOf = (t: TaskLike) => (t.dueDate ? localDay(t.dueDate) ?? Number.MAX_SAFE_INTEGER : Number.MAX_SAFE_INTEGER);
   const prioOf = (t: TaskLike) => PRIO_ORDER[t.priority] ?? 3;
 
   // Per group: lattice positions relative to (0,0) and the EXACT card
   // bounding box they produce (positions are card top-left corners).
   const cells = keys.map((key) => {
     const sorted = [...byKey.get(key)!].sort(
-      (a, b) => dueOf(a) - dueOf(b) || prioOf(a) - prioOf(b) || a.title.localeCompare(b.title),
+      (a, b) => dueOf(a) - dueOf(b) || prioOf(a) - prioOf(b) || a.title.localeCompare(b.title) || a.id.localeCompare(b.id),
     );
     const rel = latticePositions(0, 0, sorted.length);
     const minX = Math.min(...rel.map((p) => p.x));

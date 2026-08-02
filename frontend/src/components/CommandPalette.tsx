@@ -214,7 +214,8 @@ export function CommandPalette({ canvasId, onNewTask, fallbackFocusRef }: Palett
       });
     }
 
-    all.sort((a, b) => b.score - a.score);
+    // Equal fuzzy scores must never inherit source-array order.
+    all.sort((a, b) => b.score - a.score || a.label.localeCompare(b.label) || a.kind.localeCompare(b.kind) || a.key.localeCompare(b.key));
     return all.slice(0, 12);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, tasks, canvases, bubbles, canvasId, navigate, onNewTask, locale]);

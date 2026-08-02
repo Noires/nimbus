@@ -3,6 +3,7 @@ import type { Dependency, Task, Workstream } from "../data/api";
 import { workstreamTaskCount } from "../data/workstreamSelectors";
 import { selectWorkstreamHealth, type WorkstreamHealth } from "../data/workstreamHealthSelectors";
 import { previewArrangementOperation, type ArrangementPreview } from "../engine/arrangementOperation";
+import type { ArrangementStrategy } from "../engine/arrangementOperation";
 import { useT } from "../i18n";
 
 interface WorkstreamsPanelProps {
@@ -46,17 +47,19 @@ export function WorkstreamArrangementPreview({
         {preview.isNoop
           ? t("workstreams.arrangementNoop")
           : t("workstreams.arrangementPreview", { moved: preview.moved.length, skipped: preview.skipped.length })}
+        {` ${preview.unchanged.length} unchanged.`}
       </p>
+      {preview.skipped.length > 0 && <ul className="text-xs text-gray-300" aria-label="Skipped arrangement items">{preview.skipped.map((item) => <li key={`${item.id}-${item.reason}`}>{item.id}: {item.reason.replaceAll("-", " ")}</li>)}</ul>}
       <div className="flex gap-2">
         <button
           type="button"
           disabled={preview.isNoop}
           onClick={onApply}
-          className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("workstreams.applyArrangement")}
         </button>
-        <button type="button" onClick={onCancel} className="rounded px-2 py-1 text-xs text-gray-300 hover:bg-white/5">
+        <button type="button" onClick={onCancel} className="rounded px-2 py-1 text-xs text-gray-300 hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
           {t("workstreams.cancelArrangement")}
         </button>
       </div>
@@ -83,6 +86,8 @@ export function WorkstreamsPanel({
   const selected = workstreams.find((workstream) => workstream.id === selectedId) ?? null;
   const [selectedName, setSelectedName] = useState("");
   const [arrangementPreview, setArrangementPreview] = useState<ArrangementPreview | null>(null);
+  const [arrangeStrategy, setArrangeStrategy] = useState<ArrangementStrategy>("tidy-overlaps");
+  const [canvasPreview, setCanvasPreview] = useState<ArrangementPreview | null>(null);
 
   useEffect(() => {
     setSelectedName(selected?.name ?? "");
@@ -170,6 +175,7 @@ export function WorkstreamsPanel({
           </label>
           {selected.protected && <p className="mt-1 text-xs text-violet-200">{t("workstreams.unprotectBeforeDelete")}</p>}
           <div className="mt-3 border-t border-white/10 pt-2">
+            <label className="block text-xs text-gray-300" htmlFor="workstream-arrange-mode">Arrange workstream by <select id="workstream-arrange-mode" value={arrangeStrategy} onChange={(event) => setArrangeStrategy(event.target.value as ArrangementStrategy)}><option value="tidy-overlaps">Tidy overlaps</option><option value="grid">Grid</option><option value="tag">Tag</option><option value="status">Status</option><option value="priority">Priority</option><option value="due">Due date</option></select></label>
             {selected.pinned || selected.protected ? (
               <p className="text-xs text-gray-400">{t("workstreams.arrangementProtected")}</p>
             ) : arrangementPreview ? (
@@ -189,6 +195,7 @@ export function WorkstreamsPanel({
                     workstreamId: selected.id,
                     taskIds: selected.memberships.map((membership) => membership.taskId),
                   },
+                  strategy: arrangeStrategy,
                   tasks,
                   workstreams: workstreams.map((workstream) => ({
                     id: workstream.id,
@@ -217,6 +224,16 @@ export function WorkstreamsPanel({
           </fieldset>
         </div>
       )}
+      <div className="mt-3 border-t border-white/10 pt-2" aria-label="Entire board arrangement">
+        {canvasPreview ? (
+          <WorkstreamArrangementPreview preview={canvasPreview} onApply={async () => { if (await onApplyArrangement(canvasPreview)) setCanvasPreview(null); }} onCancel={() => setCanvasPreview(null)} />
+        ) : (
+          <button type="button" onClick={() => setCanvasPreview(previewArrangementOperation({
+            scope: { kind: "canvas", taskIds: tasks.map((task) => task.id) }, strategy: arrangeStrategy, tasks,
+            workstreams: workstreams.map((workstream) => ({ id: workstream.id, pinned: workstream.pinned, protected: workstream.protected, taskIds: workstream.memberships.map((membership) => membership.taskId) })),
+          }))} className="rounded px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/15">Preview entire board arrangement</button>
+        )}
+      </div>
       <form className="mt-3 flex gap-2" onSubmit={submit}>
         <label className="sr-only" htmlFor="new-workstream-name">{t("workstreams.newName")}</label>
         <input
