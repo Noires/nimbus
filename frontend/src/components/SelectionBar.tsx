@@ -18,6 +18,14 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
   const zoneTrigger = useRef<HTMLButtonElement>(null);
   const t = useT();
   const selectedKey = [...selectedIds].sort().join("\u0000");
+  const zoneEligibleCount = useStore((store) => {
+    if (store.selectedIds.length < 2) return 0;
+    const preview = previewArrangementOperation({
+      scope: { kind: "selected-zones", taskIds: [...store.selectedIds] }, tasks: store.tasks, zones: store.zones,
+      workstreams: store.workstreams.map((workstream) => ({ id: workstream.id, pinned: workstream.pinned, protected: workstream.protected, taskIds: workstream.memberships.map((membership) => membership.taskId) })),
+    });
+    return preview.moved.length + preview.unchanged.length;
+  });
 
   useEffect(() => {
     setTidyPreview(null);
@@ -95,7 +103,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
-          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-2 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border border-purple-500/40 px-4 py-2.5 shadow-2xl"
+          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[70] flex max-w-[calc(100vw-1rem)] flex-wrap justify-center items-center gap-2 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border border-purple-500/40 px-4 py-2.5 shadow-2xl"
         >
           <span role="status" aria-live="polite" aria-atomic="true" className="text-xs text-purple-300 whitespace-nowrap">
             {t("c.selection.count", { count: selectedIds.length })}
@@ -163,7 +171,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
                 <option value="tidy-overlaps">Tidy overlaps</option><option value="grid">Grid</option><option value="tag">Tag</option><option value="status">Status</option><option value="priority">Priority</option><option value="due">Due date</option>
               </select>
               <BarButton label={`⇄ ${arrangeStrategy === "tidy-overlaps" ? t("c.selection.tidy") : "Preview arrange"}`} ariaLabel="Preview selected arrangement" onClick={previewSelectedTidy} />
-              <button ref={zoneTrigger} onClick={previewSelectedZones} aria-label={t("c.selection.arrangeZones")} className="min-w-11 min-h-11 text-[11px] whitespace-nowrap px-2 py-1 rounded-md text-gray-300 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300">⌑ {t("c.selection.arrangeZones")}</button>
+              <button ref={zoneTrigger} onClick={previewSelectedZones} aria-label={t("c.selection.arrangeZones")} disabled={zoneEligibleCount < 2} title={zoneEligibleCount < 2 ? t("c.selection.zoneNeedsEligible") : undefined} className="min-w-11 min-h-11 text-[11px] whitespace-nowrap px-2 py-1 rounded-md text-gray-300 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 disabled:cursor-not-allowed disabled:text-gray-500">⌑ {t("c.selection.arrangeZones")}</button>
             </>
           ))}
           <BarButton label={`◯ ${t("c.selection.bubbleIt")}`} ariaLabel={t("c.selection.bubbleIt")} onClick={() => run(bubbleIt)} />
@@ -211,6 +219,7 @@ export function SelectionTidyPreview({
 }) {
   const t = useT();
   const [isApplying, setIsApplying] = useState(false);
+  const [showZoneDetails, setShowZoneDetails] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const isZonePreview = preview.scope === "selected-zones";
   useEffect(() => {
@@ -228,6 +237,10 @@ export function SelectionTidyPreview({
     "outside-zone": "c.selection.zoneSkippedOutside",
     "ambiguous-zone": "c.selection.zoneSkippedAmbiguous",
     "zone-too-small": "c.selection.zoneSkippedSmall",
+  };
+  const zoneLabel = (zoneId?: string) => {
+    const zone = useStore.getState().zones.find((candidate) => candidate.id === zoneId);
+    return zone?.label || t("c.selection.unnamedZone");
   };
   const apply = async () => {
     if (isApplying) return;
@@ -270,6 +283,13 @@ export function SelectionTidyPreview({
           {t(skipReasonKeys[reason], { count })}
         </span>
       ))}
+      {isZonePreview && (preview.moved.length > 0 || preview.skipped.length > 0) && <div className="relative">
+        <button type="button" aria-expanded={showZoneDetails} aria-controls="zone-arrangement-details" onClick={() => setShowZoneDetails((shown) => !shown)} className="min-w-11 min-h-11 text-[11px] px-2 py-1 rounded-md text-gray-300 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300">{t("c.selection.zoneDetails")}</button>
+        {showZoneDetails && <div id="zone-arrangement-details" className="absolute bottom-full left-0 z-10 mb-2 max-h-48 w-72 overflow-auto rounded-md border border-white/15 bg-[#0f0f13] p-2 text-[11px] text-gray-200 shadow-xl">
+          {preview.moved.map((move) => <p key={move.id}>{t("c.selection.zoneMovedDetail", { task: move.title ?? move.id, zone: zoneLabel(move.zoneId) })}</p>)}
+          {preview.skipped.map((skipped) => <p key={skipped.id}>{t("c.selection.zoneSkippedDetail", { task: skipped.title ?? skipped.id, reason: t(skipReasonKeys[skipped.reason]) })}</p>)}
+        </div>}
+      </div>}
       <BarButton label={t("c.selection.applyTidy")} onClick={() => void apply()} disabled={isApplying} />
       <BarButton label={t("c.selection.cancelTidy")} onClick={onCancel} />
     </div>

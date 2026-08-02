@@ -39,12 +39,16 @@ export interface ArrangementMove {
   id: string;
   x: number;
   y: number;
+  /** Present only for selected-zone previews; it is explanation metadata, not membership. */
+  zoneId?: string;
+  title?: string;
 }
 
 export interface SkippedArrangementEntity {
   id: string;
   reason: "missing-task" | "protected-task" | "pinned-workstream" | "protected-workstream" | "outside-zone" | "ambiguous-zone" | "zone-too-small";
   zoneIds?: string[];
+  title?: string;
 }
 
 export interface ArrangementPreview {
@@ -168,14 +172,14 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
   }
 
   const byId = new Map(candidates.map((task) => [task.id, task]));
-  const moves = new Map<string, { x: number; y: number }>();
+  const moves = new Map<string, { x: number; y: number; zoneId?: string }>();
   if (input.scope.kind === "selected-zones") {
     const zoneTasks = new Map<string, ArrangementTask[]>();
     for (const task of candidates) {
       const resolution = selectEffectiveZone(task, input.zones ?? []);
-      if (resolution.kind === "outside") { skipped.push({ id: task.id, reason: "outside-zone" }); continue; }
-      if (resolution.kind === "ambiguous") { skipped.push({ id: task.id, reason: "ambiguous-zone", zoneIds: resolution.zoneIds }); continue; }
-      if (resolution.zone.w < CARD_W || resolution.zone.h < CARD_H) { skipped.push({ id: task.id, reason: "zone-too-small", zoneIds: [resolution.zone.id] }); continue; }
+      if (resolution.kind === "outside") { skipped.push({ id: task.id, title: task.title, reason: "outside-zone" }); continue; }
+      if (resolution.kind === "ambiguous") { skipped.push({ id: task.id, title: task.title, reason: "ambiguous-zone", zoneIds: resolution.zoneIds }); continue; }
+      if (resolution.zone.w < CARD_W || resolution.zone.h < CARD_H) { skipped.push({ id: task.id, title: task.title, reason: "zone-too-small", zoneIds: [resolution.zone.id] }); continue; }
       const group = zoneTasks.get(resolution.zone.id) ?? [];
       group.push(task); zoneTasks.set(resolution.zone.id, group);
     }
@@ -189,11 +193,11 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
       const capacity = columns * rows;
       [...group].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id)).forEach((task, index) => {
         if (index >= capacity) {
-          skipped.push({ id: task.id, reason: "zone-too-small", zoneIds: [zone.id] });
+          skipped.push({ id: task.id, title: task.title, reason: "zone-too-small", zoneIds: [zone.id] });
           return;
         }
         moves.set(task.id, {
-          x: zone.x + (index % columns) * (CARD_W + ARRANGE_GAP_X), y: zone.y + Math.floor(index / columns) * (CARD_H + ARRANGE_GAP_Y),
+          x: zone.x + (index % columns) * (CARD_W + ARRANGE_GAP_X), y: zone.y + Math.floor(index / columns) * (CARD_H + ARRANGE_GAP_Y), zoneId: zone.id,
         });
       });
     }
@@ -217,9 +221,10 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
   const moved: ArrangementMove[] = [];
   const unchanged: string[] = [];
   for (const task of candidates) {
-    const position = moves.get(task.id) ?? task;
+    const plannedPosition = moves.get(task.id);
+    const position = plannedPosition ?? task;
     if (position.x === task.x && position.y === task.y) unchanged.push(task.id);
-    else moved.push({ id: task.id, x: position.x, y: position.y });
+    else moved.push({ id: task.id, x: position.x, y: position.y, ...(plannedPosition?.zoneId ? { zoneId: plannedPosition.zoneId, ...(task.title ? { title: task.title } : {}) } : {}) });
   }
   moved.sort((a, b) => compareIds(a.id, b.id));
   unchanged.sort(compareIds);

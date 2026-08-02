@@ -140,7 +140,7 @@ describe("previewArrangementOperation", () => {
     // All card centres start in the Zone, but it has capacity for only one full card.
     const tasks = [task("b", 20, 30), task("a", 30, 40)];
     const preview = previewArrangementOperation({ scope: { kind: "selected-zones", taskIds: ["b", "a"] }, tasks, zones });
-    expect(preview.moved).toEqual([{ id: "b", x: 10, y: 20 }]);
+    expect(preview.moved).toEqual([{ id: "b", x: 10, y: 20, zoneId: "zone" }]);
     expect(preview.skipped).toEqual([{ id: "a", reason: "zone-too-small", zoneIds: ["zone"] }]);
     for (const move of preview.moved) {
       expect(move.x).toBeGreaterThanOrEqual(zones[0].x);
