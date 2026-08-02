@@ -25,7 +25,7 @@ async function assertAxe(page: Page) {
 test("axe: flag-off retains the legacy canvas and has no command-center Ledger", async ({ page }) => {
   const { canvas } = await seed();
   await page.goto(`/canvas/${canvas.id}`);
-  await expect(page.getByLabel("Task canvas")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Canvas" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ledger" })).toHaveCount(0);
   await assertAxe(page);
 });
@@ -41,7 +41,7 @@ test("axe: flag-on supports Ledger saved views, keyboard focus, blocker status, 
   await expect(page.getByRole("heading", { name: "Ledger" })).toBeFocused();
   await page.getByLabel("Saved view name").fill("E2E view");
   await page.getByRole("button", { name: "Save view" }).click();
-  await expect(page.getByRole("button", { name: "E2E view" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "E2E view", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Delete saved view E2E view" }).click();
   await expect(page.getByRole("alertdialog")).toBeVisible();
   await page.keyboard.press("Escape");
