@@ -11,6 +11,7 @@ interface TodayFocusProps {
   state: TodayFocusState;
   now?: Date;
   focusEnabled?: boolean;
+  blockerStatusEnabled?: boolean;
   onComplete: (task: Task) => Promise<void>;
   onReturnToInbox: (task: Task) => Promise<void>;
   onOpenInspector: (task: Task) => void;
@@ -37,6 +38,7 @@ export function TodayFocus({
   state,
   now = new Date(),
   focusEnabled = false,
+  blockerStatusEnabled = false,
   onComplete,
   onReturnToInbox,
   onOpenInspector,
@@ -47,6 +49,12 @@ export function TodayFocus({
   const [actionError, setActionError] = useState<string | null>(null);
   const sections = selectTodayFocus({ tasks, dependencies, now, limit: MAX_ITEMS });
   const hasTasks = Object.values(sections).some((section) => section.length > 0);
+  const taskById = new Map(tasks.map((task) => [task.id, task]));
+  const blockerTitles = new Map(
+    dependencies
+      .filter((dependency) => !taskById.get(dependency.blockerId)?.done)
+      .map((dependency) => [dependency.blockedId, taskById.get(dependency.blockerId)?.title ?? dependency.blockerId]),
+  );
 
   const run = (action: () => Promise<void>) => {
     setActionError(null);
@@ -74,10 +82,10 @@ export function TodayFocus({
         <p className="mt-5 text-xs leading-5 text-gray-500">{t("today.empty")}</p>
       ) : (
         <div className="mt-4 space-y-5">
-          <TaskSection title={t("today.due")} tasks={sections.due} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={focusEnabled} run={run} />
-          <TaskSection title={t("today.ready")} tasks={sections.ready} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={focusEnabled} run={run} />
-          <TaskSection title={t("today.blocked")} tasks={sections.blocked} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={focusEnabled} run={run} />
-          <TaskSection title={t("today.completed")} tasks={sections.recentlyCompleted} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={false} run={run} completed />
+          <TaskSection title={t("today.due")} tasks={sections.due} blockerTitles={blockerTitles} blockerStatusEnabled={blockerStatusEnabled} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={focusEnabled} run={run} />
+          <TaskSection title={t("today.ready")} tasks={sections.ready} blockerTitles={blockerTitles} blockerStatusEnabled={blockerStatusEnabled} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={focusEnabled} run={run} />
+          <TaskSection title={t("today.blocked")} tasks={sections.blocked} blockerTitles={blockerTitles} blockerStatusEnabled={blockerStatusEnabled} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={focusEnabled} run={run} />
+          <TaskSection title={t("today.completed")} tasks={sections.recentlyCompleted} blockerTitles={blockerTitles} blockerStatusEnabled={blockerStatusEnabled} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={false} run={run} completed />
         </div>
       )}
     </section>
@@ -87,6 +95,8 @@ export function TodayFocus({
 function TaskSection({
   title,
   tasks,
+  blockerTitles,
+  blockerStatusEnabled,
   now,
   t,
   onComplete,
@@ -100,6 +110,8 @@ function TaskSection({
 }: {
   title: string;
   tasks: Task[];
+  blockerTitles: Map<string, string>;
+  blockerStatusEnabled: boolean;
   now: Date;
   t: (key: string, vars?: Record<string, string | number>) => string;
   onComplete: (task: Task) => Promise<void>;
@@ -123,12 +135,14 @@ function TaskSection({
         <ul className="mt-2 space-y-2">
           {tasks.map((task) => {
             const due = dueLabel(task, now, t);
+            const blockerTitle = blockerTitles.get(task.id);
             return (
               <li key={task.id} className="rounded-lg border border-white/10 bg-[#0f0f13]/40 p-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`min-w-0 text-xs font-medium ${completed ? "text-gray-500 line-through" : "text-gray-100"}`}>{task.title}</p>
                   {due && <span className="shrink-0 text-[10px] text-amber-200">{due}</span>}
                 </div>
+                {blockerStatusEnabled && blockerTitle && <p className="mt-1 text-xs text-amber-100">{t("today.blockedBy", { title: blockerTitle })}</p>}
                 <div className="mt-2 flex flex-wrap gap-1">
                   {!completed && <ActionButton label={t("today.complete")} onClick={() => run(() => onComplete(task))} />}
                   <ActionButton label={t("today.openInspector")} onClick={() => onOpenInspector(task)} inspectorTaskId={task.id} />

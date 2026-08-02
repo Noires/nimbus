@@ -77,6 +77,45 @@ describe("inspectors", () => {
     expect(html).not.toContain(">Return to workstreams<");
   });
 
+  it("offers desktop-only blocker set, replace, and clear controls", () => {
+    const html = renderToStaticMarkup(
+      <TaskInspector
+        task={task}
+        workstreams={[workstream]}
+        dependencies={[{ id: "dep-1", blockerId: "task-2", blockedId: task.id }] as Dependency[]}
+        tasks={[task, { ...task, id: "task-2", title: "Approve design" }, { ...task, id: "task-3", title: "Publish" }]}
+        onBack={() => {}}
+        blockerEditor={{
+          enabled: true,
+          onSetBlocker: async () => {},
+        }}
+      />,
+    );
+
+    // The existing localized label supplies "Blocked by"; the enabled v1 value is title-only.
+    expect(html).toContain("Approve design");
+    expect(html).not.toContain("Blocked by: Approve design");
+    expect(html).toContain("Replace blocker");
+    expect(html).toContain("Clear blocker");
+  });
+
+  it("hides completed blockers from the enabled desktop status while preserving legacy rendering", () => {
+    const props = {
+      task,
+      workstreams: [workstream],
+      dependencies: [{ id: "dep-1", blockerId: "task-2", blockedId: task.id }] as Dependency[],
+      tasks: [task, { ...task, id: "task-2", title: "Completed review", done: true }],
+      onBack: () => {},
+    };
+
+    const legacy = renderToStaticMarkup(<TaskInspector {...props} />);
+    const enabled = renderToStaticMarkup(<TaskInspector {...props} blockerEditor={{ enabled: true, onSetBlocker: async () => {} }} />);
+
+    expect(legacy).toContain("Completed review");
+    expect(enabled).not.toContain("Completed review");
+    expect(enabled).toContain("Blocker controls");
+  });
+
   it("renders workstream membership and protection state", () => {
     const html = renderToStaticMarkup(
       <WorkstreamInspector

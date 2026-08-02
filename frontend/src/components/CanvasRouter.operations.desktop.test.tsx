@@ -153,6 +153,7 @@ describe("CanvasRouter desktop Operations rail", () => {
 
     expect(setSelected).toHaveBeenCalledWith([operationsTask.id]);
     expect(container.querySelector('[aria-label="Inspector"]')).not.toBeNull();
+    expect(container.querySelector('[aria-label="Blocker controls"]')).not.toBeNull();
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>('[aria-label="Inspector"] button')?.click();

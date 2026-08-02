@@ -13,6 +13,10 @@ interface InspectorRailProps {
   onOpenTask: (task: Task) => void;
   onOpenToday: () => void;
   onOpenReview: () => void;
+  blockerEditor?: {
+    enabled: boolean;
+    onSetBlocker: (taskId: string, blockerId: string | null) => Promise<void>;
+  };
 }
 
 /** Shows a selected task or workstream in place of the workstreams directory. */
@@ -26,6 +30,7 @@ export function InspectorRail({
   onOpenTask,
   onOpenToday,
   onOpenReview,
+  blockerEditor,
 }: InspectorRailProps) {
   return (
     <div data-selection-context={context.kind}>
@@ -36,6 +41,7 @@ export function InspectorRail({
           workstreams={workstreams}
           dependencies={dependencies}
           onBack={onBack}
+          blockerEditor={blockerEditor}
         />
       ) : context.kind === "workstream" ? (
         <WorkstreamInspector workstream={context.workstream} tasks={tasks} dependencies={dependencies} onBack={onBack} onOpenTask={onOpenTask} onOpenToday={onOpenToday} onOpenReview={onOpenReview} />

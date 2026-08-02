@@ -614,6 +614,7 @@ export function CanvasRouter() {
         dependencies={dependencies}
         state={inboxTriageState}
         focusEnabled
+        blockerStatusEnabled={spatialCommandCenterShell && !narrowViewport}
         onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
         onReturnToInbox={(task) => useStore.getState().patchTask(task.id, { inbox: true })}
         onOpenInspector={(task) => {
@@ -672,6 +673,10 @@ export function CanvasRouter() {
       workstreams={workstreams}
       dependencies={dependencies}
       onBack={returnToWorkstreams}
+      blockerEditor={spatialCommandCenterShell && !narrowViewport ? {
+        enabled: true,
+        onSetBlocker: (taskId, blockerId) => useStore.getState().setTaskBlocker(taskId, blockerId),
+      } : undefined}
       onOpenTask={(task) => {
         setSelectedWorkstreamId(null);
         useStore.getState().setSelected([task.id]);

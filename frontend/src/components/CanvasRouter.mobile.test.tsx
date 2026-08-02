@@ -188,6 +188,8 @@ describe("CanvasRouter mobile command center", () => {
     expect(container.querySelector('[aria-label="Inspector"]')).not.toBeNull();
     expect(container.textContent).toContain(inboxTask.description);
     expect(container.textContent).toContain("Return to Inbox");
+    // Blocker Links v1 is desktop-only even when the spatial shell flag is on.
+    expect(container.querySelector('[aria-label="Blocker controls"]')).toBeNull();
 
     await act(async () => {
       [...container.querySelectorAll("button")].find((button) => button.textContent === "Return to Inbox")?.click();

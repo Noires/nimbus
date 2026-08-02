@@ -46,6 +46,79 @@ function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
 
 class PositionUpdateError extends Error {}
 
+export class BlockerLinkError extends Error {
+  constructor(message: string, readonly status = 400) {
+    super(message);
+  }
+}
+
+type BlockerLinkChange = {
+  task: { canvasId: string };
+  previous: { id: string; blockerId: string; blockedId: string } | null;
+  dependency: { id: string; blockerId: string; blockedId: string } | null;
+};
+
+function wouldCreateDependencyCycle(
+  dependencies: Array<{ blockerId: string; blockedId: string }>,
+  blockerId: string,
+  blockedId: string,
+): boolean {
+  const edges = new Map<string, string[]>();
+  for (const dependency of dependencies) {
+    const blocked = edges.get(dependency.blockerId);
+    if (blocked) blocked.push(dependency.blockedId);
+    else edges.set(dependency.blockerId, [dependency.blockedId]);
+  }
+  const stack = [blockedId];
+  const seen = new Set<string>();
+  while (stack.length) {
+    const current = stack.pop()!;
+    if (current === blockerId) return true;
+    if (seen.has(current)) continue;
+    seen.add(current);
+    stack.push(...(edges.get(current) ?? []));
+  }
+  return false;
+}
+
+export async function replaceTaskBlocker(taskId: string, blockerId: string | null, replace = true): Promise<BlockerLinkChange> {
+  return prisma.$transaction(async (tx) => {
+    const target = await tx.task.findUnique({ where: { id: taskId } });
+    if (!target) throw new BlockerLinkError("Task not found", 404);
+
+    // Serialize every link change within a canvas. Serializable isolation plus
+    // this transaction-scoped lock makes a concurrent cycle attempt observe a
+    // retryable conflict instead of committing two individually-valid edges.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${target.canvasId}))`;
+
+    const previous = await tx.dependency.findUnique({ where: { blockedId: taskId } });
+    if (blockerId === null) {
+      if (previous) await tx.dependency.delete({ where: { id: previous.id } });
+      return { task: target, previous, dependency: null };
+    }
+    if (blockerId === taskId) throw new BlockerLinkError("A task cannot block itself");
+
+    const blocker = await tx.task.findUnique({ where: { id: blockerId } });
+    if (!blocker) throw new BlockerLinkError("Blocker task not found", 404);
+    if (blocker.canvasId !== target.canvasId) throw new BlockerLinkError("Tasks are on different canvases");
+    if (blocker.done) throw new BlockerLinkError("A completed task cannot be a blocker");
+
+    const dependencies = await tx.dependency.findMany({
+      where: { blocker: { canvasId: target.canvasId } },
+    });
+    const otherDependencies = dependencies.filter((dependency) => dependency.blockedId !== taskId);
+    if (wouldCreateDependencyCycle(otherDependencies, blockerId, taskId)) {
+      throw new BlockerLinkError("Would create a dependency cycle");
+    }
+
+    if (previous && !replace) throw new BlockerLinkError("Task already has a blocker", 409);
+    if (previous?.blockerId === blockerId) return { task: target, previous, dependency: previous };
+    if (previous) await tx.dependency.delete({ where: { id: previous.id } });
+    const dependency = await tx.dependency.create({ data: { blockerId, blockedId: taskId } });
+    return { task: target, previous, dependency };
+  }, { isolationLevel: "Serializable" });
+}
+
 // GET /api/tasks?canvasId=&done=&archived=&page=&pageSize=
 router.get("/", async (req, res) => {
   try {
@@ -92,7 +165,7 @@ router.get("/", async (req, res) => {
       prisma.task.findMany({
         where,
         include: INCLUDE_CHECKLIST,
-        orderBy: [{ z: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ z: "asc" }, { createdAt: "asc" }, { id: "asc" }],
         skip: page * pageSize,
         take: pageSize,
       }),
@@ -166,6 +239,47 @@ router.get("/:id", async (req, res) => {
     return res.json(task);
   } catch (e) {
     return res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// PUT /api/tasks/:id/blocker { blockerId } — atomically set or replace the
+// task's one optional blocker. DELETE clears it without changing either task.
+router.put("/:id/blocker", async (req, res) => {
+  const blockerId = req.body?.blockerId;
+  if (typeof blockerId !== "string" || !blockerId) {
+    return res.status(400).json({ error: "Expected blockerId" });
+  }
+  try {
+    const change = await replaceTaskBlocker(req.params.id, blockerId);
+    const clientId = req.header("x-client-id");
+    if (change.previous && change.previous.id !== change.dependency?.id) {
+      publish(change.task.canvasId, { entity: "dependency", action: "delete", data: { id: change.previous.id }, clientId });
+    }
+    if (change.dependency) {
+      publish(change.task.canvasId, { entity: "dependency", action: "upsert", data: change.dependency, clientId });
+    }
+    return res.json(change.dependency);
+  } catch (e) {
+    const status = e instanceof BlockerLinkError ? e.status : (e as { code?: string }).code === "P2034" ? 409 : 500;
+    return res.status(status).json({ error: (e as Error).message });
+  }
+});
+
+router.delete("/:id/blocker", async (req, res) => {
+  try {
+    const change = await replaceTaskBlocker(req.params.id, null);
+    if (change.previous) {
+      publish(change.task.canvasId, {
+        entity: "dependency",
+        action: "delete",
+        data: { id: change.previous.id },
+        clientId: req.header("x-client-id"),
+      });
+    }
+    return res.status(204).send();
+  } catch (e) {
+    const status = e instanceof BlockerLinkError ? e.status : (e as { code?: string }).code === "P2034" ? 409 : 500;
+    return res.status(status).json({ error: (e as Error).message });
   }
 });
 
