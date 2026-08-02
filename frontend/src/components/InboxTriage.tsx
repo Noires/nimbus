@@ -141,7 +141,7 @@ export function InboxTriage({
                       id={`inbox-due-${task.id}`}
                       type="date"
                       value={task.dueDate?.slice(0, 10) ?? ""}
-                      onChange={(event) => { void run(() => onPatchTask(task.id, { dueDate: event.target.value ? new Date(event.target.value).toISOString() : null })); }}
+                      onChange={(event) => { void run(() => onPatchTask(task.id, { dueDate: event.target.value || null })); }}
                       className="w-28 rounded border border-white/10 bg-[#0f0f13]/60 px-1.5 py-1 text-xs text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300"
                     />
                   </td>

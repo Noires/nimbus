@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Dependency, Task } from "../store";
 import { selectTodayFocus } from "../data/todayFocusSelectors";
 import { dateLocale, useT } from "../i18n";
+import { localDayKey } from "../utils/capacity";
 
 export type TodayFocusState = "loading" | "error" | "ready";
 
@@ -23,12 +24,14 @@ const MAX_ITEMS = 8;
 
 function dueLabel(task: Task, now: Date, t: (key: string, vars?: Record<string, string | number>) => string): string | null {
   if (!task.dueDate) return null;
-  const due = new Date(task.dueDate);
+  const due = /^\d{4}-\d{2}-\d{2}$/.test(task.dueDate)
+    ? new Date(`${task.dueDate}T00:00:00`)
+    : new Date(task.dueDate);
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   due.setHours(0, 0, 0, 0);
-  if (due < today) return t("today.overdue");
-  if (due.getTime() === today.getTime()) return t("today.today");
+  if (localDayKey(task.dueDate) < localDayKey(now)) return t("today.overdue");
+  if (localDayKey(task.dueDate) === localDayKey(now)) return t("today.today");
   return due.toLocaleDateString(dateLocale(), { dateStyle: "medium" });
 }
 

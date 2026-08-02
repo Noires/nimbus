@@ -47,17 +47,19 @@ export function WorkstreamArrangementPreview({
         {preview.isNoop
           ? t("workstreams.arrangementNoop")
           : t("workstreams.arrangementPreview", { moved: preview.moved.length, skipped: preview.skipped.length })}
+        {` ${preview.unchanged.length} unchanged.`}
       </p>
+      {preview.skipped.length > 0 && <ul className="text-xs text-gray-300" aria-label="Skipped arrangement items">{preview.skipped.map((item) => <li key={`${item.id}-${item.reason}`}>{item.id}: {item.reason.replaceAll("-", " ")}</li>)}</ul>}
       <div className="flex gap-2">
         <button
           type="button"
           disabled={preview.isNoop}
           onClick={onApply}
-          className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded bg-cyan-400/15 px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {t("workstreams.applyArrangement")}
         </button>
-        <button type="button" onClick={onCancel} className="rounded px-2 py-1 text-xs text-gray-300 hover:bg-white/5">
+        <button type="button" onClick={onCancel} className="rounded px-2 py-1 text-xs text-gray-300 hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
           {t("workstreams.cancelArrangement")}
         </button>
       </div>
