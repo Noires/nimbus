@@ -125,7 +125,7 @@ html, body, #root {
 .command-center-tutorial-offer button, .command-center-tutorial__actions button, .command-center-tutorial__header button {
   min-height: 2.75rem; padding: .5rem .75rem; margin: .125rem; border: 1px solid rgb(255 255 255 / 20%); border-radius: .4rem; color: #f8fafc; background: transparent;
 }
-.command-center-tutorial__primary { background: #0891b2 !important; border-color: #22d3ee !important; }
+.command-center-tutorial__primary { background: #0e7490 !important; border-color: #67e8f9 !important; }
 .command-center-tutorial-backdrop { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 1rem; background: rgb(0 0 0 / 65%); }
 .command-center-tutorial { width: min(42rem, 100%); max-height: min(44rem, 100%); overflow: auto; padding: 1.25rem; border: 1px solid rgb(103 232 249 / 45%); border-radius: .9rem; background: #121722; color: #f8fafc; box-shadow: 0 24px 60px rgb(0 0 0 / 55%); }
 .command-center-tutorial__header, .command-center-tutorial__actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
