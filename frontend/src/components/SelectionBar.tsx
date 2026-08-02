@@ -4,6 +4,7 @@ import { useStore } from "../store";
 import { clusterHue } from "../utils/colors";
 import { history, type Op } from "../engine/history";
 import { previewArrangementOperation, type ArrangementPreview } from "../engine/arrangementOperation";
+import type { ArrangementStrategy } from "../engine/arrangementOperation";
 import { useT } from "../i18n";
 
 // Floating bulk-action bar for the lasso selection. Every action is a single
@@ -12,6 +13,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
   const selectedIds = useStore((s) => s.selectedIds);
   const [tagInput, setTagInput] = useState<string | null>(null);
   const [tidyPreview, setTidyPreview] = useState<ArrangementPreview | null>(null);
+  const [arrangeStrategy, setArrangeStrategy] = useState<ArrangementStrategy>("tidy-overlaps");
   const t = useT();
   const selectedKey = [...selectedIds].sort().join("\u0000");
 
@@ -60,6 +62,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
     if (store.selectedIds.length < 2) return;
     setTidyPreview(previewArrangementOperation({
       scope: { kind: "selected", taskIds: [...store.selectedIds] },
+      strategy: arrangeStrategy,
       tasks: store.tasks,
       workstreams: store.workstreams.map((workstream) => ({
         id: workstream.id,
@@ -135,7 +138,13 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
               onCancel={() => setTidyPreview(null)}
             />
           ) : (
-            <BarButton label={`⇄ ${t("c.selection.tidy")}`} ariaLabel={t("c.selection.tidy")} onClick={previewSelectedTidy} />
+            <>
+              <label className="sr-only" htmlFor="selected-arrange-mode">Arrange selected by</label>
+              <select id="selected-arrange-mode" aria-label="Arrange selected by" value={arrangeStrategy} onChange={(event) => setArrangeStrategy(event.target.value as ArrangementStrategy)} className="max-w-24 bg-[#0f0f13] text-xs">
+                <option value="tidy-overlaps">Tidy overlaps</option><option value="grid">Grid</option><option value="tag">Tag</option><option value="status">Status</option><option value="priority">Priority</option><option value="due">Due date</option>
+              </select>
+              <BarButton label={`⇄ ${arrangeStrategy === "tidy-overlaps" ? t("c.selection.tidy") : "Preview arrange"}`} ariaLabel="Preview selected arrangement" onClick={previewSelectedTidy} />
+            </>
           ))}
           <BarButton label={`◯ ${t("c.selection.bubbleIt")}`} ariaLabel={t("c.selection.bubbleIt")} onClick={() => run(bubbleIt)} />
           {selectedIds.length >= 2 && (

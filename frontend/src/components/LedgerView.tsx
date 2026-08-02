@@ -6,7 +6,11 @@ const priorityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
 /** A due instant is always presented and grouped by the user's local calendar day. */
 export function localDateKey(value: string | null): string | null {
   if (!value) return null;
-  const date = new Date(value);
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  // ISO date-only values describe a local calendar date, not a UTC midnight.
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value);
   if (Number.isNaN(date.valueOf())) return null;
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
