@@ -1,10 +1,12 @@
 import { computeTidyMoves } from "./tidy";
 import { latticePositions } from "./lattice";
 import { computeAutoArrange, type ArrangeMode } from "./autoArrange";
+import { CARD_H, CARD_W, type Zone } from "../store";
+import { selectEffectiveZone } from "../data/spatialZoneSelectors";
 
-const CARD_W = 256;
-const CARD_H = 170;
 const CLUSTER_THRESHOLD = 240;
+export const ARRANGE_GAP_X = 16;
+export const ARRANGE_GAP_Y = 16;
 
 export interface ArrangementTask {
   id: string;
@@ -30,7 +32,8 @@ export interface ArrangementWorkstream {
 export type ArrangementScope =
   | { kind: "selected"; taskIds: string[] }
   | { kind: "canvas"; taskIds: string[] }
-  | { kind: "workstream"; workstreamId: string; taskIds: string[] };
+  | { kind: "workstream"; workstreamId: string; taskIds: string[] }
+  | { kind: "selected-zones"; taskIds: string[] };
 
 export interface ArrangementMove {
   id: string;
@@ -40,7 +43,8 @@ export interface ArrangementMove {
 
 export interface SkippedArrangementEntity {
   id: string;
-  reason: "missing-task" | "protected-task" | "pinned-workstream" | "protected-workstream";
+  reason: "missing-task" | "protected-task" | "pinned-workstream" | "protected-workstream" | "outside-zone" | "ambiguous-zone" | "zone-too-small";
+  zoneIds?: string[];
 }
 
 export interface ArrangementPreview {
@@ -64,6 +68,7 @@ export interface ArrangementPreviewInput {
   tasks: ArrangementTask[];
   /** Task ids that must remain fixed even when the caller selects them. */
   protectedTaskIds?: Iterable<string>;
+  zones?: Zone[];
   /** Retained for the in-progress workstream use case; callers may omit it. */
   workstreams?: ArrangementWorkstream[];
   /** Optional revision calculated from the caller's authoritative store state. */
@@ -81,6 +86,7 @@ type RevisionWorkstream = Pick<ArrangementWorkstream, "id" | "pinned" | "protect
 export function arrangementRevision(
   tasks: Iterable<ArrangementTask>,
   workstreams: Iterable<RevisionWorkstream>,
+  zones: Iterable<Pick<Zone, "id" | "canvasId" | "x" | "y" | "w" | "h" | "label" | "z">> = [],
 ): string {
   const taskState = [...tasks]
     .map(({ id, x, y }) => [id, x, y] as const)
@@ -93,7 +99,8 @@ export function arrangementRevision(
       [...workstreamTaskIds(workstream)].sort(compareIds),
     ] as const)
     .sort(([left], [right]) => compareIds(left, right));
-  return JSON.stringify([taskState, workstreamState]);
+  const zoneState = [...zones].map(({ id, canvasId, x, y, w, h, label, z }) => [id, canvasId, x, y, w, h, label, z] as const).sort(([left], [right]) => compareIds(left, right));
+  return JSON.stringify([taskState, workstreamState, zoneState]);
 }
 
 /** Returns whether a preview still represents the supplied authoritative state. */
@@ -101,8 +108,9 @@ export function isArrangementPreviewCurrent(
   preview: ArrangementPreview,
   tasks: Iterable<ArrangementTask>,
   workstreams: Iterable<RevisionWorkstream>,
+  zones: Iterable<Pick<Zone, "id" | "canvasId" | "x" | "y" | "w" | "h" | "label" | "z">> = [],
 ): boolean {
-  return preview.revision === arrangementRevision(tasks, workstreams);
+  return preview.revision === arrangementRevision(tasks, workstreams, zones);
 }
 
 /**
@@ -113,7 +121,7 @@ export function isArrangementPreviewCurrent(
 export function previewArrangementOperation(input: ArrangementPreviewInput): ArrangementPreview {
   const strategy = input.strategy ?? "tidy-overlaps";
   const workstreams = input.workstreams ?? [];
-  const revision = input.revision ?? arrangementRevision(input.tasks, workstreams);
+  const revision = input.revision ?? arrangementRevision(input.tasks, workstreams, input.scope.kind === "selected-zones" ? input.zones : []);
   const workstreamId = getWorkstreamId(input.scope);
   const scopeWorkstream = workstreamId
     ? workstreams.find((workstream) => workstream.id === workstreamId)
@@ -161,7 +169,24 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
 
   const byId = new Map(candidates.map((task) => [task.id, task]));
   const moves = new Map<string, { x: number; y: number }>();
-  if (strategy === "tidy-overlaps") {
+  if (input.scope.kind === "selected-zones") {
+    const zoneTasks = new Map<string, ArrangementTask[]>();
+    for (const task of candidates) {
+      const resolution = selectEffectiveZone(task, input.zones ?? []);
+      if (resolution.kind === "outside") { skipped.push({ id: task.id, reason: "outside-zone" }); continue; }
+      if (resolution.kind === "ambiguous") { skipped.push({ id: task.id, reason: "ambiguous-zone", zoneIds: resolution.zoneIds }); continue; }
+      if (resolution.zone.w < CARD_W || resolution.zone.h < CARD_H) { skipped.push({ id: task.id, reason: "zone-too-small", zoneIds: [resolution.zone.id] }); continue; }
+      const group = zoneTasks.get(resolution.zone.id) ?? [];
+      group.push(task); zoneTasks.set(resolution.zone.id, group);
+    }
+    for (const [zoneId, group] of [...zoneTasks].sort(([a], [b]) => compareIds(a, b))) {
+      const zone = (input.zones ?? []).find((item) => item.id === zoneId)!;
+      const columns = Math.max(1, Math.floor((zone.w - CARD_W) / (CARD_W + ARRANGE_GAP_X)) + 1);
+      [...group].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id)).forEach((task, index) => moves.set(task.id, {
+        x: zone.x + (index % columns) * (CARD_W + ARRANGE_GAP_X), y: zone.y + Math.floor(index / columns) * (CARD_H + ARRANGE_GAP_Y),
+      }));
+    }
+  } else if (strategy === "tidy-overlaps") {
     const clusters = computeCandidateClusters(candidates);
     for (const cluster of clusters) {
       const members = cluster.members.map((id) => byId.get(id)).filter((task): task is ArrangementTask => !!task);

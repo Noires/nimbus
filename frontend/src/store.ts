@@ -525,13 +525,13 @@ export const useStore = create<State>((set, get) => {
       if (arrangementApplyInFlight) return false;
 
       const state = get();
-      if (!isArrangementPreviewCurrent(preview, state.tasks, state.workstreams)) {
+      if (!isArrangementPreviewCurrent(preview, state.tasks, state.workstreams, preview.scope === "selected-zones" ? state.zones : [])) {
         state.showToast(t("toast.arrangementOutOfDate"));
         return false;
       }
 
       const currentTasks = new Map(get().tasks.map((task) => [task.id, task]));
-      if (preview.scope === "selected") {
+      if (preview.scope === "selected" || preview.scope === "selected-zones") {
         const validScopeTaskIds = new Set(
           [...preview.moved, ...preview.unchanged]
             .map((task) => typeof task === "string" ? task : task.id)

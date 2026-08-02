@@ -119,6 +119,22 @@ describe("previewArrangementOperation", () => {
     expect(isArrangementPreviewCurrent(preview, tasks, [{ ...workstreams[0], taskIds: ["a"] }])).toBe(false);
   });
 
+  it("packs only unambiguous selected-zone tasks and goes stale on zone geometry", () => {
+    const zones = [
+      { id: "zone-a", canvasId: "canvas", x: 0, y: 0, w: 800, h: 400, label: "A", hue: 0, autoTag: null, z: 0 },
+      { id: "zone-overlap", canvasId: "canvas", x: 100, y: 0, w: 400, h: 400, label: "B", hue: 0, autoTag: null, z: 0 },
+      { id: "zone-small", canvasId: "canvas", x: 1000, y: 0, w: 100, h: 100, label: "Small", hue: 0, autoTag: null, z: 0 },
+    ] as any;
+    const tasks = [task("outside", 2000, 0), task("small", 920, 0), task("ambiguous", 50, 0)];
+    const preview = previewArrangementOperation({ scope: { kind: "selected-zones", taskIds: tasks.map(({ id }) => id) }, tasks, zones });
+    expect(preview.skipped).toEqual(expect.arrayContaining([
+      { id: "outside", reason: "outside-zone" }, { id: "small", reason: "zone-too-small", zoneIds: ["zone-small"] },
+      { id: "ambiguous", reason: "ambiguous-zone", zoneIds: ["zone-a", "zone-overlap"] },
+    ]));
+    expect(isArrangementPreviewCurrent(preview, tasks, [], zones)).toBe(true);
+    expect(isArrangementPreviewCurrent(preview, tasks, [], [{ ...zones[0], x: 1 }, ...zones.slice(1)])).toBe(false);
+  });
+
   it.each([100, 500, 1000])("previews %i overlapping cards without mutation", (count) => {
     const tasks = overlappingTasks(count);
     const started = performance.now();

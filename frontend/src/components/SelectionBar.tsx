@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "../store";
 import { clusterHue } from "../utils/colors";
@@ -14,6 +14,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
   const [tagInput, setTagInput] = useState<string | null>(null);
   const [tidyPreview, setTidyPreview] = useState<ArrangementPreview | null>(null);
   const [arrangeStrategy, setArrangeStrategy] = useState<ArrangementStrategy>("tidy-overlaps");
+  const zoneTrigger = useRef<HTMLButtonElement>(null);
   const t = useT();
   const selectedKey = [...selectedIds].sort().join("\u0000");
 
@@ -70,6 +71,14 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
         protected: workstream.protected,
         taskIds: workstream.memberships.map((membership) => membership.taskId),
       })),
+    }));
+  };
+  const previewSelectedZones = () => {
+    const store = useStore.getState();
+    if (store.selectedIds.length < 2) return;
+    setTidyPreview(previewArrangementOperation({
+      scope: { kind: "selected-zones", taskIds: [...store.selectedIds] }, tasks: store.tasks, zones: store.zones,
+      workstreams: store.workstreams.map((workstream) => ({ id: workstream.id, pinned: workstream.pinned, protected: workstream.protected, taskIds: workstream.memberships.map((membership) => membership.taskId) })),
     }));
   };
 
@@ -144,6 +153,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
                 <option value="tidy-overlaps">Tidy overlaps</option><option value="grid">Grid</option><option value="tag">Tag</option><option value="status">Status</option><option value="priority">Priority</option><option value="due">Due date</option>
               </select>
               <BarButton label={`⇄ ${arrangeStrategy === "tidy-overlaps" ? t("c.selection.tidy") : "Preview arrange"}`} ariaLabel="Preview selected arrangement" onClick={previewSelectedTidy} />
+              <button ref={zoneTrigger} onClick={previewSelectedZones} aria-label={t("c.selection.arrangeZones")} className="min-w-11 min-h-11 text-[11px] whitespace-nowrap px-2 py-1 rounded-md text-gray-300 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300">⌑ {t("c.selection.arrangeZones")}</button>
             </>
           ))}
           <BarButton label={`◯ ${t("c.selection.bubbleIt")}`} ariaLabel={t("c.selection.bubbleIt")} onClick={() => run(bubbleIt)} />
@@ -200,6 +210,9 @@ export function SelectionTidyPreview({
     "protected-task": "c.selection.tidySkippedProtectedTask",
     "pinned-workstream": "c.selection.tidySkippedPinnedWorkstream",
     "protected-workstream": "c.selection.tidySkippedProtectedWorkstream",
+    "outside-zone": "c.selection.zoneSkippedOutside",
+    "ambiguous-zone": "c.selection.zoneSkippedAmbiguous",
+    "zone-too-small": "c.selection.zoneSkippedSmall",
   };
   const apply = async () => {
     if (isApplying) return;
