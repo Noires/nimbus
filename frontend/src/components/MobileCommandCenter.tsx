@@ -14,6 +14,7 @@ const destinations: ReadonlyArray<Exclude<MobileCommandDestination, "inspector">
   "inbox",
   "today",
   "review",
+  "operations",
   "more",
 ];
 

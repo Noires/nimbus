@@ -1,13 +1,14 @@
 export const MOBILE_COMMAND_CENTER_QUERY = "(max-width: 768px)";
 
 export type MobileCommandViewport = "narrow" | "wide";
-export type MobileCommandDestination = "capture" | "inbox" | "today" | "review" | "more" | "inspector";
+export type MobileCommandDestination = "capture" | "inbox" | "today" | "review" | "operations" | "more" | "inspector";
 
-const MOBILE_DESTINATIONS: ReadonlySet<MobileCommandDestination> = new Set([
+const MOBILE_DESTINATIONS: ReadonlySet<MobileCommandDestination> = new Set<MobileCommandDestination>([
   "capture",
   "inbox",
   "today",
   "review",
+  "operations",
   "more",
   "inspector",
 ]);

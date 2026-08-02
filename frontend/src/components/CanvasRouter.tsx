@@ -30,6 +30,7 @@ import { InboxTriage, type InboxTriageState } from "./InboxTriage";
 import { TodayFocus } from "./TodayFocus";
 import { ReviewRail } from "./ReviewRail";
 import { TaskRetrieval } from "./TaskRetrieval";
+import { OperationsView } from "./OperationsView";
 import { resolveSelectionContext } from "./selectionContext";
 import { quickParseTokens } from "../utils/quickParse";
 import { useMediaQuery } from "../hooks/useMediaQuery";
@@ -48,7 +49,7 @@ type ModalState =
   | { mode: "create"; x?: number; y?: number }
   | { mode: "edit"; task: Task };
 
-type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "more";
+type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "operations" | "more";
 
 export function resolveRailLabel({
   reviewRailOpen,
@@ -555,6 +556,26 @@ export function CanvasRouter() {
     useStore.getState().clearSelection();
     setSelectedWorkstreamId(null);
   };
+  // Desktop-only, read-only entry in the contextual rail. Mobile keeps its existing route.
+  const desktopOperationsEntry = spatialCommandCenterShell && !narrowViewport && canvasId ? (
+    <section data-operations-view="desktop-contextual-rail">
+      <OperationsView
+        tasks={tasks}
+        workstreams={workstreams}
+        dependencies={dependencies}
+        onOpenInspector={(task) => {
+          setSelectedWorkstreamId(null);
+          useStore.getState().setSelected([task.id]);
+        }}
+        onReveal={(task) => {
+          const store = useStore.getState();
+          store.setSelected([task.id]);
+          store.flashTask(task.id);
+          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+        }}
+      />
+    </section>
+  ) : null;
   const rail = spatialCommandCenterShell && canvasId ? (
     reviewRailOpen ? (
       <ReviewRail
@@ -658,6 +679,7 @@ export function CanvasRouter() {
       onOpenToday={() => setTodayFocusOpen(true)}
       onOpenReview={() => setReviewRailOpen(true)}
       directory={<>
+      {desktopOperationsEntry}
       <TaskRetrieval
         tasks={tasks}
         onOpenInspector={(task) => {
@@ -837,6 +859,24 @@ export function CanvasRouter() {
           }}
           onOpenToday={() => setMobileDestination("today")}
           onOpenInbox={() => setMobileDestination("inbox")}
+        />
+      );
+    }
+
+    if (mobileDestination === "operations") {
+      return (
+        <OperationsView
+          tasks={tasks}
+          workstreams={workstreams}
+          dependencies={dependencies}
+          onOpenInspector={(task) => openMobileInspector(task, "operations")}
+          onReveal={(task) => {
+            const store = useStore.getState();
+            store.setSelected([task.id]);
+            store.flashTask(task.id);
+            store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+            setMobileCommandCenterOpen(false);
+          }}
         />
       );
     }
