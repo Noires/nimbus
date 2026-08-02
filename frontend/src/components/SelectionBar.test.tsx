@@ -216,4 +216,20 @@ describe("SelectionBar selected-task tidy", () => {
     expect(container.querySelector('[aria-label="Arrange selected tasks in zones"]')).toBeNull();
     expect(document.activeElement).toBe(container.querySelector('button[aria-label="Arrange in zones"]'));
   });
+
+  it("disables zone Apply when a zone update makes its preview stale while leaving Cancel available", async () => {
+    useStore.setState({
+      zones: [{ id: "zone", canvasId: "canvas-1", x: 0, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }],
+    });
+    await act(async () => { root.render(<SelectionBar canvasId="canvas-1" tidyEnabled />); });
+    await act(async () => (container.querySelector('button[aria-label="Arrange in zones"]') as HTMLButtonElement).click());
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply tidy")?.disabled).toBe(false);
+
+    await act(async () => {
+      useStore.setState({ zones: [{ id: "zone", canvasId: "canvas-1", x: 20, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }] });
+    });
+
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Apply tidy")?.disabled).toBe(true);
+    expect([...container.querySelectorAll("button")].find((button) => button.textContent === "Cancel")?.disabled).toBe(false);
+  });
 });

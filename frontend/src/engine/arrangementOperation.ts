@@ -161,11 +161,11 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     }
     const reason = protectedMemberships.get(taskId);
     if (reason) {
-      skipped.push({ id: taskId, reason });
+      skipped.push({ id: taskId, title: task.title, reason });
       continue;
     }
     if (protectedTaskIds.has(taskId)) {
-      skipped.push({ id: taskId, reason: "protected-task" });
+      skipped.push({ id: taskId, title: task.title, reason: "protected-task" });
       continue;
     }
     candidates.push(task);

@@ -26,7 +26,11 @@ describe("previewArrangementOperation", () => {
   });
 
   it("skips a protected scope and task members of pinned or protected workstreams", () => {
-    const tasks = [task("free", 0, 0), task("pinned-member", 0, 0), task("protected-member", 0, 0)];
+    const tasks = [
+      { ...task("free", 0, 0), title: "Free" },
+      { ...task("pinned-member", 0, 0), title: "Pinned member" },
+      { ...task("protected-member", 0, 0), title: "Protected member" },
+    ];
     const protectedScope = previewArrangementOperation({
       scope: { kind: "workstream", workstreamId: "protected", taskIds: ["free"] },
       tasks,
@@ -44,8 +48,8 @@ describe("previewArrangementOperation", () => {
     expect(protectedScope.moved).toEqual([]);
     expect(protectedScope.skipped).toEqual([{ id: "protected", reason: "protected-workstream" }]);
     expect(mixedScope.skipped).toEqual([
-      { id: "pinned-member", reason: "pinned-workstream" },
-      { id: "protected-member", reason: "protected-workstream" },
+      { id: "pinned-member", reason: "pinned-workstream", title: "Pinned member" },
+      { id: "protected-member", reason: "protected-workstream", title: "Protected member" },
     ]);
     expect(mixedScope.unchanged).toEqual(["free"]);
   });
@@ -80,7 +84,7 @@ describe("previewArrangementOperation", () => {
       scope: { kind: "canvas", taskIds: ["protected", "b", "a"] }, tasks, strategy: "tag", protectedTaskIds: ["protected"],
     });
     expect(preview.strategy).toBe("tag");
-    expect(preview.skipped).toEqual([{ id: "protected", reason: "protected-task" }]);
+    expect(preview.skipped).toEqual([{ id: "protected", reason: "protected-task", title: "fixed" }]);
     expect(tasks.map(({ id, x, y }) => ({ id, x, y }))).toEqual([task("b", 0, 0), task("a", 0, 0), task("protected", 0, 0)]);
     expect(preview.moved.map((move) => move.id)).toEqual(["a", "b"]);
   });
