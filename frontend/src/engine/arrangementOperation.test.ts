@@ -135,6 +135,21 @@ describe("previewArrangementOperation", () => {
     expect(isArrangementPreviewCurrent(preview, tasks, [], [{ ...zones[0], x: 1 }, ...zones.slice(1)])).toBe(false);
   });
 
+  it("keeps every zone-arranged card fully contained and skips deterministic overflow", () => {
+    const zones = [{ id: "zone", canvasId: "canvas", x: 10, y: 20, w: 300, h: 170, label: "Zone", hue: 0, autoTag: null, z: 0 }] as any;
+    // All card centres start in the Zone, but it has capacity for only one full card.
+    const tasks = [task("b", 20, 30), task("a", 30, 40)];
+    const preview = previewArrangementOperation({ scope: { kind: "selected-zones", taskIds: ["b", "a"] }, tasks, zones });
+    expect(preview.moved).toEqual([{ id: "b", x: 10, y: 20 }]);
+    expect(preview.skipped).toEqual([{ id: "a", reason: "zone-too-small", zoneIds: ["zone"] }]);
+    for (const move of preview.moved) {
+      expect(move.x).toBeGreaterThanOrEqual(zones[0].x);
+      expect(move.y).toBeGreaterThanOrEqual(zones[0].y);
+      expect(move.x + 256).toBeLessThanOrEqual(zones[0].x + zones[0].w);
+      expect(move.y + 170).toBeLessThanOrEqual(zones[0].y + zones[0].h);
+    }
+  });
+
   it.each([100, 500, 1000])("previews %i overlapping cards without mutation", (count) => {
     const tasks = overlappingTasks(count);
     const started = performance.now();

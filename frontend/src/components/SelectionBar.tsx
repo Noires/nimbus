@@ -14,6 +14,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
   const [tagInput, setTagInput] = useState<string | null>(null);
   const [tidyPreview, setTidyPreview] = useState<ArrangementPreview | null>(null);
   const [arrangeStrategy, setArrangeStrategy] = useState<ArrangementStrategy>("tidy-overlaps");
+  const [restoreZoneTrigger, setRestoreZoneTrigger] = useState(false);
   const zoneTrigger = useRef<HTMLButtonElement>(null);
   const t = useT();
   const selectedKey = [...selectedIds].sort().join("\u0000");
@@ -21,6 +22,11 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
   useEffect(() => {
     setTidyPreview(null);
   }, [selectedKey]);
+  useEffect(() => {
+    if (!restoreZoneTrigger) return;
+    zoneTrigger.current?.focus();
+    setRestoreZoneTrigger(false);
+  }, [restoreZoneTrigger]);
 
   const run = (fn: () => Promise<void>) => fn().catch((e) => console.error(e));
 
@@ -144,7 +150,11 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
               onApply={async () => {
                 if (await useStore.getState().applyArrangementPreview(tidyPreview)) setTidyPreview(null);
               }}
-              onCancel={() => setTidyPreview(null)}
+              onCancel={() => {
+                const wasZonePreview = tidyPreview.scope === "selected-zones";
+                setTidyPreview(null);
+                if (wasZonePreview) setRestoreZoneTrigger(true);
+              }}
             />
           ) : (
             <>
@@ -201,6 +211,11 @@ export function SelectionTidyPreview({
 }) {
   const t = useT();
   const [isApplying, setIsApplying] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const isZonePreview = preview.scope === "selected-zones";
+  useEffect(() => {
+    if (isZonePreview) root.current?.focus();
+  }, [isZonePreview]);
   const skippedByReason = preview.skipped.reduce<Record<string, number>>((counts, skipped) => {
     counts[skipped.reason] = (counts[skipped.reason] ?? 0) + 1;
     return counts;
@@ -225,7 +240,24 @@ export function SelectionTidyPreview({
   };
 
   return (
-    <div className="flex items-center gap-2" aria-live="polite" aria-busy={isApplying}>
+    <div
+      ref={root}
+      tabIndex={-1}
+      role="region"
+      aria-label={isZonePreview ? t("c.selection.zonePreviewLabel") : t("c.selection.tidy")}
+      className="flex items-center gap-2"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-busy={isApplying}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          onCancel();
+        }
+      }}
+    >
+      {isZonePreview && <span className="sr-only">{t("c.selection.zonePreviewScope")}</span>}
       <span className="text-[10px] text-cyan-100">
         {t("c.selection.tidyPreview", {
           moved: preview.moved.length,

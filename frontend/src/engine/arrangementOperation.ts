@@ -182,9 +182,20 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     for (const [zoneId, group] of [...zoneTasks].sort(([a], [b]) => compareIds(a, b))) {
       const zone = (input.zones ?? []).find((item) => item.id === zoneId)!;
       const columns = Math.max(1, Math.floor((zone.w - CARD_W) / (CARD_W + ARRANGE_GAP_X)) + 1);
-      [...group].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id)).forEach((task, index) => moves.set(task.id, {
-        x: zone.x + (index % columns) * (CARD_W + ARRANGE_GAP_X), y: zone.y + Math.floor(index / columns) * (CARD_H + ARRANGE_GAP_Y),
-      }));
+      // A Zone is never resized and no card may be clipped. Capacity is thus
+      // deliberately finite: later deterministic rows are explained as skipped
+      // instead of spilling beyond the persisted rectangle.
+      const rows = Math.max(1, Math.floor((zone.h - CARD_H) / (CARD_H + ARRANGE_GAP_Y)) + 1);
+      const capacity = columns * rows;
+      [...group].sort((a, b) => a.y - b.y || a.x - b.x || compareIds(a.id, b.id)).forEach((task, index) => {
+        if (index >= capacity) {
+          skipped.push({ id: task.id, reason: "zone-too-small", zoneIds: [zone.id] });
+          return;
+        }
+        moves.set(task.id, {
+          x: zone.x + (index % columns) * (CARD_W + ARRANGE_GAP_X), y: zone.y + Math.floor(index / columns) * (CARD_H + ARRANGE_GAP_Y),
+        });
+      });
     }
   } else if (strategy === "tidy-overlaps") {
     const clusters = computeCandidateClusters(candidates);

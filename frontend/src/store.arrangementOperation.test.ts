@@ -236,6 +236,28 @@ describe("applyArrangementPreview", () => {
     expect(history.canUndo).toBe(false);
     expect(useStore.getState().toast?.message).toBe("Arrangement preview is out of date. Create a new preview.");
   });
+
+  it.each([
+    ["moves", { action: "upsert", data: { id: "zone", canvasId: "canvas-1", x: 10, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 } }],
+    ["resizes", { action: "upsert", data: { id: "zone", canvasId: "canvas-1", x: 0, y: 0, w: 700, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 } }],
+    ["is deleted", { action: "delete", data: { id: "zone" } }],
+  ] as const)("rejects a zone preview when its zone %s", async (_change, event) => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const zones = [{ id: "zone", canvasId: "canvas-1", x: 0, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }];
+    useStore.setState({ zones, tasks: [task("a", 0, 0), task("b", 10, 0)] });
+    const state = useStore.getState();
+    const preview = previewArrangementOperation({
+      scope: { kind: "selected-zones", taskIds: ["a", "b"] }, tasks: state.tasks, zones: state.zones,
+      workstreams: [], revision: arrangementRevision(state.tasks, [], state.zones),
+    });
+
+    useStore.getState().applyRemote({ entity: "zone", ...event } as any);
+    await expect(useStore.getState().applyArrangementPreview(preview)).resolves.toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(history.canUndo).toBe(false);
+    expect(useStore.getState().toast?.message).toBe("Arrangement preview is out of date. Create a new preview.");
+  });
 });
 
 function taskPositionsInIdOrder(tasks: Array<{ id: string; x: number; y: number }>) {
