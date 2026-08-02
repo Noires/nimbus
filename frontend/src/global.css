@@ -79,6 +79,21 @@ html, body, #root {
   background: rgb(26 29 36 / 90%);
 }
 
+.command-center-state {
+  display: flex; align-items: flex-start; gap: 1rem;
+  width: min(38rem, calc(100vw - 2rem)); margin: min(18vh, 10rem) auto; padding: 1.25rem;
+  border: 1px solid rgb(103 232 249 / 35%); border-radius: .85rem; background: #161b25;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+}
+.command-center-state--error { border-color: rgb(252 165 165 / 60%); }
+.command-center-state__icon { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border-radius: 999px; background: rgb(103 232 249 / 15%); color: #a5f3fc; font-weight: 800; }
+.command-center-state--error .command-center-state__icon { background: rgb(252 165 165 / 15%); color: #fecaca; }
+.command-center-state__title { margin: 0; font-size: 1rem; color: #f8fafc; }
+.command-center-state__detail { margin: .4rem 0 0; color: #cbd5e1; line-height: 1.5; }
+.command-center-state__action { margin-top: .8rem; }
+.command-center-state__action button { min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
+.command-center-state__action button:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+
 /* Compact desktop keeps the Canvas usable: contextual information becomes an
    on-demand overlay rather than a third permanently narrow column. */
 @media (min-width: 769px) and (max-width: 1100px) {

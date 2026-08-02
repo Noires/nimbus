@@ -206,6 +206,7 @@ export const deC: Record<string, string> = {
   "c.selection.zoneNeedsEligible": "Wählen Sie mindestens zwei geeignete Aufgaben in Zonen aus.",
   "c.selection.zoneDetails": "Details",
   "c.selection.zoneMovedDetail": "{task} → {zone}",
+  "c.selection.zoneUnchangedDetail": "{task} bereits in {zone}",
   "c.selection.zoneSkippedDetail": "{task}: {reason}",
   "c.selection.unnamedZone": "Unbenannte Zone",
   "c.selection.untitledTask": "Unbenannte Aufgabe",

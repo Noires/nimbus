@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useStore, visibleTasks, CARD_W, CARD_H, type Task, type CanvasSettings } from "../store";
 import { nearestInDirection, nearestToPoint, type Direction } from "../utils/spatialNav";
@@ -40,6 +40,7 @@ import { MobileCommandCenter } from "./MobileCommandCenter";
 import { MobileCapture } from "./MobileCapture";
 import { MobileInboxTriage } from "./MobileInboxTriage";
 import { CommandCenterTutorial, CommandCenterTutorialOffer } from "./CommandCenterTutorial";
+import { CommandCenterState } from "./CommandCenterState";
 import {
   isMobileCommandCenterEnabled,
   MOBILE_COMMAND_CENTER_QUERY,
@@ -154,8 +155,10 @@ export function CanvasRouter() {
   // Digest + wake notifications (60s cadence, per-day deduped).
   useEffect(() => startNotificationLoop(() => canvasIdRef.current), []);
 
-  useEffect(() => {
-    useStore
+  const loadCanvases = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return useStore
       .getState()
       .loadCanvases()
       .then(() => setLoading(false))
@@ -164,6 +167,10 @@ export function CanvasRouter() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    void loadCanvases();
+  }, [loadCanvases]);
 
   // Redirect to the first canvas only when the URL doesn't name one.
   useEffect(() => {
@@ -459,9 +466,13 @@ export function CanvasRouter() {
     }
   };
 
-  if (loading) return <div className="p-8 text-gray-400">{tr("a.router.loading")}</div>;
+  if (loading) {
+    if (spatialCommandCenterShell) return <CommandCenterState kind="loading" title={tr("a.router.loading")} detail={tr("d.state.loadingDetail")} />;
+    return <div className="p-8 text-gray-400">{tr("a.router.loading")}</div>;
+  }
 
   if (error) {
+    if (spatialCommandCenterShell) return <CommandCenterState kind="error" title={tr("a.router.apiError")} detail={tr("d.state.errorDetail")} action={<button type="button" onClick={() => void loadCanvases()}>{tr("d.state.retry")}</button>} />;
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-2 text-gray-400">
         <div className="text-red-400">{tr("a.router.apiError")}</div>
@@ -781,9 +792,9 @@ export function CanvasRouter() {
       )}
     </>
   ) : (
-    <div className="flex items-center justify-center h-full text-gray-500">
-      {tr("a.router.noCanvases")}
-    </div>
+    spatialCommandCenterShell
+      ? <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />
+      : <div className="flex items-center justify-center h-full text-gray-500">{tr("a.router.noCanvases")}</div>
   );
   const overlays = (
     <>
@@ -802,7 +813,7 @@ export function CanvasRouter() {
   );
 
   const mobileContent = (() => {
-    if (!canvasId) return <p>{tr("mobile.command.unavailable")}</p>;
+    if (!canvasId) return <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />;
 
     if (mobileDestination === "capture") {
       return (

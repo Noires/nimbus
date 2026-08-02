@@ -12,6 +12,7 @@ describe("CommandCenterTutorial", () => {
     expect(html).toContain("Tutorial sample Canvas");
     expect(html).toContain("No real Nimbus data is displayed or changed.");
     expect(html).toContain("Step 1 of 7");
+    expect(html).toContain("Reset sample");
   });
 
   it("renders complete German copy rather than falling back to English", () => {
