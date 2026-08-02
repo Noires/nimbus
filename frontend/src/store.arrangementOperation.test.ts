@@ -75,6 +75,9 @@ describe("applyArrangementPreview", () => {
     expect(preview.moved).toHaveLength(2);
     expect(preview.positions.map((position) => position.id)).toEqual(["b", "c"]);
     expect(fetch).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body)).positions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ expectedX: 0, expectedY: 0 }),
+    ]));
     expect(useStore.getState().tasks.map(({ id, x, y }) => ({ id, x, y }))).not.toEqual(before);
 
     await useStore.getState().undo();

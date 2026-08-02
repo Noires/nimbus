@@ -547,7 +547,10 @@ export const useStore = create<State>((set, get) => {
 
       arrangementApplyInFlight = true;
       try {
-        const { tasks: saved } = await api.updateTaskPositions(moves);
+        const { tasks: saved } = await api.updateTaskPositions(moves.map((position) => {
+          const before = currentTasks.get(position.id)!;
+          return { ...position, expectedX: before.x, expectedY: before.y };
+        }));
         const ops: Op[] = moves.map((position) => {
           const before = currentTasks.get(position.id)!;
           return {

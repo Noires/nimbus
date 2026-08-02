@@ -17,7 +17,8 @@ async function canvasSettings(canvasId: string): Promise<CanvasSettings> {
   return (canvas?.settings as CanvasSettings) ?? {};
 }
 
-type PositionUpdate = { id: string; x: number; y: number };
+/** Preview positions are optional compare-and-set preconditions. */
+type PositionUpdate = { id: string; x: number; y: number; expectedX?: number; expectedY?: number };
 
 function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
@@ -28,7 +29,7 @@ function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
       !candidate ||
       typeof candidate !== "object"
     ) return null;
-    const position = candidate as { id?: unknown; x?: unknown; y?: unknown };
+    const position = candidate as { id?: unknown; x?: unknown; y?: unknown; expectedX?: unknown; expectedY?: unknown };
     if (
       typeof position.id !== "string" ||
       !position.id ||
@@ -36,10 +37,13 @@ function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
       typeof position.y !== "number" ||
       !Number.isFinite(position.x) ||
       !Number.isFinite(position.y) ||
-      ids.has(position.id)
+      ids.has(position.id) ||
+      (position.expectedX !== undefined && (typeof position.expectedX !== "number" || !Number.isFinite(position.expectedX))) ||
+      (position.expectedY !== undefined && (typeof position.expectedY !== "number" || !Number.isFinite(position.expectedY))) ||
+      ((position.expectedX === undefined) !== (position.expectedY === undefined))
     ) return null;
     ids.add(position.id);
-    positions.push({ id: position.id, x: position.x, y: position.y });
+    positions.push({ id: position.id, x: position.x, y: position.y, expectedX: position.expectedX, expectedY: position.expectedY });
   }
   return positions;
 }
@@ -198,11 +202,22 @@ router.post("/positions", async (req, res) => {
 
       const savedTasks = [];
       for (const position of positions) {
-        savedTasks.push(await tx.task.update({
-          where: { id: position.id },
-          data: { x: position.x, y: position.y },
-          include: INCLUDE_CHECKLIST,
-        }));
+        // Keep the comparison in the write operation: a remote movement can
+        // happen after the client created its preview but before Apply.
+        if (position.expectedX !== undefined) {
+          const result = await tx.task.updateMany({
+            where: { id: position.id, x: position.expectedX, y: position.expectedY },
+            data: { x: position.x, y: position.y },
+          });
+          if (result.count !== 1) throw new PositionUpdateError("Arrangement preview is out of date");
+          const task = await tx.task.findUnique({ where: { id: position.id }, include: INCLUDE_CHECKLIST });
+          if (!task) throw new PositionUpdateError("Tasks not found");
+          savedTasks.push(task);
+        } else {
+          savedTasks.push(await tx.task.update({
+            where: { id: position.id }, data: { x: position.x, y: position.y }, include: INCLUDE_CHECKLIST,
+          }));
+        }
       }
       return { tasks, savedTasks };
     });
@@ -223,7 +238,9 @@ router.post("/positions", async (req, res) => {
 
     return res.json({ tasks: saved.savedTasks });
   } catch (e) {
-    const status = e instanceof PositionUpdateError ? 400 : 500;
+    const status = e instanceof PositionUpdateError
+      ? (e.message === "Arrangement preview is out of date" ? 409 : 400)
+      : 500;
     return res.status(status).json({ error: (e as Error).message });
   }
 });
