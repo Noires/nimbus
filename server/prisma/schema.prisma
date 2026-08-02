@@ -17,6 +17,7 @@ model Canvas {
   zones        Zone[]
   connections  Connection[]
   workstreams  Workstream[]
+  savedViews   SavedView[]
   createdAt    DateTime @default(now())
   // --- batch 2 ---
   shareToken   String?  @unique
@@ -85,6 +86,21 @@ model Task {
 
   @@index([canvasId])
   @@map("tasks")
+}
+
+// A saved view holds an explicit query configuration, not copied task rows.
+// It therefore always projects the current canonical task data.
+model SavedView {
+  id        String   @id @default(cuid())
+  canvasId  String
+  canvas    Canvas   @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  name      String
+  config    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([canvasId, createdAt])
+  @@map("saved_views")
 }
 
 // A durable, user-owned organizational container. Unlike proximity bubbles,

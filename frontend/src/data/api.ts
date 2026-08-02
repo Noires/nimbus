@@ -153,6 +153,21 @@ export const DependencySchema = z.object({
 });
 export type Dependency = z.infer<typeof DependencySchema>;
 
+export const SavedViewConfigSchema = z.object({
+  done: z.boolean().optional(),
+  tag: z.string().optional(),
+  priority: z.string().optional(),
+  group: z.enum(["none", "tag", "status", "priority", "dueDate"]).optional(),
+  sort: z.enum(["title", "priority", "dueDate", "createdAt"]).optional(),
+  direction: z.enum(["asc", "desc"]).optional(),
+});
+export type SavedViewConfig = z.infer<typeof SavedViewConfigSchema>;
+export const SavedViewSchema = z.object({
+  id: z.string(), canvasId: z.string(), name: z.string(), config: SavedViewConfigSchema,
+  createdAt: z.string(), updatedAt: z.string(),
+});
+export type SavedView = z.infer<typeof SavedViewSchema>;
+
 export const PortalSchema = z.object({
   id: z.string(),
   canvasId: z.string(),
@@ -365,6 +380,12 @@ export const api = {
   setTaskBlocker: (taskId: string, blockerId: string) =>
     request(DependencySchema, `/api/tasks/${taskId}/blocker`, { method: "PUT", json: { blockerId } }),
   clearTaskBlocker: (taskId: string) => requestVoid(`/api/tasks/${taskId}/blocker`, { method: "DELETE" }),
+
+  // --- saved structured views (configuration only, never duplicated tasks) ---
+  listSavedViews: (canvasId: string) => request(z.array(SavedViewSchema), `/api/saved-views?canvasId=${encodeURIComponent(canvasId)}`),
+  createSavedView: (input: { canvasId: string; name: string; config: SavedViewConfig }) => request(SavedViewSchema, "/api/saved-views", { method: "POST", json: input }),
+  updateSavedView: (id: string, patch: { name?: string; config?: SavedViewConfig }) => request(SavedViewSchema, `/api/saved-views/${id}`, { method: "PATCH", json: patch }),
+  deleteSavedView: (id: string) => requestVoid(`/api/saved-views/${id}`, { method: "DELETE" }),
 
   // --- portals ---
   listPortals: (canvasId: string) =>
