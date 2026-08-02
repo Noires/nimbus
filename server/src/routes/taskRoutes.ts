@@ -19,6 +19,7 @@ async function canvasSettings(canvasId: string): Promise<CanvasSettings> {
 
 /** Preview positions are optional compare-and-set preconditions. */
 type PositionUpdate = { id: string; x: number; y: number; expectedX?: number; expectedY?: number };
+type ZoneSnapshot = { id: string; canvasId: string; x: number; y: number; w: number; h: number; label: string; z: number };
 
 function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
   if (!Array.isArray(value) || value.length === 0) return null;
@@ -46,6 +47,30 @@ function parsePositionUpdates(value: unknown): PositionUpdate[] | null {
     positions.push({ id: position.id, x: position.x, y: position.y, expectedX: position.expectedX, expectedY: position.expectedY });
   }
   return positions;
+}
+
+function parseZoneSnapshot(value: unknown): ZoneSnapshot[] | null | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return null;
+  const ids = new Set<string>();
+  const zones: ZoneSnapshot[] = [];
+  for (const candidate of value) {
+    if (!candidate || typeof candidate !== "object") return null;
+    const zone = candidate as Partial<ZoneSnapshot>;
+    if (typeof zone.id !== "string" || !zone.id || ids.has(zone.id) || typeof zone.canvasId !== "string" || !zone.canvasId ||
+      ![zone.x, zone.y, zone.w, zone.h, zone.z].every((number) => typeof number === "number" && Number.isFinite(number)) || typeof zone.label !== "string") return null;
+    ids.add(zone.id);
+    zones.push(zone as ZoneSnapshot);
+  }
+  return zones.sort((left, right) => left.id.localeCompare(right.id));
+}
+
+async function lockCanvas(tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0], canvasId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${canvasId}))`;
+}
+
+function sameZoneSnapshot(actual: ZoneSnapshot[], expected: ZoneSnapshot[]) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
 }
 
 class PositionUpdateError extends Error {}
@@ -187,6 +212,8 @@ router.get("/", async (req, res) => {
 router.post("/positions", async (req, res) => {
   const positions = parsePositionUpdates(req.body?.positions);
   if (!positions) return res.status(400).json({ error: "Expected unique task positions with finite x and y values" });
+  const expectedZones = parseZoneSnapshot(req.body?.expectedZones);
+  if (expectedZones === null) return res.status(400).json({ error: "Expected a valid Zone snapshot" });
 
   try {
     const saved = await prisma.$transaction(async (tx) => {
@@ -198,6 +225,18 @@ router.post("/positions", async (req, res) => {
       const canvasId = tasks[0].canvasId;
       if (!tasks.every((task) => task.canvasId === canvasId)) {
         throw new PositionUpdateError("Tasks are on different canvases");
+      }
+      // Serialize selected-zone Apply with Zone CRUD. Comparing the full
+      // canvas snapshot here closes the browser-check/request race, including
+      // a newly-created overlapping Zone.
+      if (expectedZones !== undefined) {
+        await lockCanvas(tx, canvasId);
+        const actualZones = (await tx.zone.findMany({
+          where: { canvasId },
+          select: { id: true, canvasId: true, x: true, y: true, w: true, h: true, label: true, z: true },
+          orderBy: { id: "asc" },
+        })) as ZoneSnapshot[];
+        if (!sameZoneSnapshot(actualZones, expectedZones)) throw new PositionUpdateError("Arrangement preview is out of date");
       }
 
       const savedTasks = [];

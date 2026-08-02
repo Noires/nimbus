@@ -64,7 +64,11 @@ export interface ArrangementPreview {
   explanations: string[];
   /** Snapshot of the task positions and workstream safeguards used for this preview. */
   revision: string;
+  /** Server-side stale precondition for selected-zone previews, never task membership. */
+  zoneSnapshot?: ZoneRevisionEntry[];
 }
+
+export type ZoneRevisionEntry = Pick<Zone, "id" | "canvasId" | "x" | "y" | "w" | "h" | "label" | "z">;
 
 export interface ArrangementPreviewInput {
   scope: ArrangementScope;
@@ -105,6 +109,12 @@ export function arrangementRevision(
     .sort(([left], [right]) => compareIds(left, right));
   const zoneState = [...zones].map(({ id, canvasId, x, y, w, h, label, z }) => [id, canvasId, x, y, w, h, label, z] as const).sort(([left], [right]) => compareIds(left, right));
   return JSON.stringify([taskState, workstreamState, zoneState]);
+}
+
+export function zoneRevisionSnapshot(zones: Iterable<ZoneRevisionEntry>): ZoneRevisionEntry[] {
+  return [...zones]
+    .map(({ id, canvasId, x, y, w, h, label, z }) => ({ id, canvasId, x, y, w, h, label, z }))
+    .sort((left, right) => compareIds(left.id, right.id));
 }
 
 /** Returns whether a preview still represents the supplied authoritative state. */
@@ -254,6 +264,7 @@ export function previewArrangementOperation(input: ArrangementPreviewInput): Arr
     explanation,
     explanations,
     revision,
+    ...(input.scope.kind === "selected-zones" ? { zoneSnapshot: zoneRevisionSnapshot(input.zones ?? []) } : {}),
   };
 }
 

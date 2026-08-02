@@ -550,7 +550,7 @@ export const useStore = create<State>((set, get) => {
         const { tasks: saved } = await api.updateTaskPositions(moves.map((position) => {
           const before = currentTasks.get(position.id)!;
           return { ...position, expectedX: before.x, expectedY: before.y };
-        }));
+        }), preview.scope === "selected-zones" ? preview.zoneSnapshot : undefined);
         const ops: Op[] = moves.map((position) => {
           const before = currentTasks.get(position.id)!;
           return {

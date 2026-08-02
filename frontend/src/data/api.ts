@@ -324,8 +324,12 @@ export const api = {
     request(TaskSchema, "/api/tasks", { method: "POST", json: input }),
   updateTask: (id: string, patch: TaskPatch) =>
     request(TaskSchema, `/api/tasks/${id}`, { method: "PATCH", json: patch }),
-  updateTaskPositions: (positions: Array<{ id: string; x: number; y: number; expectedX?: number; expectedY?: number }>) =>
-    request(z.object({ tasks: z.array(TaskSchema) }), "/api/tasks/positions", { method: "POST", json: { positions } }),
+  updateTaskPositions: (
+    positions: Array<{ id: string; x: number; y: number; expectedX?: number; expectedY?: number }>,
+    expectedZones?: Array<{ id: string; canvasId: string; x: number; y: number; w: number; h: number; label: string; z: number }>,
+  ) => request(z.object({ tasks: z.array(TaskSchema) }), "/api/tasks/positions", {
+    method: "POST", json: { positions, ...(expectedZones ? { expectedZones } : {}) },
+  }),
   deleteTask: (id: string) => requestVoid(`/api/tasks/${id}`, { method: "DELETE" }),
   taskEvents: (id: string) => request(EventListSchema, `/api/tasks/${id}/events`),
   splitTask: (id: string, positions: Array<{ x: number; y: number }>) =>

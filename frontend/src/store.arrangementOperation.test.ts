@@ -258,6 +258,25 @@ describe("applyArrangementPreview", () => {
     expect(history.canUndo).toBe(false);
     expect(useStore.getState().toast?.message).toBe("Arrangement preview is out of date. Create a new preview.");
   });
+
+  it("rejects a zone preview when a new overlapping Zone makes membership ambiguous", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const zones = [{ id: "zone", canvasId: "canvas-1", x: 0, y: 0, w: 800, h: 400, label: "Zone", hue: 0, autoTag: null, z: 0 }];
+    useStore.setState({ zones, tasks: [task("a", 0, 0), task("b", 10, 0)] });
+    const state = useStore.getState();
+    const preview = previewArrangementOperation({
+      scope: { kind: "selected-zones", taskIds: ["a", "b"] }, tasks: state.tasks, zones: state.zones,
+      workstreams: [], revision: arrangementRevision(state.tasks, [], state.zones),
+    });
+
+    useStore.getState().applyRemote({ entity: "zone", action: "upsert", data: { id: "overlap", canvasId: "canvas-1", x: 0, y: 0, w: 800, h: 400, label: "Overlap", hue: 0, autoTag: null, z: 1 } } as any);
+    await expect(useStore.getState().applyArrangementPreview(preview)).resolves.toBe(false);
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(history.canUndo).toBe(false);
+    expect(useStore.getState().toast?.message).toBe("Arrangement preview is out of date. Create a new preview.");
+  });
 });
 
 function taskPositionsInIdOrder(tasks: Array<{ id: string; x: number; y: number }>) {
