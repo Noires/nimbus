@@ -22,7 +22,7 @@ export function SpatialCommandCenterShell({
   children,
 }: SpatialCommandCenterShellProps) {
   return (
-    <div className={`command-center-shell${rail ? " command-center-shell--with-rail" : ""}`}>
+    <div id="command-center-tutorial-return" className={`command-center-shell${rail ? " command-center-shell--with-rail" : ""}`} tabIndex={-1}>
       <aside className="command-center-shell__navigation" aria-label={navigationLabel}>
         {navigation}
       </aside>

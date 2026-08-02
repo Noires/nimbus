@@ -39,6 +39,7 @@ import { useCanvasDataLoader } from "../hooks/useCanvasDataLoader";
 import { MobileCommandCenter } from "./MobileCommandCenter";
 import { MobileCapture } from "./MobileCapture";
 import { MobileInboxTriage } from "./MobileInboxTriage";
+import { CommandCenterTutorial, CommandCenterTutorialOffer } from "./CommandCenterTutorial";
 import {
   isMobileCommandCenterEnabled,
   MOBILE_COMMAND_CENTER_QUERY,
@@ -77,6 +78,7 @@ export function CanvasRouter() {
   const [modal, setModal] = useState<ModalState | null>(null);
   const [timelapse, setTimelapse] = useState(false);
   const [pulseOpen, setPulseOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
   const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
   const mobileCommandCenterEligible = isMobileCommandCenterEnabled({
@@ -790,8 +792,11 @@ export function CanvasRouter() {
         <HelpPanel
           spatialCommandCenterShell={spatialCommandCenterShell}
           onClose={() => useStore.getState().setHelpOpen(false)}
+          onStartTutorial={() => { useStore.getState().setHelpOpen(false); setTutorialOpen(true); }}
         />
       )}
+      {spatialCommandCenterShell && <CommandCenterTutorialOffer onStart={() => setTutorialOpen(true)} />}
+      {spatialCommandCenterShell && <CommandCenterTutorial open={tutorialOpen} onClose={() => setTutorialOpen(false)} />}
       <Toast />
     </>
   );
@@ -940,6 +945,7 @@ export function CanvasRouter() {
 
   if (mobileCommandCenter) {
     return (
+      <>
       <MobileCommandCenter
         destination={resolveMobileCommandDestination(mobileDestination)}
         onDestinationChange={(destination) => {
@@ -950,6 +956,8 @@ export function CanvasRouter() {
       >
         {mobileContent}
       </MobileCommandCenter>
+      {overlays}
+      </>
     );
   }
 

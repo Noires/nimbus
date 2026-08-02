@@ -28,7 +28,7 @@ export function MobileCommandCenter({
   const contentLabel = destination === "inspector" ? t("inspector.label") : t(`mobile.command.${destination}`);
 
   return (
-    <section className="mobile-command-center">
+    <section id="command-center-tutorial-return" className="mobile-command-center" tabIndex={-1}>
       <header className="mobile-command-center__header">
         <h1 className="mobile-command-center__title">{contentLabel}</h1>
         <button type="button" onClick={onClose} aria-label={t("mobile.command.close")} className="mobile-command-center__close">

@@ -32,9 +32,11 @@ const GROUPS: Array<{ group: string; features: string[] }> = [
 export function HelpPanel({
   onClose,
   spatialCommandCenterShell = false,
+  onStartTutorial,
 }: {
   onClose: () => void;
   spatialCommandCenterShell?: boolean;
+  onStartTutorial?: () => void;
 }) {
   const t = useT();
   const locale = useLocale((s) => s.locale);
@@ -55,6 +57,11 @@ export function HelpPanel({
             <div className="text-[11px] text-gray-500">{t("help.subtitle")}</div>
           </div>
           <div className="flex items-center gap-2">
+            {spatialCommandCenterShell && onStartTutorial && (
+              <button onClick={onStartTutorial} className="px-2 py-1 rounded-md text-xs text-cyan-200 border border-cyan-300/30 hover:bg-cyan-300/10 transition-colors">
+                {t("tutorial.help")}
+              </button>
+            )}
             <button
               onClick={() => setLocale(locale === "de" ? "en" : "de")}
               className="px-2 py-1 rounded-md text-xs text-gray-300 border border-white/15 hover:bg-white/10 transition-colors"
