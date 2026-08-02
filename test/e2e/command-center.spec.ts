@@ -48,3 +48,16 @@ test("axe: flag-on supports Ledger saved views, keyboard focus, blocker status, 
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await assertAxe(page);
 });
+
+test("axe: mobile command-center destinations are flag-gated and announced", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
+  await page.goto(`/canvas/${canvas.id}`);
+  const navigation = page.getByRole("navigation", { name: "Command Center" });
+  await expect(navigation).toBeVisible();
+  await navigation.getByRole("button", { name: "Today" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("main", { name: "Today" })).toBeVisible();
+  await assertAxe(page);
+});

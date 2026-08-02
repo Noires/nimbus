@@ -129,11 +129,11 @@ function TaskSection({
   return (
     <section aria-label={title}>
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{title}</h3>
-        {tasks.length > 0 && <span className="text-[10px] text-gray-600">{t("today.showing", { count: tasks.length, limit: MAX_ITEMS })}</span>}
+        <h3 className="text-[10px] font-medium uppercase tracking-wide text-gray-300">{title}</h3>
+        {tasks.length > 0 && <span className="text-[10px] text-gray-300">{t("today.showing", { count: tasks.length, limit: MAX_ITEMS })}</span>}
       </div>
       {tasks.length === 0 ? (
-        <p className="mt-1 text-xs text-gray-600">{t("today.sectionEmpty")}</p>
+        <p className="mt-1 text-xs text-gray-300">{t("today.sectionEmpty")}</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {tasks.map((task) => {
