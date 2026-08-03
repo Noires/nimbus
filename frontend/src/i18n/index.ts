@@ -40,8 +40,8 @@ export const useLocale = create<{ locale: Locale; setLocale: (locale: Locale) =>
   },
 }));
 
-export function t(key: string, vars?: Record<string, string | number>): string {
-  const { locale } = useLocale.getState();
+export function t(key: string, vars?: Record<string, string | number>, localeOverride?: Locale): string {
+  const locale = localeOverride ?? useLocale.getState().locale;
   const localeText = dictionaries[locale][key];
   const englishText = dictionaries.en[key];
   if (globalThis.__NIMBUS_STRICT_I18N__ && (!localeText || !englishText)) {

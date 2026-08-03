@@ -77,6 +77,8 @@ describe("CommandCenterTutorial interactions", () => {
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
       version: 4, step: 1, sample: { captured: true, assigned: false },
     });
+    expect(useLocale.getState().locale).toBe("en");
+    expect(localStorage.getItem("locale")).toBeNull();
   });
 
   it("requires explicit sample-only Workstream and Review outcomes before advancing", async () => {

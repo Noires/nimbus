@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { useLocale, useT } from "../i18n";
+import { t as translate, useLocale, useT } from "../i18n";
 
 export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v4";
 const TUTORIAL_VERSION = 4;
@@ -56,9 +56,11 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
   replay?: boolean;
   onStatusChange?: (status: TutorialStatus) => void;
 }) {
-  const t = useT();
-  const locale = useLocale((state) => state.locale);
-  const setLocale = useLocale((state) => state.setLocale);
+  const applicationLocale = useLocale((state) => state.locale);
+  // The sample may demonstrate EN/DE without changing the productive
+  // application's persisted language preference.
+  const [locale, setLocale] = useState(applicationLocale);
+  const t = (key: string, vars?: Record<string, string | number>) => translate(key, vars, locale);
   const [progress, setProgress] = useState<TutorialProgress>(newProgress);
   const closeButton = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -71,6 +73,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
     const saved = readCommandCenterTutorial();
     const next = replay || saved?.status !== "in-progress" ? newProgress() : saved;
     setProgress(next);
+    setLocale(applicationLocale);
     if (replay) {
       writeProgress(next);
       onStatusChange?.(next.status);
@@ -81,7 +84,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
       if (opener?.isConnected) opener.focus();
       else document.getElementById("command-center-tutorial-return")?.focus();
     };
-  }, [open, replay, onStatusChange]);
+  }, [open, replay, onStatusChange, applicationLocale]);
 
   if (!open) return null;
   const save = (next: TutorialProgress) => { setProgress(next); writeProgress(next); };
