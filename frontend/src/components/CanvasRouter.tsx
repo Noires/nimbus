@@ -116,6 +116,8 @@ export function CanvasRouter() {
   const mobileInspectorTriggerRef = useRef<HTMLElement | null>(null);
   const mobileInspectorTaskIdRef = useRef<string | null>(null);
   const mobileRestoreInspectorFocusRef = useRef(false);
+  const mobileCommandCenterTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileRestoreCommandCenterFocusRef = useRef(false);
 
   const openMobileInspector = (task: Task, returnDestination: MobileInspectorReturnDestination) => {
     mobileInspectorTriggerRef.current = typeof document !== "undefined" && document.activeElement instanceof HTMLElement
@@ -146,6 +148,18 @@ export function CanvasRouter() {
       }
     }
   }, [mobileDestination]);
+
+  useEffect(() => {
+    if (mobileRestoreCommandCenterFocusRef.current && !mobileCommandCenterOpen) {
+      mobileRestoreCommandCenterFocusRef.current = false;
+      queueMicrotask(() => mobileCommandCenterTriggerRef.current?.focus());
+    }
+  }, [mobileCommandCenterOpen]);
+
+  const closeMobileCommandCenter = () => {
+    mobileRestoreCommandCenterFocusRef.current = true;
+    setMobileCommandCenterOpen(false);
+  };
 
   const canvasId = params.id ?? null;
   const canvasIdRef = useRef(canvasId);
@@ -230,7 +244,7 @@ export function CanvasRouter() {
         } else if (store.zoneDraw) {
           store.setZoneDraw(false);
         } else if (mobileCommandCenter) {
-          setMobileCommandCenterOpen(false);
+          closeMobileCommandCenter();
         } else if (spatialCommandCenterShell && inboxTriageOpen) {
           setInboxTriageOpen(false);
         } else if (spatialCommandCenterShell && todayFocusOpen) {
@@ -504,6 +518,7 @@ export function CanvasRouter() {
         <div className="mt-4 space-y-2">
           <button
             type="button"
+            aria-pressed={todayFocusOpen}
             onClick={() => {
               if (!todayFocusOpen) setInboxTriageOpen(false);
               if (!todayFocusOpen) setReviewRailOpen(false);
@@ -520,6 +535,7 @@ export function CanvasRouter() {
           </button>
           <button
             type="button"
+            aria-pressed={inboxTriageOpen}
             onClick={() => {
               setTodayFocusOpen(false);
               setReviewRailOpen(false);
@@ -537,6 +553,7 @@ export function CanvasRouter() {
           </button>
           <button
             type="button"
+            aria-pressed={reviewRailOpen}
             onClick={() => {
               if (!reviewRailOpen) {
                 setTodayFocusOpen(false);

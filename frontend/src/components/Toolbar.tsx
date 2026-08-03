@@ -268,13 +268,16 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
       {/* Live-sync state */}
       <span
         className={`w-2 h-2 rounded-full shrink-0 ${liveConnected ? "bg-emerald-400 bubble-pulse" : "bg-gray-600"}`}
-        title={liveConnected ? t("a.toolbar.liveOn") : t("a.toolbar.liveOff")}
+        role="status"
+        aria-live="polite"
+        aria-label={liveConnected ? t("a.toolbar.liveOn") : t("a.toolbar.liveOff")}
       />
+      <span className="sr-only">{liveConnected ? t("a.toolbar.liveOn") : t("a.toolbar.liveOff")}</span>
       {connectionError && (
         <button
           onClick={() => setConnectionsOpen(true)}
           className="w-4 h-4 rounded-full bg-red-500/20 border border-red-500/60 text-red-400 text-[10px] leading-none shrink-0"
-          title={t("a.toolbar.syncError", { msg: connectionError.statusMessage ?? t("a.toolbar.unknown") })}
+          aria-label={t("a.toolbar.syncError", { msg: connectionError.statusMessage ?? t("a.toolbar.unknown") })}
         >
           !
         </button>

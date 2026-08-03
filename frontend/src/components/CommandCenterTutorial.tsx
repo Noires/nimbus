@@ -68,6 +68,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
   const [progress, setProgress] = useState<TutorialProgress>(newProgress);
   const closeButton = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const current = STEPS[progress.step];
 
@@ -89,6 +90,10 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
       else document.getElementById("command-center-tutorial-return")?.focus();
     };
   }, [open, replay, onStatusChange, applicationLocale]);
+
+  useEffect(() => {
+    if (open) queueMicrotask(() => titleRef.current?.focus());
+  }, [open, current, locale]);
 
   if (!open) return null;
   const save = (next: TutorialProgress) => { setProgress(next); writeProgress(next); };
@@ -130,7 +135,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
   return <div className="command-center-tutorial-backdrop" role="presentation">
     <section ref={dialogRef} className="command-center-tutorial" role="dialog" aria-modal="true" aria-labelledby="command-center-tutorial-title" aria-describedby="command-center-tutorial-description" onKeyDown={handleKeyDown}>
       <header className="command-center-tutorial__header">
-        <div><p className="command-center-tutorial__eyebrow">{t("tutorial.sampleLabel")}</p><h2 id="command-center-tutorial-title">{t(`tutorial.${current}.title`)}</h2></div>
+        <div><p className="command-center-tutorial__eyebrow">{t("tutorial.sampleLabel")}</p><h2 ref={titleRef} tabIndex={-1} id="command-center-tutorial-title">{t(`tutorial.${current}.title`)}</h2></div>
         <div className="command-center-tutorial__utilities">
           <button type="button" onClick={() => setLocale(locale === "en" ? "de" : "en")} aria-label={t("tutorial.languageAria")}>{t(locale === "en" ? "tutorial.languageGerman" : "tutorial.languageEnglish")}</button>
           <button ref={closeButton} type="button" onClick={() => close("in-progress")} aria-label={t("tutorial.exitAria")}>{t("tutorial.exit")}</button>
