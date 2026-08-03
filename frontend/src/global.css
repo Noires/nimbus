@@ -24,6 +24,21 @@ html, body, #root {
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-thumb { background: rgba(107,127,163,0.3); border-radius: 3px; }
 
+/* Toolbar overhaul: the six primary functions never collapse into More.
+   Compact desktop intentionally uses two rows while preserving Canvas space. */
+.canvas-toolbar { display: flex; align-items: center; gap: .5rem; max-width: calc(100% - 2rem); padding: .5rem .75rem; border: 1px solid rgb(255 255 255 / 12%); border-radius: .75rem; background: rgb(26 29 36 / 94%); box-shadow: 0 12px 28px rgb(0 0 0 / 35%); backdrop-filter: blur(10px); }
+.canvas-toolbar__primary, .canvas-toolbar__utilities { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+.canvas-toolbar__utilities { margin-left: auto; }
+.canvas-toolbar__primary-action, .canvas-toolbar__utility-button, .canvas-toolbar__search input { min-height: 2.75rem; border: 1px solid rgb(255 255 255 / 15%); border-radius: .5rem; background: rgb(15 15 19 / 65%); color: #d1d5db; font-size: .75rem; line-height: 1.1; }
+.canvas-toolbar__primary-action, .canvas-toolbar__utility-button { padding: .5rem .7rem; white-space: nowrap; }
+.canvas-toolbar__new-task { background: rgb(126 58 242 / 78%); color: white; font-weight: 700; }
+.canvas-toolbar__search input { width: clamp(8.5rem, 13vw, 12rem); padding: .5rem .65rem; }
+.canvas-toolbar__utility-button { min-width: 2.75rem; color: #9ca3af; }
+.canvas-toolbar__menu { position: absolute; top: calc(100% + .35rem); left: 0; z-index: 60; width: max-content; min-width: 13rem; max-width: min(24rem, calc(100vw - 2rem)); max-height: min(70vh, 34rem); overflow-y: auto; padding: .35rem; border: 1px solid rgb(255 255 255 / 15%); border-radius: .7rem; background: #1a1d24; box-shadow: 0 18px 42px rgb(0 0 0 / 48%); }
+.canvas-toolbar__menu--right { right: 0; left: auto; }.canvas-toolbar__menu--more { min-width: 16rem; }
+.canvas-toolbar button:focus-visible, .canvas-toolbar input:focus-visible, .canvas-toolbar [role="menuitemcheckbox"]:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+@media (max-width: 768px) { .canvas-toolbar { display: none; } }
+
 /* Experimental spatial command-center shell. All layout rules stay scoped so
    the default CanvasRouter composition remains byte-for-byte class compatible. */
 .command-center-shell {
@@ -120,6 +135,13 @@ html, body, #root {
     box-shadow: -12px 0 28px rgb(0 0 0 / 35%);
   }
   .command-center-shell__rail-close { display: inline-flex; align-items: center; }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .canvas-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: min(100% - 1.5rem, 48rem); }
+  .canvas-toolbar__primary { display: grid; grid-template-columns: auto minmax(8.5rem, 1fr) auto; grid-template-areas: "new search undo" "lens visibility view"; }
+  .canvas-toolbar__primary > :nth-child(1) { grid-area: new; }.canvas-toolbar__primary > :nth-child(2) { grid-area: search; }.canvas-toolbar__primary > :nth-child(3) { grid-area: lens; }.canvas-toolbar__primary > :nth-child(4) { grid-area: visibility; }.canvas-toolbar__primary > :nth-child(5) { grid-area: undo; }.canvas-toolbar__primary > :nth-child(6) { grid-area: view; }
+  .canvas-toolbar__search input { width: 100%; }.canvas-toolbar__utilities { align-self: start; margin-left: 0; }
 }
 
 .command-center-tutorial-offer {

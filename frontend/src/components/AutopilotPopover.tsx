@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { useStore, type CanvasSettings } from "../store";
 import { api } from "../data/api";
 import { ensureNotifyPermission } from "../utils/notifications";
@@ -9,6 +10,9 @@ import { useT } from "../i18n";
 export function AutopilotPopover({ canvasId }: { canvasId: string }) {
   const t = useT();
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const initialFocusRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const canvases = useStore((s) => s.canvases);
   const canvas = canvases.find((c) => c.id === canvasId);
   const settings: CanvasSettings = (canvas?.settings as CanvasSettings) ?? {};
@@ -28,10 +32,43 @@ export function AutopilotPopover({ canvasId }: { canvasId: string }) {
     }
   };
 
+  const close = () => {
+    setOpen(false);
+    requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => initialFocusRef.current?.focus());
+  }, [open]);
+
+  const trapFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      return;
+    }
+    if (event.key !== "Tab") return;
+
+    const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>("button:not([disabled]), select:not([disabled])") ?? []);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!first || !last) return;
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
-    <div className="relative">
+    <div role="none" className="relative">
       <button
-        onClick={() => setOpen(!open)}
+        ref={triggerRef}
+        role="menuitem"
+        onClick={() => (open ? close() : setOpen(true))}
         className={`w-7 h-7 rounded-md text-sm transition-colors ${
           open ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
         }`}
@@ -39,18 +76,19 @@ export function AutopilotPopover({ canvasId }: { canvasId: string }) {
       >
         ⚙
       </button>
-      {open && (
+      {open && createPortal(
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-9 z-50 w-72 rounded-xl bg-[#1a1d24]/98 border border-white/15 shadow-2xl p-3 flex flex-col gap-2.5">
-            <span className="text-[10px] uppercase tracking-wider text-gray-600">{t("a.autopilot.header")}</span>
+          <div className="fixed inset-0 z-40" onClick={close} />
+          <div ref={dialogRef} role="dialog" aria-modal="true" aria-label={t("a.autopilot.title")} onKeyDown={trapFocus} className="absolute right-4 top-16 z-50 w-72 rounded-xl bg-[#1a1d24]/98 border border-white/15 shadow-2xl p-3 flex flex-col gap-2.5">
+            <span className="text-[10px] uppercase tracking-wider text-gray-400">{t("a.autopilot.header")}</span>
 
             <Switch
               label={t("a.autopilot.autoComplete")}
               checked={settings.autoCompleteChecklist === true}
               onChange={(v) => void save({ autoCompleteChecklist: v })}
+              buttonRef={initialFocusRef}
             />
-            <div className="flex items-center justify-between gap-2">
+            <label className="flex items-center justify-between gap-2">
               <span className="text-xs text-gray-300">{t("a.autopilot.autoArchive")}</span>
               <select
                 value={settings.autoArchiveDays ?? 0}
@@ -63,10 +101,10 @@ export function AutopilotPopover({ canvasId }: { canvasId: string }) {
                 <option value={14}>{t("a.autopilot.days", { count: 14 })}</option>
                 <option value={30}>{t("a.autopilot.days", { count: 30 })}</option>
               </select>
-            </div>
+            </label>
 
             <div className="h-px bg-white/10" />
-            <span className="text-[10px] uppercase tracking-wider text-gray-600">{t("a.autopilot.notifications")}</span>
+            <span className="text-[10px] uppercase tracking-wider text-gray-400">{t("a.autopilot.notifications")}</span>
 
             <Switch
               label={t("a.autopilot.notifyUnblocked")}
@@ -78,7 +116,7 @@ export function AutopilotPopover({ canvasId }: { canvasId: string }) {
               checked={settings.notifyWake === true}
               onChange={(v) => void save({ notifyWake: v })}
             />
-            <div className="flex items-center justify-between gap-2">
+            <label className="flex items-center justify-between gap-2">
               <span className="text-xs text-gray-300">{t("a.autopilot.digest")}</span>
               <select
                 value={settings.digestHour ?? -1}
@@ -93,22 +131,25 @@ export function AutopilotPopover({ canvasId }: { canvasId: string }) {
                   <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
                 ))}
               </select>
-            </div>
-            <span className="text-[9px] text-gray-600">
+            </label>
+            <span className="text-[9px] text-gray-400">
               {t("a.autopilot.footnote")}
             </span>
           </div>
-        </>
-      )}
+        </>, document.body)}
     </div>
   );
 }
 
-function Switch({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+function Switch({ label, checked, onChange, buttonRef }: { label: string; checked: boolean; onChange: (v: boolean) => void; buttonRef?: React.RefObject<HTMLButtonElement | null> }) {
   return (
     <label className="flex items-center justify-between gap-2 cursor-pointer">
       <span className="text-xs text-gray-300">{label}</span>
       <button
+        ref={buttonRef}
+        role="switch"
+        aria-label={label}
+        aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`w-8 h-4.5 rounded-full transition-colors relative shrink-0 ${
           checked ? "bg-purple-600" : "bg-white/10"
