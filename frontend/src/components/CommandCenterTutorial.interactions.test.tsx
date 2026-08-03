@@ -44,7 +44,7 @@ describe("CommandCenterTutorial interactions", () => {
 
     await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
-    expect(saved).toMatchObject({ version: 2, status: "in-progress", step: 2, sample: { captured: true } });
+    expect(saved).toMatchObject({ version: 3, status: "in-progress", step: 2, sample: { captured: true } });
   });
 
   it("resets the deterministic sample state and records a skipped tutorial", async () => {
@@ -55,9 +55,21 @@ describe("CommandCenterTutorial interactions", () => {
 
     expect(container.textContent).toContain("Welcome to your safe sample");
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      status: "in-progress", step: 0, sample: { captured: false, triaged: false, today: false, completed: false },
+      status: "in-progress", step: 0, sample: { captured: false, triaged: false, assigned: false, today: false, completed: false },
     });
     await act(async () => button(container, "Skip tutorial")?.click());
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({ status: "skipped" });
+  });
+
+  it("keeps the exact sample checkpoint while switching language in the dialog", async () => {
+    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+    await act(async () => button(container, "Next")?.click());
+    await act(async () => button(container, "Capture sample task")?.click());
+    await act(async () => button(container, "Deutsch")?.click());
+
+    expect(container.textContent).toContain("Eine Idee erfassen");
+    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
+      version: 3, step: 1, sample: { captured: true, assigned: false },
+    });
   });
 });

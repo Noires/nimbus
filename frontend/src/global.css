@@ -129,11 +129,17 @@ html, body, #root {
 .command-center-tutorial-backdrop { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 1rem; background: rgb(0 0 0 / 65%); }
 .command-center-tutorial { width: min(42rem, 100%); max-height: min(44rem, 100%); overflow: auto; padding: 1.25rem; border: 1px solid rgb(103 232 249 / 45%); border-radius: .9rem; background: #121722; color: #f8fafc; box-shadow: 0 24px 60px rgb(0 0 0 / 55%); }
 .command-center-tutorial__header, .command-center-tutorial__actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.command-center-tutorial__utilities { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem; }
 .command-center-tutorial__header h2 { margin: 0; font-size: 1.25rem; }
 .command-center-tutorial__eyebrow { margin: 0 0 .25rem; color: #67e8f9; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .command-center-tutorial__sample { position: relative; min-height: 8rem; margin: 1rem 0; padding: 3rem 1rem 1rem; border: 1px dashed rgb(103 232 249 / 60%); border-radius: .6rem; background: radial-gradient(circle at 30% 25%, rgb(34 211 238 / 18%), transparent 42%), #0b1019; }
 .command-center-tutorial__sample-badge { position: absolute; top: .75rem; left: .75rem; color: #67e8f9; font-size: .75rem; font-weight: 700; }
-.command-center-tutorial__sample-card { max-width: 18rem; padding: .8rem; border-radius: .45rem; background: #253147; box-shadow: 5px 5px 0 rgb(34 211 238 / 20%); }
+.command-center-tutorial__sample-workflow { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem; }
+.command-center-tutorial__sample-card { display: grid; gap: .3rem; min-height: 4.5rem; padding: .7rem; border: 1px solid rgb(148 163 184 / 35%); border-radius: .45rem; background: #253147; color: #e2e8f0; }
+.command-center-tutorial__sample-card strong { font-size: .8rem; }
+.command-center-tutorial__sample-card span { color: #cbd5e1; font-size: .72rem; }
+.command-center-tutorial__sample-card.is-complete { border-color: rgb(103 232 249 / 75%); background: rgb(8 80 101 / 60%); box-shadow: inset 3px 0 #67e8f9; }
+.command-center-tutorial__sample-caption { margin: .8rem 0 0; color: #f8fafc; font-size: .875rem; font-weight: 650; }
 .command-center-tutorial__privacy { color: #a5f3fc; font-size: .875rem; }
 .command-center-tutorial__actions { flex-wrap: wrap; margin-top: 1rem; font-size: .875rem; }
 .command-center-tutorial button:focus-visible, .command-center-tutorial-offer button:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }

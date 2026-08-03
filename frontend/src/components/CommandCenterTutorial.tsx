@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { useT } from "../i18n";
+import { useLocale, useT } from "../i18n";
 
-export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v2";
-const TUTORIAL_VERSION = 2;
+export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v3";
+const TUTORIAL_VERSION = 3;
 const STEPS = ["welcome", "capture", "triage", "today", "workstream", "complete", "review"] as const;
 type TutorialStep = typeof STEPS[number];
 type TutorialStatus = "in-progress" | "completed" | "skipped";
-type SampleState = { captured: boolean; triaged: boolean; today: boolean; completed: boolean };
+type SampleState = { captured: boolean; triaged: boolean; assigned: boolean; today: boolean; completed: boolean };
 type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: SampleState };
-const INITIAL_SAMPLE: SampleState = { captured: false, triaged: false, today: false, completed: false };
+const INITIAL_SAMPLE: SampleState = { captured: false, triaged: false, assigned: false, today: false, completed: false };
 
 function normalizedStep(step: unknown): number {
   return typeof step === "number" ? Math.max(0, Math.min(STEPS.length - 1, Math.floor(step))) : 0;
@@ -22,7 +22,7 @@ export function readCommandCenterTutorial(): TutorialProgress | null {
     const value = JSON.parse(raw) as Partial<TutorialProgress>;
     if (value.version !== TUTORIAL_VERSION || !["in-progress", "completed", "skipped"].includes(value.status ?? "")) return null;
     const sample = value.sample;
-    if (!sample || typeof sample.captured !== "boolean" || typeof sample.triaged !== "boolean" || typeof sample.today !== "boolean" || typeof sample.completed !== "boolean") return null;
+    if (!sample || typeof sample.captured !== "boolean" || typeof sample.triaged !== "boolean" || typeof sample.assigned !== "boolean" || typeof sample.today !== "boolean" || typeof sample.completed !== "boolean") return null;
     return { version: TUTORIAL_VERSION, status: value.status as TutorialStatus, step: normalizedStep(value.step), sample };
   } catch { return null; }
 }
@@ -37,7 +37,7 @@ function newProgress(): TutorialProgress {
 
 function actionComplete(step: TutorialStep, sample: SampleState): boolean {
   if (step === "capture") return sample.captured;
-  if (step === "triage") return sample.triaged;
+  if (step === "triage") return sample.triaged && sample.assigned;
   if (step === "today") return sample.today;
   if (step === "complete") return sample.completed;
   return true;
@@ -50,6 +50,8 @@ function actionComplete(step: TutorialStep, sample: SampleState): boolean {
  */
 export function CommandCenterTutorial({ open, onClose, replay = false }: { open: boolean; onClose: () => void; replay?: boolean }) {
   const t = useT();
+  const locale = useLocale((state) => state.locale);
+  const setLocale = useLocale((state) => state.setLocale);
   const [progress, setProgress] = useState<TutorialProgress>(newProgress);
   const closeButton = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -77,7 +79,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false }: { open:
   const go = (step: number) => save({ ...progress, status: "in-progress", step: normalizedStep(step) });
   const performSampleAction = () => {
     const sample = current === "capture" ? { ...progress.sample, captured: true }
-      : current === "triage" ? { ...progress.sample, captured: true, triaged: true }
+      : current === "triage" ? { ...progress.sample, captured: true, triaged: true, assigned: true }
         : current === "today" ? { ...progress.sample, captured: true, triaged: true, today: true }
           : current === "complete" ? { ...progress.sample, captured: true, triaged: true, today: true, completed: true }
             : progress.sample;
@@ -99,11 +101,21 @@ export function CommandCenterTutorial({ open, onClose, replay = false }: { open:
     <section ref={dialogRef} className="command-center-tutorial" role="dialog" aria-modal="true" aria-labelledby="command-center-tutorial-title" aria-describedby="command-center-tutorial-description" onKeyDown={handleKeyDown}>
       <header className="command-center-tutorial__header">
         <div><p className="command-center-tutorial__eyebrow">{t("tutorial.sampleLabel")}</p><h2 id="command-center-tutorial-title">{t(`tutorial.${current}.title`)}</h2></div>
-        <button ref={closeButton} type="button" onClick={() => close("in-progress")} aria-label={t("tutorial.exitAria")}>{t("tutorial.exit")}</button>
+        <div className="command-center-tutorial__utilities">
+          <button type="button" onClick={() => setLocale(locale === "en" ? "de" : "en")} aria-label={t("tutorial.languageAria")}>{locale === "en" ? "Deutsch" : "English"}</button>
+          <button ref={closeButton} type="button" onClick={() => close("in-progress")} aria-label={t("tutorial.exitAria")}>{t("tutorial.exit")}</button>
+        </div>
       </header>
       <div className="command-center-tutorial__sample" aria-label={t("tutorial.sampleCanvasAria")}>
         <span className="command-center-tutorial__sample-badge">{t("tutorial.sampleLabel")}</span>
-        <div className="command-center-tutorial__sample-card">{t(`tutorial.${current}.sample`)}</div>
+        <div className="command-center-tutorial__sample-workflow" aria-live="polite">
+          <div className={`command-center-tutorial__sample-card${progress.sample.captured ? " is-complete" : ""}`}><strong>{t("tutorial.sampleTask")}</strong><span>{progress.sample.captured ? t("tutorial.status.inbox") : t("tutorial.status.draft")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.triaged ? " is-complete" : ""}`}><strong>{t("tutorial.sampleInbox")}</strong><span>{progress.sample.triaged ? t("tutorial.status.triaged") : t("tutorial.status.waiting")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.assigned ? " is-complete" : ""}`}><strong>{t("tutorial.sampleWorkstream")}</strong><span>{progress.sample.assigned ? t("tutorial.status.assigned") : t("tutorial.status.waiting")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.today ? " is-complete" : ""}`}><strong>{t("tutorial.sampleToday")}</strong><span>{progress.sample.today ? t("tutorial.status.focus") : t("tutorial.status.waiting")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.completed ? " is-complete" : ""}`}><strong>{t("tutorial.sampleReview")}</strong><span>{progress.sample.completed ? t("tutorial.status.complete") : t("tutorial.status.waiting")}</span></div>
+        </div>
+        <p className="command-center-tutorial__sample-caption">{t(`tutorial.${current}.sample`)}</p>
         <p className="command-center-tutorial__privacy" aria-live="polite">{t("tutorial.isolation")}</p>
         {needsAction && <button type="button" className="command-center-tutorial__primary" onClick={performSampleAction}>{complete ? t("tutorial.actionDone") : t(`tutorial.${current}.action`)}</button>}
       </div>
