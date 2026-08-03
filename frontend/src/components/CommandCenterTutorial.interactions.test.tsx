@@ -47,7 +47,7 @@ describe("CommandCenterTutorial interactions", () => {
     await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     window.removeEventListener("keydown", liveCanvasEscape);
     const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
-    expect(saved).toMatchObject({ version: 3, status: "in-progress", step: 2, sample: { captured: true } });
+    expect(saved).toMatchObject({ version: 4, status: "in-progress", step: 2, sample: { captured: true } });
     expect(liveCanvasEscape).not.toHaveBeenCalled();
   });
 
@@ -75,7 +75,31 @@ describe("CommandCenterTutorial interactions", () => {
 
     expect(container.textContent).toContain("Eine Idee erfassen");
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      version: 3, step: 1, sample: { captured: true, assigned: false },
+      version: 4, step: 1, sample: { captured: true, assigned: false },
     });
+  });
+
+  it("requires explicit sample-only Workstream and Review outcomes before advancing", async () => {
+    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+    await act(async () => button(container, "Next")?.click());
+    await act(async () => button(container, "Capture sample task")?.click());
+    await act(async () => button(container, "Next")?.click());
+    await act(async () => button(container, "Triage sample task")?.click());
+    await act(async () => button(container, "Next")?.click());
+    await act(async () => button(container, "Place sample task in Today")?.click());
+    await act(async () => button(container, "Next")?.click());
+
+    expect(container.textContent).toContain("See the Workstream");
+    expect(button(container, "Next")?.disabled).toBe(true);
+    await act(async () => button(container, "Inspect sample Workstream")?.click());
+    expect(button(container, "Next")?.disabled).toBe(false);
+    await act(async () => button(container, "Next")?.click());
+    await act(async () => button(container, "Complete sample task")?.click());
+    await act(async () => button(container, "Next")?.click());
+    expect(button(container, "Finish tutorial")?.disabled).toBe(true);
+    await act(async () => button(container, "Inspect sample Review")?.click());
+    expect(button(container, "Finish tutorial")?.disabled).toBe(false);
+    const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
+    expect(saved.sample).toMatchObject({ workstreamInspected: true, reviewInspected: true });
   });
 });

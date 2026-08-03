@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useLocale, useT } from "../i18n";
 
-export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v3";
-const TUTORIAL_VERSION = 3;
+export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v4";
+const TUTORIAL_VERSION = 4;
 const STEPS = ["welcome", "capture", "triage", "today", "workstream", "complete", "review"] as const;
 type TutorialStep = typeof STEPS[number];
 export type TutorialStatus = "in-progress" | "completed" | "skipped";
-type SampleState = { captured: boolean; triaged: boolean; assigned: boolean; today: boolean; completed: boolean };
+type SampleState = { captured: boolean; triaged: boolean; assigned: boolean; today: boolean; completed: boolean; workstreamInspected: boolean; reviewInspected: boolean };
 type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: SampleState };
-const INITIAL_SAMPLE: SampleState = { captured: false, triaged: false, assigned: false, today: false, completed: false };
+const INITIAL_SAMPLE: SampleState = { captured: false, triaged: false, assigned: false, today: false, completed: false, workstreamInspected: false, reviewInspected: false };
 
 function normalizedStep(step: unknown): number {
   return typeof step === "number" ? Math.max(0, Math.min(STEPS.length - 1, Math.floor(step))) : 0;
@@ -22,7 +22,7 @@ export function readCommandCenterTutorial(): TutorialProgress | null {
     const value = JSON.parse(raw) as Partial<TutorialProgress>;
     if (value.version !== TUTORIAL_VERSION || !["in-progress", "completed", "skipped"].includes(value.status ?? "")) return null;
     const sample = value.sample;
-    if (!sample || typeof sample.captured !== "boolean" || typeof sample.triaged !== "boolean" || typeof sample.assigned !== "boolean" || typeof sample.today !== "boolean" || typeof sample.completed !== "boolean") return null;
+    if (!sample || typeof sample.captured !== "boolean" || typeof sample.triaged !== "boolean" || typeof sample.assigned !== "boolean" || typeof sample.today !== "boolean" || typeof sample.completed !== "boolean" || typeof sample.workstreamInspected !== "boolean" || typeof sample.reviewInspected !== "boolean") return null;
     return { version: TUTORIAL_VERSION, status: value.status as TutorialStatus, step: normalizedStep(value.step), sample };
   } catch { return null; }
 }
@@ -40,6 +40,8 @@ function actionComplete(step: TutorialStep, sample: SampleState): boolean {
   if (step === "triage") return sample.triaged && sample.assigned;
   if (step === "today") return sample.today;
   if (step === "complete") return sample.completed;
+  if (step === "workstream") return sample.workstreamInspected;
+  if (step === "review") return sample.reviewInspected;
   return true;
 }
 
@@ -94,6 +96,8 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
       : current === "triage" ? { ...progress.sample, captured: true, triaged: true, assigned: true }
         : current === "today" ? { ...progress.sample, captured: true, triaged: true, today: true }
           : current === "complete" ? { ...progress.sample, captured: true, triaged: true, today: true, completed: true }
+            : current === "workstream" ? { ...progress.sample, workstreamInspected: true }
+              : current === "review" ? { ...progress.sample, reviewInspected: true }
             : progress.sample;
     save({ ...progress, status: "in-progress", sample });
   };
@@ -113,7 +117,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
-  const needsAction = ["capture", "triage", "today", "complete"].includes(current);
+  const needsAction = ["capture", "triage", "today", "workstream", "complete", "review"].includes(current);
   const complete = actionComplete(current, progress.sample);
 
   return <div className="command-center-tutorial-backdrop" role="presentation">
