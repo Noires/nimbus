@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { t as translate, useLocale, useT } from "../i18n";
 import { applyTutorialSampleAction, createTutorialSample, type TutorialSampleAction, type TutorialSampleState } from "./tutorialSample";
 
-export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v5";
-const TUTORIAL_VERSION = 5;
-const STEPS = ["welcome", "capture", "triage", "today", "workstream", "complete", "review"] as const;
+export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v6";
+const TUTORIAL_VERSION = 6;
+const STEPS = ["welcome", "capture", "triage", "workstream", "today", "complete", "review"] as const;
 type TutorialStep = typeof STEPS[number];
 export type TutorialStatus = "in-progress" | "completed" | "skipped";
 type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: TutorialSampleState };
@@ -37,10 +37,10 @@ function newProgress(): TutorialProgress {
 function actionComplete(step: TutorialStep, sample: TutorialSampleState): boolean {
   if (step === "capture") return sample.captured;
   if (step === "triage") return sample.triaged && sample.assigned;
-  if (step === "today") return sample.today;
-  if (step === "complete") return sample.completed;
-  if (step === "workstream") return sample.workstreamInspected;
-  if (step === "review") return sample.reviewInspected;
+  if (step === "workstream") return sample.triaged && sample.assigned && sample.workstreamInspected;
+  if (step === "today") return sample.workstreamInspected && sample.today;
+  if (step === "complete") return sample.today && sample.completed;
+  if (step === "review") return sample.completed && sample.reviewInspected;
   return true;
 }
 
@@ -136,7 +136,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
     if (event.shiftKey && (document.activeElement === first || document.activeElement === titleRef.current)) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
-  const needsAction = ["capture", "triage", "today", "workstream", "complete", "review"].includes(current);
+  const needsAction = ["capture", "triage", "workstream", "today", "complete", "review"].includes(current);
   const complete = actionComplete(current, progress.sample);
 
   return <div className="command-center-tutorial-backdrop" role="presentation">

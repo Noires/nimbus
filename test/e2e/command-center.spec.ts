@@ -133,9 +133,11 @@ test("tutorial: safe sample completes, resumes, replays, and stays isolated", as
   await expect(dialog).toContainText("Triage the sample Inbox");
   await dialog.getByRole("button", { name: "Triage sample task" }).click();
   await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("button", { name: "Place sample task in Today" }).click();
-  await dialog.getByRole("button", { name: "Next" }).click();
+  await expect(dialog).toContainText("See the Workstream");
   await dialog.getByRole("button", { name: "Inspect sample Workstream" }).click();
+  await dialog.getByRole("button", { name: "Next" }).click();
+  await expect(dialog).toContainText("Choose Today deliberately");
+  await dialog.getByRole("button", { name: "Place sample task in Today" }).click();
   await dialog.getByRole("button", { name: "Next" }).click();
   await dialog.getByRole("button", { name: "Complete sample task" }).click();
   await dialog.getByRole("button", { name: "Next" }).click();

@@ -17,7 +17,7 @@ export type TutorialSampleState = {
   reviewInspected: boolean;
 };
 
-export type TutorialSampleAction = "capture" | "triage" | "today" | "workstream" | "complete" | "review";
+export type TutorialSampleAction = "capture" | "triage" | "workstream" | "today" | "complete" | "review";
 
 export const TUTORIAL_SAMPLE_CANVAS = {
   id: "tutorial-sample-canvas",
@@ -45,10 +45,10 @@ export function createTutorialSample(): TutorialSampleState {
 export function applyTutorialSampleAction(sample: TutorialSampleState, action: TutorialSampleAction): TutorialSampleState {
   switch (action) {
     case "capture": return { ...sample, captured: true };
-    case "triage": return { ...sample, captured: true, triaged: true, assigned: true };
-    case "today": return { ...sample, captured: true, triaged: true, today: true };
-    case "complete": return { ...sample, captured: true, triaged: true, today: true, completed: true };
-    case "workstream": return { ...sample, workstreamInspected: true };
-    case "review": return { ...sample, reviewInspected: true };
+    case "triage": return sample.captured ? { ...sample, triaged: true, assigned: true } : sample;
+    case "workstream": return sample.triaged && sample.assigned ? { ...sample, workstreamInspected: true } : sample;
+    case "today": return sample.workstreamInspected ? { ...sample, today: true } : sample;
+    case "complete": return sample.today ? { ...sample, completed: true } : sample;
+    case "review": return sample.completed ? { ...sample, reviewInspected: true } : sample;
   }
 }

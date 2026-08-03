@@ -47,7 +47,7 @@ describe("CommandCenterTutorial interactions", () => {
     await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     window.removeEventListener("keydown", liveCanvasEscape);
     const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
-    expect(saved).toMatchObject({ version: 5, status: "in-progress", step: 2, sample: { captured: true } });
+    expect(saved).toMatchObject({ version: 6, status: "in-progress", step: 2, sample: { captured: true } });
     expect(liveCanvasEscape).not.toHaveBeenCalled();
   });
 
@@ -75,7 +75,7 @@ describe("CommandCenterTutorial interactions", () => {
 
     expect(container.textContent).toContain("Eine Idee erfassen");
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      version: 5, step: 1, sample: { captured: true, assigned: false },
+      version: 6, step: 1, sample: { captured: true, assigned: false },
     });
     expect(useLocale.getState().locale).toBe("en");
     expect(localStorage.getItem("locale")).toBeNull();
@@ -90,23 +90,27 @@ describe("CommandCenterTutorial interactions", () => {
 
     expect(container.textContent).toContain("Eine Idee erfassen");
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      version: 5, status: "in-progress", step: 1, sample: { captured: true, triaged: false, assigned: false },
+      version: 6, status: "in-progress", step: 1, sample: { captured: true, triaged: false, assigned: false },
     });
   });
 
-  it("requires explicit sample-only Workstream and Review outcomes before advancing", async () => {
+  it("requires explicit sample-only Workstream, Today, and Review outcomes in the approved order", async () => {
     await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
     await act(async () => button(container, "Next")?.click());
     await act(async () => button(container, "Capture sample task")?.click());
     await act(async () => button(container, "Next")?.click());
     await act(async () => button(container, "Triage sample task")?.click());
     await act(async () => button(container, "Next")?.click());
-    await act(async () => button(container, "Place sample task in Today")?.click());
-    await act(async () => button(container, "Next")?.click());
 
     expect(container.textContent).toContain("See the Workstream");
+    expect(button(container, "Place sample task in Today")).toBeUndefined();
     expect(button(container, "Next")?.disabled).toBe(true);
     await act(async () => button(container, "Inspect sample Workstream")?.click());
+    expect(button(container, "Next")?.disabled).toBe(false);
+    await act(async () => button(container, "Next")?.click());
+    expect(container.textContent).toContain("Choose Today deliberately");
+    expect(button(container, "Next")?.disabled).toBe(true);
+    await act(async () => button(container, "Place sample task in Today")?.click());
     expect(button(container, "Next")?.disabled).toBe(false);
     await act(async () => button(container, "Next")?.click());
     await act(async () => button(container, "Complete sample task")?.click());
