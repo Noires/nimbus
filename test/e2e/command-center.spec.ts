@@ -198,6 +198,63 @@ test("axe: mobile Command Center destinations are universally available and anno
   await assertAxe(page);
 });
 
+test("mobile canonical routes, history, Capture identity, and Canvas modal stay synchronized", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  for (const destination of ["inbox", "today", "review", "operations", "ledger", "canvas"] as const) {
+    await page.goto(`/canvas/${canvas.id}${destination === "canvas" ? "" : `/${destination}`}`);
+    await expect(page.getByRole("main", { name: destination === "canvas" ? "Canvas" : destination[0].toUpperCase() + destination.slice(1) })).toBeVisible();
+  }
+
+  await page.goto(`/canvas/${canvas.id}/inbox`);
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/canvas/${canvas.id}/today$`));
+  await page.goBack();
+  await expect(page.getByRole("main", { name: "Inbox" })).toBeVisible();
+
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "Ledger", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/canvas/${canvas.id}/ledger$`));
+  await expect(page.getByRole("main", { name: "Ledger" })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("main", { name: "Inbox" })).toBeVisible();
+
+  await page.goto(`/canvas/${canvas.id}/ledger`);
+  await page.getByRole("button", { name: "Capture" }).click();
+  await expect(page.getByRole("heading", { name: "Capture" })).toBeVisible();
+  await expect(page.getByRole("main", { name: "Capture" })).toBeVisible();
+  await expect(page.getByLabel("Task to capture")).toBeFocused();
+  await page.getByRole("button", { name: "Back Ledger" }).click();
+  await expect(page.getByRole("main", { name: "Ledger" })).toBeVisible();
+
+  await page.goto(`/canvas/${canvas.id}`);
+  await page.getByRole("button", { name: "Canvas", exact: true }).click();
+  await page.getByRole("region", { name: "Canvas" }).dblclick({ position: { x: 280, y: 280 } });
+  await expect(page.getByRole("heading", { name: "New Task" })).toBeVisible();
+});
+
+test("compact boundaries retain a closed Utilities rail until an inspector is explicitly selected", async ({ page }) => {
+  for (const width of [768, 769, 1100, 1101]) {
+    const { canvas, blocker } = await seed();
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto(`/canvas/${canvas.id}`);
+    if (width === 768) {
+      await expect(page.getByRole("navigation", { name: "Command Center" })).toBeVisible();
+      continue;
+    }
+
+    await expect(page.getByRole("dialog", { name: "Utilities" })).toHaveCount(0);
+    const card = page.locator(`[aria-label="${blocker.title}"]`);
+    await card.click({ position: { x: 32, y: 24 } });
+    if (width <= 1100) {
+      await expect(page.getByRole("dialog", { name: "Inspector" })).toBeVisible();
+    } else {
+      await expect(page.getByRole("complementary", { name: "Inspector" })).toBeVisible();
+    }
+  }
+});
+
 test("tutorial: safe sample completes, resumes, replays, and stays isolated", async ({ page }) => {
   const { canvas } = await seed();
   const productiveBefore = await productiveSnapshot(canvas.id);
@@ -281,16 +338,21 @@ test("toolbar menus use menu semantics, keyboard navigation, and pass axe while 
   await page.keyboard.press("Space");
   const lensMenu = page.getByRole("menu", { name: "Lens" });
   const lensItems = lensMenu.getByRole("menuitemradio");
+  const activeLensIndex = () => lensItems.evaluateAll((items) => items.findIndex((item) => item === document.activeElement));
   await expect(lensItems).toHaveCount(3);
   await expect(lensItems.nth(0)).toBeFocused();
+  await expect.poll(activeLensIndex).toBe(0);
   await expect(lensItems.filter({ hasText: "Time" })).toHaveAttribute("aria-checked", "false");
   await assertAxe(page, '[role="menu"][aria-label="Lens"]');
   await page.keyboard.press("End");
   await expect(lensItems.nth(2)).toBeFocused();
+  await expect.poll(activeLensIndex).toBe(2);
   await page.keyboard.press("Home");
   await expect(lensItems.nth(0)).toBeFocused();
+  await expect.poll(activeLensIndex).toBe(0);
   await page.keyboard.press("ArrowDown");
   await expect(lensItems.nth(1)).toBeFocused();
+  await expect.poll(activeLensIndex).toBe(1);
   await page.keyboard.press("Escape");
   await expect(lens).toBeFocused();
 

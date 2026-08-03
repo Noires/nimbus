@@ -31,21 +31,25 @@ test('workstream creation accepts an omitted description as null', async () => {
   assert.match(routes, /data: \{ canvasId, name: validName, description: validDescription,/);
 });
 
-test('command-center keeps compact desktop context out of the primary grid and preserves mobile companion routing', async () => {
-  const [shell, css, mobileRoute, mobileRules] = await Promise.all([
+test('compact desktop keeps utilities out of the workspace grid until a fixed modal rail is requested', async () => {
+  const [shell, css, router, mobileRules] = await Promise.all([
     read('frontend/src/components/SpatialCommandCenterShell.tsx'),
     read('frontend/src/global.css'),
     read('frontend/src/components/CanvasRouter.tsx'),
     read('frontend/src/components/mobileCommandCenter.ts'),
   ]);
 
-  assert.match(shell, /command-center-shell--with-rail/);
-  assert.match(css, /@media \(min-width: 769px\) and \(max-width: 1100px\) \{[\s\S]*?grid-template-columns: minmax\(12rem, 14rem\) minmax\(0, 1fr\);[\s\S]*?\.command-center-shell__rail \{[\s\S]*?grid-column: 2;[\s\S]*?justify-self: end;/);
+  assert.match(css, /@media \(min-width: 769px\) and \(max-width: 1100px\) \{[\s\S]*?\.command-center-shell--with-rail \{ grid-template-columns: minmax\(12rem, 14rem\) minmax\(0, 1fr\); \}/);
+  assert.match(router, /const rail = canvasId && \(!compactDesktop \|\| compactRailOpen \|\| selectionContext\.kind !== "directory"\) \?/);
+  assert.match(router, /railToggle=\{compactDesktop && selectionContext\.kind === "directory"\}/);
+  assert.match(shell, /rail && \(railModal \? <>[\s\S]*?className="command-center-shell__rail-backdrop"[\s\S]*?role="dialog" aria-modal="true"/);
+  assert.match(css, /\.command-center-shell__rail-backdrop \{ display: block; position: fixed; inset: 0;/);
+  assert.match(css, /\.command-center-shell__rail\[role="dialog"\] \{ position: fixed; top: 0; right: 0; bottom: 0;/);
   assert.match(css, /\.command-center-shell__commands \{[\s\S]*?min-height: 10rem;[\s\S]*?padding: 1rem 0;/);
   assert.doesNotMatch(css, /@media \(max-width: 768px\) \{\s*\.command-center-shell \{/);
   assert.match(mobileRules, /MOBILE_COMMAND_CENTER_QUERY = "\(max-width: 768px\)"/);
   assert.match(mobileRules, /return viewport === "narrow";/);
-  assert.match(mobileRoute, /if \(mobileCommandCenter\) \{[\s\S]*?<MobileCommandCenter/);
+  assert.match(router, /if \(mobileCommandCenter\) \{[\s\S]*?<MobileCommandCenter/);
 });
 
 test('task deletion broadcasts each affected workstream with memberships already cleaned', async () => {

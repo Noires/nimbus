@@ -3,7 +3,7 @@ export const MOBILE_COMMAND_CENTER_QUERY = "(max-width: 768px)";
 export type MobileCommandViewport = "narrow" | "wide";
 // Mobile is an operational companion, not a compressed desktop rail. Capture
 // stays in the app bar; the four stable tabs are Today, Inbox, Canvas and More.
-export type MobileCommandDestination = "canvas" | "inbox" | "today" | "more" | "review" | "operations" | "ledger" | "inspector";
+export type MobileCommandDestination = "canvas" | "inbox" | "today" | "more" | "review" | "operations" | "ledger" | "inspector" | "capture";
 
 const MOBILE_DESTINATIONS: ReadonlySet<MobileCommandDestination> = new Set<MobileCommandDestination>([
   "canvas",
@@ -14,6 +14,7 @@ const MOBILE_DESTINATIONS: ReadonlySet<MobileCommandDestination> = new Set<Mobil
   "operations",
   "ledger",
   "inspector",
+  "capture",
 ]);
 
 export function isMobileCommandCenterEnabled(viewport: MobileCommandViewport): boolean {

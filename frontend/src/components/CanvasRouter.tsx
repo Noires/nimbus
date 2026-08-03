@@ -95,6 +95,7 @@ export function CanvasRouter() {
   const [mobileCommandCenterOpen, setMobileCommandCenterOpen] = useState(true);
   const [mobileDestination, setMobileDestination] = useState<MobileCommandDestination>("today");
   const [mobileCaptureOpen, setMobileCaptureOpen] = useState(false);
+  const [mobileCaptureReturnDestination, setMobileCaptureReturnDestination] = useState<MobileCommandDestination>("today");
   const [mobileInspectorTask, setMobileInspectorTask] = useState<Task | null>(null);
   const [mobileInspectorReturnDestination, setMobileInspectorReturnDestination] = useState<MobileInspectorReturnDestination>("inbox");
   const mobileCommandCenter = mobileCommandCenterEligible && mobileCommandCenterOpen;
@@ -171,6 +172,8 @@ export function CanvasRouter() {
 
   const closeMobileCommandCenter = () => {
     mobileRestoreCommandCenterFocusRef.current = true;
+    setMobileCaptureOpen(false);
+    setMobileDestination(routeDestination);
     setMobileCommandCenterOpen(false);
   };
 
@@ -187,6 +190,12 @@ export function CanvasRouter() {
     setOperationsOpen(routeDestination === "operations");
     setLedgerOpen(routeDestination === "ledger");
   }, [routeDestination]);
+  // Canonical canvas routes are also the source of truth for mobile destinations.
+  // Transient Capture, Inspector, and More stay local because they have no route.
+  useEffect(() => {
+    if (!mobileCommandCenterEligible) return;
+    setMobileDestination((current) => current === "capture" || current === "inspector" || current === "more" ? current : routeDestination);
+  }, [mobileCommandCenterEligible, routeDestination]);
   const canvasIdRef = useRef(canvasId);
   canvasIdRef.current = canvasId;
 
@@ -609,6 +618,7 @@ export function CanvasRouter() {
   const inspectTask = (task: Task) => {
     setSelectedWorkstreamId(null);
     useStore.getState().setSelected([task.id]);
+    if (compactDesktop) setCompactRailOpen(true);
   };
   const revealTask = (task: Task) => {
     const store = useStore.getState();
@@ -617,7 +627,7 @@ export function CanvasRouter() {
     store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
     navigateDestination("canvas");
   };
-  const rail = canvasId && (!compactDesktop || compactRailOpen) ? <InspectorRail
+  const rail = canvasId && (!compactDesktop || compactRailOpen || selectionContext.kind !== "directory") ? <InspectorRail
     context={selectionContext}
     tasks={tasks}
     workstreams={workstreams}
@@ -706,9 +716,14 @@ export function CanvasRouter() {
   const mobileContent = (() => {
     if (!canvasId) return <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />;
 
-    if (mobileCaptureOpen) {
+    if (mobileDestination === "capture") {
       return (
         <MobileCapture
+          backLabel={`${tr("mobile.command.back")} ${tr(`mobile.command.${mobileCaptureReturnDestination}`)}`}
+          onBack={() => {
+            setMobileCaptureOpen(false);
+            setMobileDestination(mobileCaptureReturnDestination);
+          }}
           onCapture={async (input) => {
             const { fields } = quickParseTokens(input);
             if (!fields.title) return;
@@ -793,8 +808,8 @@ export function CanvasRouter() {
             useStore.getState().startFocus([task.id]);
             closeMobileCommandCenter();
           }}
-          onOpenToday={() => setMobileDestination("today")}
-          onOpenInbox={() => setMobileDestination("inbox")}
+          onOpenToday={() => { setMobileDestination("today"); navigateDestination("today"); }}
+          onOpenInbox={() => { setMobileDestination("inbox"); navigateDestination("inbox"); }}
         />
       );
     }
@@ -828,9 +843,9 @@ export function CanvasRouter() {
           <h2>{tr("mobile.command.more")}</h2>
           <p>{tr("mobile.utilities.description")}</p>
           <div className="mobile-utilities__destinations">
-            <button type="button" onClick={() => setMobileDestination("review")}>{tr("review.title")}</button>
-            <button type="button" onClick={() => setMobileDestination("operations")}>{tr("operations.label")}</button>
-            <button type="button" onClick={() => setMobileDestination("ledger")}>{tr("d.shell.ledger")}</button>
+            <button type="button" onClick={() => { setMobileDestination("review"); navigateDestination("review"); }}>{tr("review.title")}</button>
+            <button type="button" onClick={() => { setMobileDestination("operations"); navigateDestination("operations"); }}>{tr("operations.label")}</button>
+            <button type="button" onClick={() => { setMobileDestination("ledger"); navigateDestination("ledger"); }}>{tr("d.shell.ledger")}</button>
           </div>
           <TaskRetrieval
             mobile
@@ -873,11 +888,18 @@ export function CanvasRouter() {
           setMobileInspectorTask(null);
           setMobileCaptureOpen(false);
           setMobileDestination(destination);
+          if (destination !== "more") navigateDestination(destination);
         }}
-        onCapture={() => setMobileCaptureOpen(true)}
+        onCapture={() => {
+          const returnDestination = mobileDestination === "capture" || mobileDestination === "inspector" ? routeDestination : mobileDestination;
+          setMobileCaptureReturnDestination(returnDestination);
+          setMobileCaptureOpen(true);
+          setMobileDestination("capture");
+        }}
         onClose={closeMobileCommandCenter}
       >
         {mobileContent}
+        {modal && <CreateModal key={modal.mode === "edit" ? modal.task.id : modal.mode} initial={modal.mode === "edit" ? modal.task : null} variant={modal.mode === "edit" ? "panel" : "modal"} onClose={() => setModal(null)} onSubmit={handleSubmit} />}
       </MobileCommandCenter>
       {overlays}
       </>
@@ -890,11 +912,11 @@ export function CanvasRouter() {
         navigationLabel={tr("d.shell.navigation")}
         commandLabel={tr("d.shell.globalCommands")}
         railLabel={selectionContext.kind === "directory" ? tr("d.utilities.label") : tr("inspector.label")}
-        railModal={compactDesktop && compactRailOpen}
-        railToggle={compactDesktop}
-        openRailLabel={selectionContext.kind === "directory" ? tr("d.utilities.label") : tr("inspector.label")}
+        railModal={compactDesktop && Boolean(rail)}
+        railToggle={compactDesktop && selectionContext.kind === "directory"}
+        openRailLabel={tr("d.utilities.label")}
         closeRailLabel={tr("d.shell.closeRail")}
-        onCloseRail={compactDesktop && !compactRailOpen ? () => setCompactRailOpen(true) : closeCommandCenterRail}
+        onCloseRail={compactDesktop && !compactRailOpen && selectionContext.kind === "directory" ? () => setCompactRailOpen(true) : closeCommandCenterRail}
         navigation={navigation}
         commands={commands}
         rail={rail}

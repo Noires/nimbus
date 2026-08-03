@@ -114,6 +114,10 @@ describe("CanvasRouter mobile command center", () => {
         close() {}
       },
     });
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      disconnect() {}
+    });
   });
 
   afterEach(async () => {
@@ -250,6 +254,23 @@ describe("CanvasRouter mobile command center", () => {
     expect(container.textContent).toContain(todayTask.title);
     const restoredInspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
     expect(document.activeElement).toBe(restoredInspectorButton);
+  });
+
+  it("uses the canonical deep-link destination instead of always rendering Today", async () => {
+    const optionalLoad = vi.fn(async () => {});
+    useStore.setState({
+      canvases: [canvas], tasks: [inboxTask], workstreams: [], dependencies: [], readOnly: false,
+      loadCanvases: vi.fn(async () => [canvas]), refreshTasks: vi.fn(async () => {}), loadWorkstreams: vi.fn(async () => {}),
+      loadBubbles: optionalLoad, loadDependencies: optionalLoad, loadPortals: optionalLoad, loadZones: optionalLoad, loadConnections: optionalLoad,
+      setCardDensity: vi.fn(), setLiveConnected: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}/inbox`]}><Routes><Route path="/canvas/:id/*" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+
+    expect(container.querySelector('[aria-current="page"]')?.textContent).toBe("Inbox");
+    expect(container.querySelector('main[aria-label="Inbox"]')).not.toBeNull();
   });
 
   it("returns focus to the mobile launcher when Close or Escape leaves the companion", async () => {

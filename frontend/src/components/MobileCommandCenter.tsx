@@ -4,7 +4,7 @@ import type { MobileCommandDestination } from "./mobileCommandCenter";
 
 interface MobileCommandCenterProps {
   destination: MobileCommandDestination;
-  onDestinationChange: (destination: MobileCommandDestination) => void;
+  onDestinationChange: (destination: Extract<MobileCommandDestination, "today" | "inbox" | "canvas" | "more">) => void;
   onClose: () => void;
   onCapture: () => void;
   children: ReactNode;
@@ -29,7 +29,8 @@ export function MobileCommandCenter({
   const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    titleRef.current?.focus();
+    // Capture hands focus to its text field; every routed surface starts at its heading.
+    if (destination !== "capture") titleRef.current?.focus();
   }, [destination]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
