@@ -564,7 +564,7 @@ export function CanvasRouter() {
             }}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${ledgerOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
           >
-            <span>Ledger</span><span className="text-cyan-300">≡</span>
+            <span>{tr("d.shell.ledger")}</span><span className="text-cyan-300">≡</span>
           </button>
         </div>
       )}
