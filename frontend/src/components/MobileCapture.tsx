@@ -25,22 +25,28 @@ export function MobileCapture({ onCapture }: MobileCaptureProps) {
   const t = useT();
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  const submit = () => {
+  const submit = async () => {
     const submittedInput = input;
     setError(null);
-    void submitMobileCapture(submittedInput, onCapture).then((result) => {
-      if (result === "success") {
-        setInput((current) => (current === submittedInput ? "" : current));
-      } else if (result === "failed") {
-        setError(t("mobile.capture.failed"));
-      }
-    });
+    setStatus(null);
+    if (!submittedInput.trim() || submitting) return;
+    setSubmitting(true);
+    const result = await submitMobileCapture(submittedInput, onCapture);
+    setSubmitting(false);
+    if (result === "success") {
+      setInput((current) => (current === submittedInput ? "" : current));
+      setStatus(t("mobile.capture.success"));
+    } else if (result === "failed") {
+      setError(t("mobile.capture.failed"));
+    }
   };
 
   return (
@@ -49,10 +55,11 @@ export function MobileCapture({ onCapture }: MobileCaptureProps) {
         className="mobile-capture__form"
         onSubmit={(event) => {
           event.preventDefault();
-          submit();
+          void submit();
         }}
       >
         <label htmlFor="mobile-capture-input">{t("mobile.capture.input")}</label>
+        <p className="mobile-capture__hint">{t("mobile.capture.hint")}</p>
         <input
           ref={inputRef}
           id="mobile-capture-input"
@@ -61,9 +68,12 @@ export function MobileCapture({ onCapture }: MobileCaptureProps) {
           onChange={(event) => setInput(event.target.value)}
           placeholder={t("mobile.capture.placeholder")}
         />
-        <button type="submit" className="mobile-capture__submit">{t("mobile.capture.submit")}</button>
+        <button type="submit" className="mobile-capture__submit" disabled={submitting} aria-busy={submitting}>
+          {t(submitting ? "mobile.capture.submitting" : "mobile.capture.submit")}
+        </button>
       </form>
       {error && <p role="alert">{error}</p>}
+      <p className="mobile-capture__status" aria-live="polite">{status}</p>
     </section>
   );
 }

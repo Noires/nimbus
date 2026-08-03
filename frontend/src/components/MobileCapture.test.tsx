@@ -31,5 +31,7 @@ describe("MobileCapture", () => {
 
     expect(html).toContain('class="mobile-capture__input"');
     expect(html).toContain('class="mobile-capture__submit"');
+    expect(html).toContain('aria-live="polite"');
+    expect(html).toContain('mobile-capture__hint');
   });
 });
