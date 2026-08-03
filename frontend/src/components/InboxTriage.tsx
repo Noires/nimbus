@@ -116,7 +116,7 @@ export function InboxTriage({
             </thead>
             <tbody>
               {inboxTasks.map((task) => (
-                <tr key={task.id} className="border-b border-white/5 align-top">
+                <tr key={task.id} className="night-cartography__task-row border-b border-white/5 align-top">
                   <td className="max-w-48 px-2 py-3 text-gray-100">
                     <div className="truncate font-medium">{task.title}</div>
                     <div className="mt-1 truncate text-[10px] text-gray-500">{task.tags.map((tag) => `#${tag}`).join(" ") || t("inbox.triage.noTags")}</div>

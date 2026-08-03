@@ -92,29 +92,44 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
   const onMenuTriggerKeyDown = (name: ToolbarMenu) => (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (!["Enter", " ", "ArrowDown"].includes(event.key)) return;
     event.preventDefault();
+    event.stopPropagation();
     openMenu(name);
   };
 
   const onMenuKeyDown = (name: ToolbarMenu) => (event: React.KeyboardEvent<HTMLDivElement>) => {
     const items = enabledMenuItems(name);
-    const index = items.indexOf(document.activeElement as HTMLElement);
+    const focusedItem = document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest<HTMLElement>("[role^='menuitem']")
+      : null;
+    // The menu can receive a bubbled key event from a descendant of an item.
+    // Resolve it back to the owning menuitem and retain a safe first-item
+    // fallback so ArrowDown advances rather than re-focusing the first item.
+    const targetItem = event.target instanceof HTMLElement
+      ? event.target.closest<HTMLElement>("[role^='menuitem']")
+      : null;
+    const currentIndex = items.indexOf(focusedItem ?? targetItem!);
+    const index = currentIndex < 0 ? 0 : currentIndex;
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       closeMenu(name);
       return;
     }
     if (event.key === "Home") {
       event.preventDefault();
+      event.stopPropagation();
       items[0]?.focus();
       return;
     }
     if (event.key === "End") {
       event.preventDefault();
+      event.stopPropagation();
       items[items.length - 1]?.focus();
       return;
     }
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
+      event.stopPropagation();
       const next = event.key === "ArrowDown" ? (index + 1) % items.length : (index - 1 + items.length) % items.length;
       items[next]?.focus();
     }
@@ -406,7 +421,7 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
               <MenuDivider />
               <MenuLabel>{t("a.toolbar.constellations")}</MenuLabel>
               {templates.length === 0 && (
-                <div className="px-3 py-1 text-[10px] text-gray-600">{t("a.toolbar.noneSaved")}</div>
+                <div className="px-3 py-1 text-[10px] text-gray-300">{t("a.toolbar.noneSaved")}</div>
               )}
               {templates.map((tpl) => (
                 <div key={tpl.id} className="group flex items-center">

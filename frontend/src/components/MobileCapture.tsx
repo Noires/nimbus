@@ -19,9 +19,11 @@ export async function submitMobileCapture(
 
 interface MobileCaptureProps {
   onCapture: (input: string) => Promise<void>;
+  onBack?: () => void;
+  backLabel?: string;
 }
 
-export function MobileCapture({ onCapture }: MobileCaptureProps) {
+export function MobileCapture({ onCapture, onBack, backLabel }: MobileCaptureProps) {
   const t = useT();
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +74,7 @@ export function MobileCapture({ onCapture }: MobileCaptureProps) {
           {t(submitting ? "mobile.capture.submitting" : "mobile.capture.submit")}
         </button>
       </form>
+      {onBack && <button type="button" className="mobile-capture__back" onClick={onBack} aria-label={backLabel ?? t("mobile.command.back")}>{backLabel ?? t("mobile.command.back")}</button>}
       {error && <p role="alert">{error}</p>}
       <p className="mobile-capture__status" aria-live="polite">{status}</p>
     </section>

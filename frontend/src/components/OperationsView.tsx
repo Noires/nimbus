@@ -64,7 +64,7 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
               {group.tasks.map((task) => {
                 const dueToday = task.dueDate !== null && localDayKey(task.dueDate) === today;
                 return (
-                  <li key={task.id} className={`flex items-center justify-between gap-2 text-xs text-gray-200${mobile ? " mobile-operations__task" : ""}`}>
+                  <li key={task.id} className={`night-cartography__task-row flex items-center justify-between gap-2 text-xs text-gray-200${mobile ? " mobile-operations__task" : ""}`}>
                     <span className={`min-w-0 truncate${mobile ? " mobile-operations__title" : ""}`} title={task.title}>{task.title}</span>
                     <span className={`flex shrink-0 items-center gap-1${mobile ? " mobile-operations__actions" : ""}`}>
                       <span data-task-priority={task.priority} className="rounded bg-white/5 px-1 text-[10px] text-gray-300">{t(`inspector.priority.${task.priority}`)}</span>

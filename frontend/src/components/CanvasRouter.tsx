@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useStore, visibleTasks, CARD_W, CARD_H, type Task, type CanvasSettings } from "../store";
 import { nearestInDirection, nearestToPoint, type Direction } from "../utils/spatialNav";
 import { CanvasList } from "./CanvasList";
@@ -32,7 +32,9 @@ import { ReviewRail } from "./ReviewRail";
 import { TaskRetrieval } from "./TaskRetrieval";
 import { OperationsView } from "./OperationsView";
 import { LedgerView } from "./LedgerView";
+import { NightCartographySurface } from "./NightCartography";
 import { resolveSelectionContext } from "./selectionContext";
+import { canvasDestinationFromPath, canvasPathForDestination } from "./destinationRoutes";
 import { quickParseTokens } from "../utils/quickParse";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useCanvasDataLoader } from "../hooks/useCanvasDataLoader";
@@ -53,7 +55,7 @@ type ModalState =
   | { mode: "capture" }
   | { mode: "edit"; task: Task };
 
-type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "operations" | "more";
+type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "operations" | "ledger" | "more";
 
 export function resolveRailLabel({
   reviewRailOpen,
@@ -77,6 +79,7 @@ export function CanvasRouter() {
   useT();
   const params = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const canvases = useStore((s) => s.canvases);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,9 +90,12 @@ export function CanvasRouter() {
   const [tutorialReplay, setTutorialReplay] = useState(false);
   const [tutorialOfferRevision, setTutorialOfferRevision] = useState(0);
   const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
+  const compactDesktop = useMediaQuery("(min-width: 769px) and (max-width: 1100px)", false);
   const mobileCommandCenterEligible = isMobileCommandCenterEnabled(narrowViewport ? "narrow" : "wide");
   const [mobileCommandCenterOpen, setMobileCommandCenterOpen] = useState(true);
-  const [mobileDestination, setMobileDestination] = useState<MobileCommandDestination>("capture");
+  const [mobileDestination, setMobileDestination] = useState<MobileCommandDestination>("today");
+  const [mobileCaptureOpen, setMobileCaptureOpen] = useState(false);
+  const [mobileCaptureReturnDestination, setMobileCaptureReturnDestination] = useState<MobileCommandDestination>("today");
   const [mobileInspectorTask, setMobileInspectorTask] = useState<Task | null>(null);
   const [mobileInspectorReturnDestination, setMobileInspectorReturnDestination] = useState<MobileInspectorReturnDestination>("inbox");
   const mobileCommandCenter = mobileCommandCenterEligible && mobileCommandCenterOpen;
@@ -108,6 +114,7 @@ export function CanvasRouter() {
   const [reviewRailOpen, setReviewRailOpen] = useState(false);
   const [operationsOpen, setOperationsOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [compactRailOpen, setCompactRailOpen] = useState(false);
   const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
   const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
   const modalRef = useRef(modal);
@@ -121,11 +128,9 @@ export function CanvasRouter() {
   const mobileRestoreCommandCenterFocusRef = useRef(false);
 
   const closeCommandCenterRail = () => {
-    setInboxTriageOpen(false);
-    setTodayFocusOpen(false);
-    setReviewRailOpen(false);
-    setOperationsOpen(false);
-    setLedgerOpen(false);
+    useStore.getState().clearSelection();
+    setSelectedWorkstreamId(null);
+    setCompactRailOpen(false);
   };
 
   const openMobileInspector = (task: Task, returnDestination: MobileInspectorReturnDestination) => {
@@ -167,10 +172,30 @@ export function CanvasRouter() {
 
   const closeMobileCommandCenter = () => {
     mobileRestoreCommandCenterFocusRef.current = true;
+    setMobileCaptureOpen(false);
+    setMobileDestination(routeDestination);
     setMobileCommandCenterOpen(false);
   };
 
   const canvasId = params.id ?? null;
+  const routeDestination = canvasId ? canvasDestinationFromPath(location.pathname, canvasId) : "canvas";
+  const navigateDestination = (destination: "canvas" | "inbox" | "today" | "review" | "operations" | "ledger") => {
+    if (!canvasId) return;
+    navigate(canvasPathForDestination(canvasId, destination));
+  };
+  useEffect(() => {
+    setInboxTriageOpen(routeDestination === "inbox");
+    setTodayFocusOpen(routeDestination === "today");
+    setReviewRailOpen(routeDestination === "review");
+    setOperationsOpen(routeDestination === "operations");
+    setLedgerOpen(routeDestination === "ledger");
+  }, [routeDestination]);
+  // Canonical canvas routes are also the source of truth for mobile destinations.
+  // Transient Capture, Inspector, and More stay local because they have no route.
+  useEffect(() => {
+    if (!mobileCommandCenterEligible) return;
+    setMobileDestination((current) => current === "capture" || current === "inspector" || current === "more" ? current : routeDestination);
+  }, [mobileCommandCenterEligible, routeDestination]);
   const canvasIdRef = useRef(canvasId);
   canvasIdRef.current = canvasId;
 
@@ -254,16 +279,8 @@ export function CanvasRouter() {
           store.setZoneDraw(false);
         } else if (mobileCommandCenter) {
           closeMobileCommandCenter();
-        } else if (inboxTriageOpen) {
-          setInboxTriageOpen(false);
-        } else if (todayFocusOpen) {
-          setTodayFocusOpen(false);
-        } else if (reviewRailOpen) {
-          setReviewRailOpen(false);
-        } else if (operationsOpen) {
-          setOperationsOpen(false);
-        } else if (ledgerOpen) {
-          setLedgerOpen(false);
+        } else if (inboxTriageOpen || todayFocusOpen || reviewRailOpen || operationsOpen || ledgerOpen) {
+          navigateDestination("canvas");
         } else if (store.selectedIds.length || selectedWorkstreamId) {
           store.clearSelection();
           setSelectedWorkstreamId(null);
@@ -428,24 +445,16 @@ export function CanvasRouter() {
           break;
         case "i":
           e.preventDefault();
-          setTodayFocusOpen(false);
-          setReviewRailOpen(false);
-          setInboxTriageOpen(true);
+          navigateDestination("inbox");
           setInboxTriageFocusNonce((nonce) => nonce + 1);
           break;
         case "o":
           e.preventDefault();
-          if (!todayFocusOpen) setInboxTriageOpen(false);
-          if (!todayFocusOpen) setReviewRailOpen(false);
-          setTodayFocusOpen(!todayFocusOpen);
+          navigateDestination(routeDestination === "today" ? "canvas" : "today");
           break;
         case "v":
           e.preventDefault();
-          if (!reviewRailOpen) {
-            setTodayFocusOpen(false);
-            setInboxTriageOpen(false);
-          }
-          setReviewRailOpen(!reviewRailOpen);
+          navigateDestination(routeDestination === "review" ? "canvas" : "review");
           break;
         case "w":
           startReview();
@@ -516,13 +525,7 @@ export function CanvasRouter() {
           <button
             type="button"
             aria-pressed={!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen}
-            onClick={() => {
-              setTodayFocusOpen(false);
-              setInboxTriageOpen(false);
-              setReviewRailOpen(false);
-              setLedgerOpen(false);
-              setOperationsOpen(false);
-            }}
+            onClick={() => navigateDestination("canvas")}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
           >
             <span>{tr("d.shell.canvas")}</span><span aria-hidden="true" className="text-cyan-300">⌘</span>
@@ -537,12 +540,7 @@ export function CanvasRouter() {
           <button
             type="button"
             aria-pressed={todayFocusOpen}
-            onClick={() => {
-              if (!todayFocusOpen) setInboxTriageOpen(false);
-              if (!todayFocusOpen) setReviewRailOpen(false);
-              if (!todayFocusOpen) setOperationsOpen(false);
-              setTodayFocusOpen(!todayFocusOpen);
-            }}
+            onClick={() => navigateDestination("today")}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
               todayFocusOpen
                 ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100"
@@ -555,13 +553,7 @@ export function CanvasRouter() {
           <button
             type="button"
             aria-pressed={inboxTriageOpen}
-            onClick={() => {
-              setTodayFocusOpen(false);
-              setReviewRailOpen(false);
-              setOperationsOpen(false);
-              setInboxTriageOpen(true);
-              setInboxTriageFocusNonce((nonce) => nonce + 1);
-            }}
+            onClick={() => navigateDestination("inbox")}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
               inboxTriageOpen
                 ? "border-purple-400/50 bg-purple-400/10 text-purple-100"
@@ -574,14 +566,7 @@ export function CanvasRouter() {
           <button
             type="button"
             aria-pressed={reviewRailOpen}
-            onClick={() => {
-              if (!reviewRailOpen) {
-                setTodayFocusOpen(false);
-                setInboxTriageOpen(false);
-                setOperationsOpen(false);
-              }
-              setReviewRailOpen(!reviewRailOpen);
-            }}
+            onClick={() => navigateDestination("review")}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
               reviewRailOpen
                 ? "border-amber-400/50 bg-amber-400/10 text-amber-100"
@@ -594,15 +579,7 @@ export function CanvasRouter() {
           <button
             type="button"
             aria-pressed={operationsOpen}
-            onClick={() => {
-              if (!operationsOpen) {
-                setTodayFocusOpen(false);
-                setInboxTriageOpen(false);
-                setReviewRailOpen(false);
-                setLedgerOpen(false);
-              }
-              setOperationsOpen(!operationsOpen);
-            }}
+            onClick={() => navigateDestination("operations")}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
           >
             <span>{tr("operations.label")}</span><span aria-hidden="true" className="text-cyan-300">↗</span>
@@ -610,13 +587,7 @@ export function CanvasRouter() {
           <button
             type="button"
             aria-pressed={ledgerOpen}
-            onClick={() => {
-              setTodayFocusOpen(false);
-              setInboxTriageOpen(false);
-              setReviewRailOpen(false);
-              setOperationsOpen(false);
-              setLedgerOpen(!ledgerOpen);
-            }}
+            onClick={() => navigateDestination("ledger")}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${ledgerOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
           >
             <span>{tr("d.shell.ledger")}</span><span className="text-cyan-300">≡</span>
@@ -644,233 +615,79 @@ export function CanvasRouter() {
     useStore.getState().clearSelection();
     setSelectedWorkstreamId(null);
   };
-  // Desktop-only, read-only entry in the contextual rail. Mobile keeps its existing route.
-  const desktopOperationsEntry = !narrowViewport && canvasId ? (
-    <section data-operations-view="desktop-contextual-rail">
-      <OperationsView
-        tasks={tasks}
-        workstreams={workstreams}
-        dependencies={dependencies}
-        onOpenInspector={(task) => {
-          setSelectedWorkstreamId(null);
-          useStore.getState().setSelected([task.id]);
-        }}
-        onReveal={(task) => {
-          const store = useStore.getState();
-          store.setSelected([task.id]);
-          store.flashTask(task.id);
-          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-        }}
-      />
-    </section>
-  ) : null;
-  const rail = canvasId ? (
-    ledgerOpen ? (
-      <LedgerView canvasId={canvasId} tasks={tasks} onOpenInspector={(task) => {
-        setLedgerOpen(false);
-        useStore.getState().setSelected([task.id]);
-      }} />
-    ) : operationsOpen ? (
-      <OperationsView
-        tasks={tasks}
-        workstreams={workstreams}
-        dependencies={dependencies}
-        onOpenInspector={(task) => {
-          setOperationsOpen(false);
-          setSelectedWorkstreamId(null);
-          useStore.getState().setSelected([task.id]);
-        }}
-        onReveal={(task) => {
-          const store = useStore.getState();
-          store.setSelected([task.id]);
-          store.flashTask(task.id);
-          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-          setOperationsOpen(false);
-        }}
-      />
-    ) : reviewRailOpen ? (
-      <ReviewRail
-        tasks={tasks}
-        dependencies={dependencies}
-        state={inboxTriageState}
-        onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
-        onOpenInspector={(task) => {
-          setReviewRailOpen(false);
-          useStore.getState().setSelected([task.id]);
-        }}
-        onReveal={(task) => {
-          const store = useStore.getState();
-          store.setSelected([task.id]);
-          store.flashTask(task.id);
-          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-          setReviewRailOpen(false);
-        }}
-        onFocus={(task) => {
-          setReviewRailOpen(false);
-          useStore.getState().startFocus([task.id]);
-        }}
-        onOpenToday={() => {
-          setReviewRailOpen(false);
-          setTodayFocusOpen(true);
-        }}
-        onOpenInbox={() => {
-          setReviewRailOpen(false);
-          setInboxTriageOpen(true);
-          setInboxTriageFocusNonce((nonce) => nonce + 1);
-        }}
-      />
-    ) : todayFocusOpen ? (
-      <TodayFocus
-        tasks={tasks}
-        dependencies={dependencies}
-        state={inboxTriageState}
-        focusEnabled
-        blockerStatusEnabled={!narrowViewport}
-        onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
-        onReturnToInbox={(task) => useStore.getState().patchTask(task.id, { inbox: true })}
-        onOpenInspector={(task) => {
-          setInboxTriageOpen(false);
-          setTodayFocusOpen(false);
-          setReviewRailOpen(false);
-          useStore.getState().setSelected([task.id]);
-        }}
-        onReveal={(task) => {
-          const store = useStore.getState();
-          store.setSelected([task.id]);
-          store.flashTask(task.id);
-          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-          setTodayFocusOpen(false);
-        }}
-        onFocus={(task) => useStore.getState().startFocus([task.id])}
-      />
-    ) : inboxTriageOpen ? (
-      <InboxTriage
-        tasks={tasks}
-        workstreams={workstreams}
-        state={inboxTriageState}
-        focusNonce={inboxTriageFocusNonce}
-        onCapture={async (input) => {
-          const { fields } = quickParseTokens(input);
-          if (!fields.title) return;
-          await useStore.getState().addTask({
-            canvasId,
-            title: fields.title,
-            tags: fields.tags,
-            priority: fields.priority ?? undefined,
-            dueDate: fields.dueDate,
-            estimateMinutes: fields.estimateMinutes,
-            inbox: true,
-          });
-        }}
-        onClearInbox={(task) => useStore.getState().patchTask(task.id, { inbox: false })}
-        onSetWorkstream={async (taskId, workstreamId) => {
-          const workstream = useStore.getState().workstreams.find((candidate) => candidate.id === workstreamId);
-          if (!workstream?.memberships.some((membership) => membership.taskId === taskId)) {
-            await useStore.getState().setWorkstreamMembership(workstreamId, taskId, true);
-          }
-        }}
-        onPatchTask={(taskId, patch) => useStore.getState().patchTask(taskId, patch)}
-        onReveal={(task) => {
-          const store = useStore.getState();
-          store.setSelected([task.id]);
-          store.flashTask(task.id);
-          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-          setInboxTriageOpen(false);
-        }}
-      />
-    ) : <InspectorRail
-      context={selectionContext}
-      tasks={tasks}
-      workstreams={workstreams}
-      dependencies={dependencies}
-      onBack={returnToWorkstreams}
-      blockerEditor={!narrowViewport ? {
-        enabled: true,
-        onSetBlocker: (taskId, blockerId) => useStore.getState().setTaskBlocker(taskId, blockerId),
-      } : undefined}
-      onOpenTask={(task) => {
-        setSelectedWorkstreamId(null);
-        useStore.getState().setSelected([task.id]);
-      }}
-      onOpenToday={() => setTodayFocusOpen(true)}
-      onOpenReview={() => setReviewRailOpen(true)}
-      directory={<>
-      {desktopOperationsEntry}
-      <TaskRetrieval
-        tasks={tasks}
-        onOpenInspector={(task) => {
-          setSelectedWorkstreamId(null);
-          useStore.getState().setSelected([task.id]);
-        }}
-        onReveal={(task) => {
-          const store = useStore.getState();
-          store.setSelected([task.id]);
-          store.flashTask(task.id);
-          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-        }}
-      />
+  const inspectTask = (task: Task) => {
+    setSelectedWorkstreamId(null);
+    useStore.getState().setSelected([task.id]);
+    if (compactDesktop) setCompactRailOpen(true);
+  };
+  const revealTask = (task: Task) => {
+    const store = useStore.getState();
+    store.setSelected([task.id]);
+    store.flashTask(task.id);
+    store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+    navigateDestination("canvas");
+  };
+  const rail = canvasId && (!compactDesktop || compactRailOpen || selectionContext.kind !== "directory") ? <InspectorRail
+    context={selectionContext}
+    tasks={tasks}
+    workstreams={workstreams}
+    dependencies={dependencies}
+    onBack={returnToWorkstreams}
+    blockerEditor={{ enabled: true, onSetBlocker: (taskId, blockerId) => useStore.getState().setTaskBlocker(taskId, blockerId) }}
+    onOpenTask={inspectTask}
+    onOpenToday={() => navigateDestination("today")}
+    onOpenReview={() => navigateDestination("review")}
+    directory={<section className="command-center-utilities" aria-label={tr("d.utilities.label")}>
+      <h2>{tr("d.utilities.label")}</h2>
+      <TaskRetrieval tasks={tasks} onOpenInspector={inspectTask} onReveal={revealTask} />
       <DensitySelector density={semanticDensity} onChange={useStore.getState().setSemanticDensity} />
       <WorkstreamsPanel
-      workstreams={workstreams}
-      selectedId={focus ? null : selectedWorkstreamId}
-      onSelect={(id) => {
-        useStore.getState().clearSelection();
-        setSelectedWorkstreamId(id);
-      }}
-      onCreate={(name) => {
-        void useStore.getState().addWorkstream({ canvasId, name })
-          .then((workstream) => setSelectedWorkstreamId(workstream.id))
-          .catch((err) => console.error(err));
-      }}
-      onUpdate={(id, patch) => {
-        void useStore.getState().patchWorkstream(id, patch).catch((err) => console.error(err));
-      }}
-      onDelete={(id) => {
-        void useStore.getState().removeWorkstream(id)
-          .then(() => setSelectedWorkstreamId((selected) => (selected === id ? null : selected)))
-          .catch((err) => console.error(err));
-      }}
-      tasks={tasks}
-      dependencies={dependencies}
-      onSetMembership={(workstreamId, taskId, member) => {
-        void useStore.getState().setWorkstreamMembership(workstreamId, taskId, member).catch((err) => console.error(err));
-      }}
+        workstreams={workstreams}
+        selectedId={focus ? null : selectedWorkstreamId}
+        onSelect={(id) => { useStore.getState().clearSelection(); setSelectedWorkstreamId(id); }}
+        onCreate={(name) => { void useStore.getState().addWorkstream({ canvasId, name }).then((workstream) => setSelectedWorkstreamId(workstream.id)).catch(console.error); }}
+        onUpdate={(id, patch) => { void useStore.getState().patchWorkstream(id, patch).catch(console.error); }}
+        onDelete={(id) => { void useStore.getState().removeWorkstream(id).then(() => setSelectedWorkstreamId((selected) => selected === id ? null : selected)).catch(console.error); }}
+        tasks={tasks}
+        dependencies={dependencies}
+        onSetMembership={(workstreamId, taskId, member) => { void useStore.getState().setWorkstreamMembership(workstreamId, taskId, member).catch(console.error); }}
         onApplyArrangement={(preview) => useStore.getState().applyArrangementPreview(preview)}
       />
-      </>}
-    />
-  ) : undefined;
-  const mainContent = canvasId ? (
-    <>
-      <Canvas
-        ref={canvasRef}
-        canvasId={canvasId}
-        semanticDensity={semanticDensity}
-        onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
-        onEditTask={(task) => setModal({ mode: "edit", task })}
-      />
-      <SelectionBar canvasId={canvasId} tidyEnabled />
-      <DayDock />
-      <ReviewHud />
-      <FocusTimer />
-      {viewMode === "table" && (
-        <TableView onExit={() => useStore.getState().setViewMode("canvas")} />
-      )}
+    </section>}
+  /> : undefined;
+  const workspaceContent = !canvasId ? <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />
+    : routeDestination === "inbox" ? <NightCartographySurface kind="inbox" title={tr("inbox.triage.title")}>
+      <InboxTriage tasks={tasks} workstreams={workstreams} state={inboxTriageState} focusNonce={inboxTriageFocusNonce}
+        onCapture={async (input) => { const { fields } = quickParseTokens(input); if (fields.title) await useStore.getState().addTask({ canvasId, title: fields.title, tags: fields.tags, priority: fields.priority ?? undefined, dueDate: fields.dueDate, estimateMinutes: fields.estimateMinutes, inbox: true }); }}
+        onClearInbox={(task) => useStore.getState().patchTask(task.id, { inbox: false })}
+        onSetWorkstream={async (taskId, workstreamId) => { const workstream = useStore.getState().workstreams.find((candidate) => candidate.id === workstreamId); if (!workstream?.memberships.some((membership) => membership.taskId === taskId)) await useStore.getState().setWorkstreamMembership(workstreamId, taskId, true); }}
+        onPatchTask={(taskId, patch) => useStore.getState().patchTask(taskId, patch)} onReveal={revealTask} />
+    </NightCartographySurface>
+    : routeDestination === "today" ? <NightCartographySurface kind="today" title={tr("today.title")}>
+      <TodayFocus tasks={tasks} dependencies={dependencies} state={inboxTriageState} focusEnabled blockerStatusEnabled
+        onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })} onReturnToInbox={(task) => useStore.getState().patchTask(task.id, { inbox: true })}
+        onOpenInspector={inspectTask} onReveal={revealTask} onFocus={(task) => useStore.getState().startFocus([task.id])} />
+    </NightCartographySurface>
+    : routeDestination === "review" ? <NightCartographySurface kind="review" title={tr("review.title")}>
+      <ReviewRail tasks={tasks} dependencies={dependencies} state={inboxTriageState} onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
+        onOpenInspector={inspectTask} onReveal={revealTask} onFocus={(task) => useStore.getState().startFocus([task.id])}
+        onOpenToday={() => navigateDestination("today")} onOpenInbox={() => navigateDestination("inbox")} />
+    </NightCartographySurface>
+    : routeDestination === "operations" ? <NightCartographySurface kind="operations" title={tr("operations.title")}>
+      <OperationsView tasks={tasks} workstreams={workstreams} dependencies={dependencies} onOpenInspector={inspectTask} onReveal={revealTask} />
+    </NightCartographySurface>
+    : routeDestination === "ledger" ? <NightCartographySurface kind="ledger" title={tr("d.shell.ledger")}>
+      <LedgerView canvasId={canvasId} tasks={tasks} onOpenInspector={inspectTask} />
+    </NightCartographySurface>
+    : <NightCartographySurface kind="canvas" title={tr("d.shell.canvas")}>
+      <Canvas ref={canvasRef} canvasId={canvasId} semanticDensity={semanticDensity} onCreateAt={(x, y) => setModal({ mode: "create", x, y })} onEditTask={(task) => setModal({ mode: "edit", task })} />
+      <SelectionBar canvasId={canvasId} tidyEnabled /><DayDock /><ReviewHud /><FocusTimer />
+      {viewMode === "table" && <TableView onExit={() => useStore.getState().setViewMode("canvas")} />}
       {pulseOpen && <PulsePanel canvasId={canvasId} onClose={() => setPulseOpen(false)} />}
       {timelapse && <TimelapseBar canvasId={canvasId} onClose={() => setTimelapse(false)} />}
-      {modal && (
-        <CreateModal
-          key={modal.mode === "edit" ? modal.task.id : modal.mode}
-          initial={modal.mode === "edit" ? modal.task : null}
-          variant={modal.mode === "edit" ? "panel" : "modal"}
-          onClose={() => setModal(null)}
-          onSubmit={handleSubmit}
-        />
-      )}
-    </>
-  ) : (
-    <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />
-  );
+      {modal && <CreateModal key={modal.mode === "edit" ? modal.task.id : modal.mode} initial={modal.mode === "edit" ? modal.task : null} variant={modal.mode === "edit" ? "panel" : "modal"} onClose={() => setModal(null)} onSubmit={handleSubmit} />}
+    </NightCartographySurface>;
+  const mainContent = workspaceContent;
   const overlays = (
     <>
       <CommandPalette canvasId={canvasId} onNewTask={() => setModal({ mode: "create" })} fallbackFocusRef={canvasRef} />
@@ -902,6 +719,11 @@ export function CanvasRouter() {
     if (mobileDestination === "capture") {
       return (
         <MobileCapture
+          backLabel={`${tr("mobile.command.back")} ${tr(`mobile.command.${mobileCaptureReturnDestination}`)}`}
+          onBack={() => {
+            setMobileCaptureOpen(false);
+            setMobileDestination(mobileCaptureReturnDestination);
+          }}
           onCapture={async (input) => {
             const { fields } = quickParseTokens(input);
             if (!fields.title) return;
@@ -917,6 +739,10 @@ export function CanvasRouter() {
           }}
         />
       );
+    }
+
+    if (mobileDestination === "canvas") {
+      return <Canvas ref={canvasRef} canvasId={canvasId} semanticDensity={semanticDensity} onCreateAt={(x, y) => setModal({ mode: "create", x, y })} onEditTask={(task) => setModal({ mode: "edit", task })} />;
     }
 
     if (mobileDestination === "inbox") {
@@ -982,8 +808,8 @@ export function CanvasRouter() {
             useStore.getState().startFocus([task.id]);
             closeMobileCommandCenter();
           }}
-          onOpenToday={() => setMobileDestination("today")}
-          onOpenInbox={() => setMobileDestination("inbox")}
+          onOpenToday={() => { setMobileDestination("today"); navigateDestination("today"); }}
+          onOpenInbox={() => { setMobileDestination("inbox"); navigateDestination("inbox"); }}
         />
       );
     }
@@ -1007,20 +833,33 @@ export function CanvasRouter() {
       );
     }
 
+    if (mobileDestination === "ledger") {
+      return <LedgerView canvasId={canvasId} tasks={tasks} onOpenInspector={(task) => openMobileInspector(task, "ledger")} />;
+    }
+
     if (mobileDestination === "more") {
       return (
-        <TaskRetrieval
-          mobile
-          tasks={tasks}
-          onOpenInspector={(task) => openMobileInspector(task, "more")}
-          onReveal={(task) => {
-            const store = useStore.getState();
-            store.setSelected([task.id]);
-            store.flashTask(task.id);
-            store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            closeMobileCommandCenter();
-          }}
-        />
+        <section className="mobile-utilities" aria-label={tr("mobile.command.more")}>
+          <h2>{tr("mobile.command.more")}</h2>
+          <p>{tr("mobile.utilities.description")}</p>
+          <div className="mobile-utilities__destinations">
+            <button type="button" onClick={() => { setMobileDestination("review"); navigateDestination("review"); }}>{tr("review.title")}</button>
+            <button type="button" onClick={() => { setMobileDestination("operations"); navigateDestination("operations"); }}>{tr("operations.label")}</button>
+            <button type="button" onClick={() => { setMobileDestination("ledger"); navigateDestination("ledger"); }}>{tr("d.shell.ledger")}</button>
+          </div>
+          <TaskRetrieval
+            mobile
+            tasks={tasks}
+            onOpenInspector={(task) => openMobileInspector(task, "more")}
+            onReveal={(task) => {
+              const store = useStore.getState();
+              store.setSelected([task.id]);
+              store.flashTask(task.id);
+              store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+              closeMobileCommandCenter();
+            }}
+          />
+        </section>
       );
     }
 
@@ -1047,11 +886,20 @@ export function CanvasRouter() {
         destination={resolveMobileCommandDestination(mobileDestination)}
         onDestinationChange={(destination) => {
           setMobileInspectorTask(null);
+          setMobileCaptureOpen(false);
           setMobileDestination(destination);
+          if (destination !== "more") navigateDestination(destination);
+        }}
+        onCapture={() => {
+          const returnDestination = mobileDestination === "capture" || mobileDestination === "inspector" ? routeDestination : mobileDestination;
+          setMobileCaptureReturnDestination(returnDestination);
+          setMobileCaptureOpen(true);
+          setMobileDestination("capture");
         }}
         onClose={closeMobileCommandCenter}
       >
         {mobileContent}
+        {modal && <CreateModal key={modal.mode === "edit" ? modal.task.id : modal.mode} initial={modal.mode === "edit" ? modal.task : null} variant={modal.mode === "edit" ? "panel" : "modal"} onClose={() => setModal(null)} onSubmit={handleSubmit} />}
       </MobileCommandCenter>
       {overlays}
       </>
@@ -1063,12 +911,16 @@ export function CanvasRouter() {
       <CanvasRouterLayout
         navigationLabel={tr("d.shell.navigation")}
         commandLabel={tr("d.shell.globalCommands")}
-        railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen, operationsOpen })}
+        railLabel={selectionContext.kind === "directory" ? tr("d.utilities.label") : tr("inspector.label")}
+        railModal={compactDesktop && Boolean(rail)}
+        railToggle={compactDesktop && selectionContext.kind === "directory"}
+        openRailLabel={tr("d.utilities.label")}
         closeRailLabel={tr("d.shell.closeRail")}
-        onCloseRail={closeCommandCenterRail}
+        onCloseRail={compactDesktop && !compactRailOpen && selectionContext.kind === "directory" ? () => setCompactRailOpen(true) : closeCommandCenterRail}
         navigation={navigation}
         commands={commands}
         rail={rail}
+        fullWidth
         mainRef={mainRef}
         overlays={overlays}
       >

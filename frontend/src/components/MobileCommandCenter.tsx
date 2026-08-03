@@ -4,17 +4,16 @@ import type { MobileCommandDestination } from "./mobileCommandCenter";
 
 interface MobileCommandCenterProps {
   destination: MobileCommandDestination;
-  onDestinationChange: (destination: MobileCommandDestination) => void;
+  onDestinationChange: (destination: Extract<MobileCommandDestination, "today" | "inbox" | "canvas" | "more">) => void;
   onClose: () => void;
+  onCapture: () => void;
   children: ReactNode;
 }
 
-const destinations: ReadonlyArray<Exclude<MobileCommandDestination, "inspector">> = [
-  "capture",
-  "inbox",
+const destinations: ReadonlyArray<Extract<MobileCommandDestination, "today" | "inbox" | "canvas" | "more">> = [
   "today",
-  "review",
-  "operations",
+  "inbox",
+  "canvas",
   "more",
 ];
 
@@ -22,6 +21,7 @@ export function MobileCommandCenter({
   destination,
   onDestinationChange,
   onClose,
+  onCapture,
   children,
 }: MobileCommandCenterProps) {
   const t = useT();
@@ -29,7 +29,8 @@ export function MobileCommandCenter({
   const titleRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    titleRef.current?.focus();
+    // Capture hands focus to its text field; every routed surface starts at its heading.
+    if (destination !== "capture") titleRef.current?.focus();
   }, [destination]);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -45,9 +46,14 @@ export function MobileCommandCenter({
     <section id="command-center-tutorial-return" className="mobile-command-center" tabIndex={-1} onKeyDown={handleKeyDown}>
       <header className="mobile-command-center__header">
         <h1 ref={titleRef} tabIndex={-1} className="mobile-command-center__title">{contentLabel}</h1>
-        <button type="button" onClick={onClose} aria-label={t("mobile.command.close")} className="mobile-command-center__close">
-          {t("mobile.command.close")}
-        </button>
+        <div className="mobile-command-center__header-actions">
+          <button type="button" onClick={onCapture} aria-label={t("mobile.command.capture")} className="mobile-command-center__capture">
+            + {t("mobile.command.capture")}
+          </button>
+          <button type="button" onClick={onClose} aria-label={t("mobile.command.close")} className="mobile-command-center__close">
+            {t("mobile.command.close")}
+          </button>
+        </div>
       </header>
       <p className="sr-only" aria-live="polite" aria-atomic="true">{contentLabel}</p>
       <main className="mobile-command-center__content" aria-label={contentLabel}>

@@ -58,9 +58,9 @@ const workstream: Workstream = {
 
 function renderRouter(root: Root) {
   root.render(
-    <MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}>
+    <MemoryRouter initialEntries={[`/canvas/${canvas.id}/operations`]}>
       <Routes>
-        <Route path="/canvas/:id" element={<CanvasRouter />} />
+        <Route path="/canvas/:id/*" element={<CanvasRouter />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -140,13 +140,13 @@ describe("CanvasRouter desktop Operations rail", () => {
 
     await act(async () => renderRouter(root));
 
-    expect(container.querySelector('[data-operations-view="desktop-contextual-rail"]')).not.toBeNull();
+    expect(container.querySelector('[data-workspace="operations"]')).not.toBeNull();
   });
 
   it("opens the shared Inspector and reveals the task from the desktop Operations rail", async () => {
     await act(async () => renderRouter(root));
 
-    expect(container.querySelector('[data-operations-view="desktop-contextual-rail"]')).not.toBeNull();
+    expect(container.querySelector('[data-workspace="operations"]')).not.toBeNull();
     const inspectorButton = [...container.querySelectorAll("button")].find((button) => button.textContent === "Open in Inspector");
     expect(inspectorButton).toBeDefined();
 
