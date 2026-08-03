@@ -30,6 +30,33 @@ test("axe: flag-off retains the legacy canvas and has no command-center Ledger",
   await assertAxe(page);
 });
 
+test("command header contains the wrapping toolbar before the main region at compact desktop widths", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
+
+  for (const width of [769, 800]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(`/canvas/${canvas.id}`);
+    await expect(page.getByRole("main")).toBeVisible();
+
+    const bounds = await page.evaluate(() => {
+      const toolbar = document.querySelector(".absolute.top-4");
+      const header = document.querySelector<HTMLElement>(".command-center-shell__commands");
+      const main = document.querySelector<HTMLElement>(".command-center-shell__main");
+      if (!toolbar || !header || !main) throw new Error("Command-center layout regions are missing");
+
+      return {
+        toolbar: toolbar.getBoundingClientRect().toJSON(),
+        header: header.getBoundingClientRect().toJSON(),
+        main: main.getBoundingClientRect().toJSON(),
+      };
+    });
+
+    expect(bounds.toolbar.bottom).toBeLessThanOrEqual(bounds.header.bottom);
+    expect(bounds.header.bottom).toBeLessThanOrEqual(bounds.main.top);
+  }
+});
+
 test("axe: flag-on supports Ledger saved views, keyboard focus, blocker status, and axe", async ({ page }) => {
   const { canvas } = await seed();
   await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
