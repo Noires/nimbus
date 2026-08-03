@@ -104,4 +104,17 @@ describe("CommandCenterTutorial interactions", () => {
     const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
     expect(saved.sample).toMatchObject({ workstreamInspected: true, reviewInspected: true });
   });
+
+  it("keeps Shift+Tab from the programmatic heading inside the modal", async () => {
+    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+    await act(async () => { await Promise.resolve(); });
+
+    const heading = container.querySelector<HTMLHeadingElement>("#command-center-tutorial-title");
+    const dialog = container.querySelector<HTMLElement>("[role=dialog]");
+    expect(document.activeElement).toBe(heading);
+    await act(async () => dialog?.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true })));
+
+    expect(dialog?.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(button(container, "Next"));
+  });
 });

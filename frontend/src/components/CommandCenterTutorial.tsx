@@ -120,7 +120,10 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
     if (!focusable?.length) return;
     const first = focusable[0]; const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    // The programmatic heading target is intentionally not part of the normal
+    // tab sequence. Treat Shift+Tab from it as wrapping to the final dialog
+    // control, rather than allowing focus to escape behind the modal.
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === titleRef.current)) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
   const needsAction = ["capture", "triage", "today", "workstream", "complete", "review"].includes(current);

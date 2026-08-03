@@ -15,6 +15,17 @@ async function seed() {
   await api(`/api/tasks/${blocked.id}/blocker`, { method: "PUT", body: JSON.stringify({ blockerId: blocker.id }) });
   return { canvas, blocker, blocked };
 }
+async function productiveSnapshot(canvasId: string) {
+  const exported = await api(`/api/canvases/${canvasId}/export`);
+  // The export endpoint intentionally stamps its response time. Exclude that
+  // transport-only field so this is a stable before/after data-boundary check.
+  delete exported.exportedAt;
+  return {
+    canvases: await api("/api/canvases"),
+    tasks: await api(`/api/tasks?canvasId=${canvasId}&archived=true`),
+    exported,
+  };
+}
 async function assertAxe(page: Page) {
   await page.addScriptTag({ content: axe.source });
   const violations = await page.evaluate(async () => (await (window as any).axe.run(document, { resultTypes: ["violations"] })).violations
@@ -27,6 +38,7 @@ test("axe: flag-off retains the legacy canvas and has no command-center Ledger",
   await page.goto(`/canvas/${canvas.id}`);
   await expect(page.getByRole("region", { name: "Canvas" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Ledger" })).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toHaveCount(0);
   await assertAxe(page);
 });
 
@@ -91,6 +103,7 @@ test("axe: mobile command-center destinations are flag-gated and announced", asy
 
 test("tutorial: safe sample completes, resumes, replays, and stays isolated", async ({ page }) => {
   const { canvas } = await seed();
+  const productiveBefore = await productiveSnapshot(canvas.id);
   await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
   await page.goto(`/canvas/${canvas.id}`);
   await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toBeVisible();
@@ -120,6 +133,8 @@ test("tutorial: safe sample completes, resumes, replays, and stays isolated", as
   await page.keyboard.press("?");
   await page.getByRole("button", { name: "Replay safe sample tutorial" }).click();
   await expect(dialog).toContainText("Welcome to your safe sample");
+  await dialog.getByRole("button", { name: "Exit tutorial" }).click();
+  expect(await productiveSnapshot(canvas.id)).toEqual(productiveBefore);
   await assertAxe(page);
 });
 
