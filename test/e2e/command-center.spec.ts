@@ -109,9 +109,11 @@ test("tutorial: safe sample completes, resumes, replays, and stays isolated", as
   await dialog.getByRole("button", { name: "Next" }).click();
   await dialog.getByRole("button", { name: "Place sample task in Today" }).click();
   await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Inspect sample Workstream" }).click();
   await dialog.getByRole("button", { name: "Next" }).click();
   await dialog.getByRole("button", { name: "Complete sample task" }).click();
   await dialog.getByRole("button", { name: "Next" }).click();
+  await dialog.getByRole("button", { name: "Inspect sample Review" }).click();
   await dialog.getByRole("button", { name: "Finish tutorial" }).click();
   await expect(dialog).toHaveCount(0);
 
