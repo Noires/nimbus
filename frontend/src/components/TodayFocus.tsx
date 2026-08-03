@@ -140,7 +140,7 @@ function TaskSection({
             const due = dueLabel(task, now, t);
             const blockerTitle = blockerTitles.get(task.id);
             return (
-              <li key={task.id} className="rounded-lg border border-white/10 bg-[#0f0f13]/40 p-2.5">
+              <li key={task.id} className="night-cartography__task-row rounded-lg border border-white/10 bg-[#0f0f13]/40 p-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <p className={`min-w-0 text-xs font-medium ${completed ? "text-gray-500 line-through" : "text-gray-100"}`}>{task.title}</p>
                   {due && <span className="shrink-0 text-[10px] text-amber-200">{due}</span>}

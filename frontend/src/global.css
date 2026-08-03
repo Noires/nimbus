@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* Night Cartography: semantic roles keep the spatial field calm and make
+   destination surfaces share the same luminance, focus, and motion grammar. */
+:root {
+  --nc-canvas: #09111d;
+  --nc-surface: #111c2b;
+  --nc-raised: #18273a;
+  --nc-text: #f1f5f9;
+  --nc-text-muted: #9aabc0;
+  --nc-accent: #63d7e8;
+  --nc-focus: #f4c95d;
+  --nc-border: rgb(162 190 220 / 22%);
+  --nc-radius: 10px;
+  --nc-space-1: 4px; --nc-space-2: 8px; --nc-space-3: 12px; --nc-space-4: 16px; --nc-space-6: 24px; --nc-space-8: 32px;
+}
+
+:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+
 * { box-sizing: border-box; }
 html, body, #root {
   margin: 0;
@@ -102,8 +120,31 @@ html, body, #root {
   border-left: 1px solid rgb(255 255 255 / 10%);
   background: rgb(26 29 36 / 90%);
 }
+/* A destination is a real workspace, not a widened rail. The universal
+   Inspector floats over its edge and can be closed without changing route. */
+.command-center-shell--workspace .command-center-shell__main { grid-column: 2 / 4; }
+.command-center-shell--workspace .command-center-shell__rail { justify-self: end; width: min(24rem, 30vw); height: 100%; z-index: 60; box-shadow: -12px 0 28px rgb(0 0 0 / 35%); }
+.command-center-shell--workspace .command-center-shell__rail-close { display: inline-flex; align-items: center; }
 .command-center-shell__rail-close { display: none; min-height: 2.75rem; margin: .5rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
 .command-center-shell__rail-close:focus-visible, .task-retrieval__input:focus-visible, .task-retrieval__task:focus-visible, .task-retrieval__reveal:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+
+/* Night Cartography assigns visual roles rather than treating every pane as a
+   card: canvas stays deep, destinations are raised zones, and task rows are
+   quiet workstream markers with a single accessible focus grammar. */
+.night-cartography { display: flex; min-height: 100%; flex-direction: column; overflow: auto; background: var(--nc-canvas); color: var(--nc-text); }
+.night-cartography__header { flex: 0 0 auto; padding: var(--nc-space-6) clamp(var(--nc-space-4), 4vw, var(--nc-space-8)); border-bottom: 1px solid var(--nc-border); background: linear-gradient(120deg, rgb(17 28 43 / 98%), rgb(9 17 29 / 98%)); }
+.night-cartography__eyebrow { margin: 0 0 var(--nc-space-1); color: var(--nc-accent); font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.night-cartography__detail { margin: var(--nc-space-2) 0 0; color: var(--nc-text-muted); }
+/* Legacy muted utility copy becomes readable when it inherits a Night
+   Cartography surface or the exposed Inspector rail. */
+.night-cartography .text-gray-500, .command-center-shell__rail .text-gray-500 { color: #aebdce; }
+.night-cartography__body { flex: 1 1 auto; min-height: 0; padding: clamp(var(--nc-space-4), 3vw, var(--nc-space-8)); }
+.night-cartography--canvas { overflow: hidden; }
+.night-cartography--canvas .night-cartography__body { position: relative; padding: 0; overflow: hidden; }
+.night-cartography--inbox .night-cartography__body, .night-cartography--today .night-cartography__body, .night-cartography--review .night-cartography__body, .night-cartography--operations .night-cartography__body, .night-cartography--ledger .night-cartography__body { max-width: 92rem; width: 100%; margin: 0 auto; }
+.night-cartography__task-row { border-color: var(--nc-border); background-color: color-mix(in srgb, var(--nc-raised) 58%, transparent); }
+.command-center-utilities { display: grid; gap: var(--nc-space-4); padding: var(--nc-space-4); }
+.command-center-utilities > h2 { margin: 0; color: var(--nc-text); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
 
 .command-center-state {
   display: flex; align-items: flex-start; gap: 1rem;
@@ -217,6 +258,7 @@ html, body, #root {
 .mobile-command-center__title:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
 
 .mobile-command-center__close,
+.mobile-command-center__capture,
 .mobile-command-center__nav-button,
 .mobile-inbox-triage button,
 .mobile-inbox-triage select {
@@ -224,6 +266,7 @@ html, body, #root {
 }
 
 .mobile-command-center__close,
+.mobile-command-center__capture,
 .mobile-command-center__nav-button,
 .mobile-inbox-triage button,
 .mobile-inbox-triage select {
@@ -234,6 +277,8 @@ html, body, #root {
 }
 
 .mobile-command-center__close { padding: 0 0.75rem; }
+.mobile-command-center__header-actions { display: flex; gap: .5rem; }
+.mobile-command-center__capture { padding: 0 .75rem; border-color: rgb(99 215 232 / 65%); background: rgb(99 215 232 / 12%); color: #d9fbff; }
 
 .mobile-command-center__content {
   min-height: 0;
@@ -250,6 +295,12 @@ html, body, #root {
 
 .mobile-command-center__nav-button { flex: 1 0 auto; padding: 0 0.75rem; }
 .mobile-command-center__nav-button[aria-current="page"] { border-color: rgb(34 211 238 / 70%); background: rgb(34 211 238 / 15%); box-shadow: inset 0 -3px #67e8f9; font-weight: 700; }
+.mobile-utilities { display: grid; gap: 1rem; width: 100%; }
+.mobile-utilities h2, .mobile-utilities p { margin: 0; }
+.mobile-utilities h2 { color: var(--nc-text); font-size: 1rem; }
+.mobile-utilities p { color: var(--nc-text-muted); font-size: .875rem; line-height: 1.5; }
+.mobile-utilities__destinations { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.mobile-utilities__destinations button { min-height: 44px; padding: .5rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius); background: var(--nc-raised); color: var(--nc-text); }
 .mobile-command-center__nav-button:focus-visible, .mobile-command-center__close:focus-visible, .mobile-capture__input:focus-visible, .mobile-capture__submit:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
 .mobile-inbox-triage { width: 100%; }

@@ -85,7 +85,7 @@ export function ReviewRail({
       ) : (
         <ul className="mt-4 space-y-2">
           {queueTasks.map((task) => (
-            <li key={task.id} className="rounded-lg border border-white/10 bg-[#0f0f13]/40 p-2.5">
+            <li key={task.id} className="night-cartography__task-row rounded-lg border border-white/10 bg-[#0f0f13]/40 p-2.5">
               <p className={`min-w-0 text-xs font-medium ${completedQueue ? "text-gray-500 line-through" : "text-gray-100"}`}>{task.title}</p>
               <div className="mt-2 flex flex-wrap gap-1">
                 {!completedQueue && <ActionButton label={t("review.complete")} onClick={() => run(() => onComplete(task))} />}

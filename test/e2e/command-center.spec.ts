@@ -45,6 +45,12 @@ test("axe: Command Center is available on desktop without a legacy value", async
   await expect(page.getByRole("button", { name: "Ledger" })).toBeVisible();
   await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toBeVisible();
   await assertAxe(page);
+
+  for (const destination of ["inbox", "today", "review", "operations", "ledger"]) {
+    await page.goto(`/canvas/${canvas.id}/${destination}`);
+    await expect(page.locator(`[data-workspace="${destination}"]`)).toBeVisible();
+    await assertAxe(page);
+  }
 });
 
 test("a malformed retired legacy value is ignored without being recreated", async ({ page }) => {

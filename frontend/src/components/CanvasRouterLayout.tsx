@@ -10,6 +10,7 @@ interface CanvasRouterLayoutProps {
   navigation: ReactNode;
   commands: ReactNode;
   rail?: ReactNode;
+  fullWidth?: boolean;
   mainRef?: Ref<HTMLElement>;
   children: ReactNode;
   overlays: ReactNode;
@@ -24,6 +25,7 @@ export function CanvasRouterLayout({
   navigation,
   commands,
   rail,
+  fullWidth = false,
   mainRef,
   children,
   overlays,
@@ -39,6 +41,7 @@ export function CanvasRouterLayout({
         navigation={navigation}
         commands={commands}
         rail={rail}
+        fullWidth={fullWidth}
         mainRef={mainRef}
       >
         {children}

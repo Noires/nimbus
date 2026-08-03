@@ -7,7 +7,7 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/share/:token" element={<ShareView />} />
-        <Route path="/canvas/:id" element={<CanvasRouter />} />
+        <Route path="/canvas/:id/*" element={<CanvasRouter />} />
         <Route path="/" element={<CanvasRouter />} />
       </Routes>
     </BrowserRouter>

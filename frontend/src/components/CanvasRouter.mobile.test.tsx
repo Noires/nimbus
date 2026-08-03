@@ -158,7 +158,7 @@ describe("CanvasRouter mobile command center", () => {
       root.render(
         <MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}>
           <Routes>
-            <Route path="/canvas/:id" element={<CanvasRouter />} />
+            <Route path="/canvas/:id/*" element={<CanvasRouter />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -224,7 +224,7 @@ describe("CanvasRouter mobile command center", () => {
       root.render(
         <MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}>
           <Routes>
-            <Route path="/canvas/:id" element={<CanvasRouter />} />
+            <Route path="/canvas/:id/*" element={<CanvasRouter />} />
           </Routes>
         </MemoryRouter>,
       );
@@ -267,7 +267,7 @@ describe("CanvasRouter mobile command center", () => {
     });
 
     await act(async () => {
-      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id/*" element={<CanvasRouter />} /></Routes></MemoryRouter>);
     });
     const close = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Close mobile command center");
     await act(async () => close?.click());
@@ -308,12 +308,15 @@ describe("CanvasRouter mobile command center", () => {
       root.render(
         <MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}>
           <Routes>
-            <Route path="/canvas/:id" element={<CanvasRouter />} />
+            <Route path="/canvas/:id/*" element={<CanvasRouter />} />
           </Routes>
         </MemoryRouter>,
       );
     });
 
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "More")?.click();
+    });
     await act(async () => {
       [...container.querySelectorAll("button")].find((button) => button.textContent === "Review")?.click();
     });
@@ -360,7 +363,10 @@ describe("CanvasRouter mobile command center", () => {
     });
 
     await act(async () => {
-      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id/*" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "More")?.click();
     });
     await act(async () => {
       [...container.querySelectorAll("button")].find((button) => button.textContent === "Operations")?.click();
@@ -395,7 +401,7 @@ describe("CanvasRouter mobile command center", () => {
     });
 
     await act(async () => {
-      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}/operations`]}><Routes><Route path="/canvas/:id/*" element={<CanvasRouter />} /></Routes></MemoryRouter>);
     });
 
     expect(container.textContent).toContain(operationsTask.title);
@@ -430,7 +436,10 @@ describe("CanvasRouter mobile command center", () => {
     });
 
     await act(async () => {
-      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id/*" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+    await act(async () => {
+      [...container.querySelectorAll("button")].find((button) => button.textContent === "More")?.click();
     });
     await act(async () => {
       [...container.querySelectorAll("button")].find((button) => button.textContent === "Operations")?.click();

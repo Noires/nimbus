@@ -118,7 +118,7 @@ export function WorkstreamsPanel({
         <h2 id="workstreams-heading" className="text-xs font-semibold uppercase tracking-wider text-cyan-200">
           {t("workstreams.title")}
         </h2>
-        <span className="text-[10px] text-gray-500">{t("workstreams.durable")}</span>
+        <span className="text-[10px] text-gray-400">{t("workstreams.durable")}</span>
       </div>
       <p className="mt-1 text-xs leading-5 text-gray-400">{t("workstreams.suggestionsNotice")}</p>
       <ul className="mt-3 space-y-1" aria-label={t("workstreams.listLabel")}>

@@ -28,6 +28,18 @@ describe("SpatialCommandCenterShell", () => {
     expect(html).toContain("Canvas content");
   });
 
+  it("lets a destination use the full primary workspace while its Inspector remains contextual", () => {
+    const html = renderToStaticMarkup(
+      <SpatialCommandCenterShell navigationLabel="Boards" commandLabel="Commands" navigation={<div>Navigation</div>} commands={<div>Commands</div>} rail={<div>Inspector</div>} fullWidth>
+        <div>Inbox workspace</div>
+      </SpatialCommandCenterShell>,
+    );
+
+    expect(html).toContain('class="command-center-shell command-center-shell--with-rail command-center-shell--workspace"');
+    expect(html).toContain("Inbox workspace");
+    expect(html).toContain('aria-label="Context"');
+  });
+
   it("omits the contextual rail when no contextual content is supplied", () => {
     const html = renderToStaticMarkup(
       <SpatialCommandCenterShell

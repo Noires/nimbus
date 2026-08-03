@@ -13,11 +13,14 @@ describe("mobileCommandCenter", () => {
     expect(isMobileCommandCenterEnabled("wide")).toBe(false);
   });
 
-  it("keeps an explicit valid destination and only opens Capture for an invalid or absent destination", () => {
+  it("keeps the operational destinations and opens Today as the safe default", () => {
+    expect(resolveMobileCommandDestination("canvas")).toBe("canvas");
     expect(resolveMobileCommandDestination("inbox")).toBe("inbox");
+    expect(resolveMobileCommandDestination("today")).toBe("today");
+    expect(resolveMobileCommandDestination("more")).toBe("more");
     expect(resolveMobileCommandDestination("inspector")).toBe("inspector");
-    expect(resolveMobileCommandDestination(undefined)).toBe("capture");
-    expect(resolveMobileCommandDestination("invalid")).toBe("capture");
+    expect(resolveMobileCommandDestination(undefined)).toBe("today");
+    expect(resolveMobileCommandDestination("invalid")).toBe("today");
   });
 
   it("routes an Inbox inspector action to the selected task inspector", () => {
