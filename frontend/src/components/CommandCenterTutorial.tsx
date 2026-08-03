@@ -1,0 +1,192 @@
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { t as translate, useLocale, useT } from "../i18n";
+import { applyTutorialSampleAction, createTutorialSample, type TutorialSampleAction, type TutorialSampleState } from "./tutorialSample";
+
+export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v6";
+const TUTORIAL_VERSION = 6;
+const STEPS = ["welcome", "capture", "triage", "workstream", "today", "complete", "review"] as const;
+type TutorialStep = typeof STEPS[number];
+export type TutorialStatus = "in-progress" | "completed" | "skipped";
+type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: TutorialSampleState };
+
+function normalizedStep(step: unknown): number {
+  return typeof step === "number" ? Math.max(0, Math.min(STEPS.length - 1, Math.floor(step))) : 0;
+}
+
+/** Reads only tutorial-owned local data. It never consults the Nimbus store or API. */
+export function readCommandCenterTutorial(): TutorialProgress | null {
+  try {
+    const raw = window.localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<TutorialProgress>;
+    if (value.version !== TUTORIAL_VERSION || !["in-progress", "completed", "skipped"].includes(value.status ?? "")) return null;
+    const sample = value.sample;
+    if (!sample || typeof sample.captured !== "boolean" || typeof sample.triaged !== "boolean" || typeof sample.assigned !== "boolean" || typeof sample.today !== "boolean" || typeof sample.completed !== "boolean" || typeof sample.workstreamInspected !== "boolean" || typeof sample.reviewInspected !== "boolean") return null;
+    return { version: TUTORIAL_VERSION, status: value.status as TutorialStatus, step: normalizedStep(value.step), sample };
+  } catch { return null; }
+}
+
+function writeProgress(progress: TutorialProgress) {
+  try { window.localStorage.setItem(COMMAND_CENTER_TUTORIAL_KEY, JSON.stringify(progress)); } catch { /* Local storage is optional. */ }
+}
+
+function newProgress(): TutorialProgress {
+  return { version: TUTORIAL_VERSION, status: "in-progress", step: 0, sample: createTutorialSample() };
+}
+
+function actionComplete(step: TutorialStep, sample: TutorialSampleState): boolean {
+  if (step === "capture") return sample.captured;
+  if (step === "triage") return sample.triaged && sample.assigned;
+  if (step === "workstream") return sample.triaged && sample.assigned && sample.workstreamInspected;
+  if (step === "today") return sample.workstreamInspected && sample.today;
+  if (step === "complete") return sample.today && sample.completed;
+  if (step === "review") return sample.completed && sample.reviewInspected;
+  return true;
+}
+
+/**
+ * A client-only, deterministic sample Canvas. Every record is contained in this
+ * component's tutorial-local state and optional localStorage checkpoint: no
+ * productive task, workstream, canvas, zone, setting, or history can be read or mutated.
+ */
+export function CommandCenterTutorial({ open, onClose, replay = false, onStatusChange }: {
+  open: boolean;
+  onClose: () => void;
+  replay?: boolean;
+  onStatusChange?: (status: TutorialStatus) => void;
+}) {
+  // Subscribe for a later application language change, but use the store's
+  // current value for SSR too (Zustand's SSR hook otherwise returns its initial
+  // snapshot rather than the test/runtime-selected locale).
+  useLocale((state) => state.locale);
+  const applicationLocale = useLocale.getState().locale;
+  // The sample may demonstrate EN/DE without changing the productive
+  // application's persisted language preference.
+  const [locale, setLocale] = useState(applicationLocale);
+  const t = (key: string, vars?: Record<string, string | number>) => translate(key, vars, locale);
+  const [progress, setProgress] = useState<TutorialProgress>(newProgress);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const current = STEPS[progress.step];
+  const restoreFocus = () => {
+    const opener = openerRef.current;
+    if (opener?.isConnected && opener !== document.body) opener.focus();
+    else document.getElementById("command-center-tutorial-return")?.focus();
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const saved = readCommandCenterTutorial();
+    const next = replay || saved?.status !== "in-progress" ? newProgress() : saved;
+    setProgress(next);
+    setLocale(applicationLocale);
+    if (replay) {
+      writeProgress(next);
+      onStatusChange?.(next.status);
+    }
+    queueMicrotask(() => closeButton.current?.focus());
+    return () => {
+      restoreFocus();
+    };
+  }, [open, replay, onStatusChange, applicationLocale]);
+
+  useEffect(() => {
+    if (open) queueMicrotask(() => titleRef.current?.focus());
+  }, [open, current, locale]);
+
+  if (!open) return null;
+  const save = (next: TutorialProgress) => { setProgress(next); writeProgress(next); };
+  const close = (status: TutorialStatus) => {
+    writeProgress({ ...progress, status });
+    onStatusChange?.(status);
+    // Restore focus before requesting the parent to unmount the dialog. This
+    // also covers Help → replay transitions where Help's trigger no longer
+    // exists by the time the tutorial closes.
+    restoreFocus();
+    onClose();
+  };
+  const go = (step: number) => save({ ...progress, status: "in-progress", step: normalizedStep(step) });
+  const performSampleAction = () => {
+    if (current === "welcome") return;
+    const sample = applyTutorialSampleAction(progress.sample, current as TutorialSampleAction);
+    save({ ...progress, status: "in-progress", sample });
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    // The dialog is a self-contained sample environment. Do not let any key
+    // reach CanvasRouter's productive global shortcuts (Space, N, undo, etc.).
+    // Tab and Escape retain the explicit tutorial behavior below.
+    event.stopPropagation();
+    if (event.key === "Escape") {
+      // CanvasRouter owns global Escape shortcuts. The tutorial is a local,
+      // isolated lab, so closing it must not also alter the productive Canvas.
+      event.preventDefault();
+      close("in-progress");
+      return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if (!focusable?.length) return;
+    const first = focusable[0]; const last = focusable[focusable.length - 1];
+    // The programmatic heading target is intentionally not part of the normal
+    // tab sequence. Treat Shift+Tab from it as wrapping to the final dialog
+    // control, rather than allowing focus to escape behind the modal.
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === titleRef.current)) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+  };
+  const needsAction = ["capture", "triage", "workstream", "today", "complete", "review"].includes(current);
+  const complete = actionComplete(current, progress.sample);
+
+  return <div className="command-center-tutorial-backdrop" role="presentation">
+    <section ref={dialogRef} className="command-center-tutorial" role="dialog" aria-modal="true" aria-labelledby="command-center-tutorial-title" aria-describedby="command-center-tutorial-description" onKeyDown={handleKeyDown}>
+      <header className="command-center-tutorial__header">
+        <div><p className="command-center-tutorial__eyebrow">{t("tutorial.sampleLabel")}</p><h2 ref={titleRef} tabIndex={-1} id="command-center-tutorial-title">{t(`tutorial.${current}.title`)}</h2></div>
+        <div className="command-center-tutorial__utilities">
+          <button type="button" onClick={() => setLocale(locale === "en" ? "de" : "en")} aria-label={t("tutorial.languageAria")}>{t(locale === "en" ? "tutorial.languageGerman" : "tutorial.languageEnglish")}</button>
+          <button ref={closeButton} type="button" onClick={() => close("in-progress")} aria-label={t("tutorial.exitAria")}>{t("tutorial.exit")}</button>
+        </div>
+      </header>
+      <div className="command-center-tutorial__sample" aria-label={t("tutorial.sampleCanvasAria")}>
+        <span className="command-center-tutorial__sample-badge">{t("tutorial.sampleLabel")}</span>
+        <div className="command-center-tutorial__sample-workflow" aria-live="polite">
+          <div className={`command-center-tutorial__sample-card${progress.sample.captured ? " is-complete" : ""}`}><strong>{t("tutorial.sampleTask")}</strong><span>{progress.sample.captured ? t("tutorial.status.inbox") : t("tutorial.status.draft")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.triaged ? " is-complete" : ""}`}><strong>{t("tutorial.sampleInbox")}</strong><span>{progress.sample.triaged ? t("tutorial.status.triaged") : t("tutorial.status.waiting")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.assigned ? " is-complete" : ""}`}><strong>{t("tutorial.sampleWorkstream")}</strong><span>{progress.sample.assigned ? t("tutorial.status.assigned") : t("tutorial.status.waiting")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.today ? " is-complete" : ""}`}><strong>{t("tutorial.sampleToday")}</strong><span>{progress.sample.today ? t("tutorial.status.focus") : t("tutorial.status.waiting")}</span></div>
+          <div className={`command-center-tutorial__sample-card${progress.sample.completed ? " is-complete" : ""}`}><strong>{t("tutorial.sampleReview")}</strong><span>{progress.sample.completed ? t("tutorial.status.complete") : t("tutorial.status.waiting")}</span></div>
+        </div>
+        <p className="command-center-tutorial__sample-caption">{t(`tutorial.${current}.sample`)}</p>
+        <p className="command-center-tutorial__privacy" aria-live="polite">{t("tutorial.isolation")}</p>
+        {needsAction && <button type="button" className="command-center-tutorial__primary" onClick={performSampleAction}>{complete ? t("tutorial.actionDone") : t(`tutorial.${current}.action`)}</button>}
+      </div>
+      <p id="command-center-tutorial-description">{t(`tutorial.${current}.body`)}</p>
+      <footer className="command-center-tutorial__actions">
+        <span aria-live="polite">{t("tutorial.progress", { current: progress.step + 1, total: STEPS.length })}</span>
+        <div>
+          {progress.step > 0 && <button type="button" onClick={() => go(progress.step - 1)}>{t("tutorial.back")}</button>}
+          <button type="button" onClick={() => { save(newProgress()); onStatusChange?.("in-progress"); }}>{t("tutorial.reset")}</button>
+          <button type="button" onClick={() => close("skipped")}>{t("tutorial.skip")}</button>
+          <button type="button" className="command-center-tutorial__primary" disabled={!complete} onClick={() => progress.step === STEPS.length - 1 ? close("completed") : go(progress.step + 1)}>{progress.step === STEPS.length - 1 ? t("tutorial.openWorkspace") : t("tutorial.next")}</button>
+        </div>
+      </footer>
+    </section>
+  </div>;
+}
+
+export function CommandCenterTutorialOffer({ onStart }: { onStart: () => void }) {
+  const t = useT();
+  const [progress, setProgress] = useState<TutorialProgress | null>(() => readCommandCenterTutorial());
+  if (progress?.status === "completed" || progress?.status === "skipped") return null;
+  const resume = progress?.status === "in-progress";
+  return <aside className="command-center-tutorial-offer" aria-label={t("tutorial.offerAria")}>
+    <strong>{t(resume ? "tutorial.resumeTitle" : "tutorial.offerTitle")}</strong><p>{t("tutorial.offerBody")}</p>
+    <button type="button" className="command-center-tutorial__primary" onClick={() => { const next = progress ?? newProgress(); writeProgress(next); setProgress(next); onStart(); }}>{t(resume ? "tutorial.resume" : "tutorial.start")}</button>
+    <button type="button" onClick={() => { const next = { ...(progress ?? newProgress()), status: "skipped" as const }; writeProgress(next); setProgress(next); }}>{t("tutorial.notNow")}</button>
+  </aside>;
+}
+
+export function resetCommandCenterTutorial() {
+  try { window.localStorage.removeItem(COMMAND_CENTER_TUTORIAL_KEY); } catch { /* no-op */ }
+}

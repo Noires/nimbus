@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useStore, visibleTasks, CARD_W, CARD_H, type Task, type CanvasSettings } from "../store";
 import { nearestInDirection, nearestToPoint, type Direction } from "../utils/spatialNav";
@@ -39,6 +39,8 @@ import { useCanvasDataLoader } from "../hooks/useCanvasDataLoader";
 import { MobileCommandCenter } from "./MobileCommandCenter";
 import { MobileCapture } from "./MobileCapture";
 import { MobileInboxTriage } from "./MobileInboxTriage";
+import { CommandCenterTutorial, CommandCenterTutorialOffer } from "./CommandCenterTutorial";
+import { CommandCenterState } from "./CommandCenterState";
 import {
   isMobileCommandCenterEnabled,
   MOBILE_COMMAND_CENTER_QUERY,
@@ -48,6 +50,7 @@ import {
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
+  | { mode: "capture" }
   | { mode: "edit"; task: Task };
 
 type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "operations" | "more";
@@ -56,14 +59,17 @@ export function resolveRailLabel({
   reviewRailOpen,
   todayFocusOpen,
   inboxTriageOpen,
+  operationsOpen = false,
 }: {
   reviewRailOpen: boolean;
   todayFocusOpen: boolean;
   inboxTriageOpen: boolean;
+  operationsOpen?: boolean;
 }): string {
   if (reviewRailOpen) return tr("review.title");
   if (todayFocusOpen) return tr("today.label");
   if (inboxTriageOpen) return tr("inbox.triage.label");
+  if (operationsOpen) return tr("operations.label");
   return tr("workstreams.title");
 }
 
@@ -77,6 +83,9 @@ export function CanvasRouter() {
   const [modal, setModal] = useState<ModalState | null>(null);
   const [timelapse, setTimelapse] = useState(false);
   const [pulseOpen, setPulseOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialReplay, setTutorialReplay] = useState(false);
+  const [tutorialOfferRevision, setTutorialOfferRevision] = useState(0);
   const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
   const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
   const mobileCommandCenterEligible = isMobileCommandCenterEnabled({
@@ -101,6 +110,7 @@ export function CanvasRouter() {
   const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
   const [todayFocusOpen, setTodayFocusOpen] = useState(false);
   const [reviewRailOpen, setReviewRailOpen] = useState(false);
+  const [operationsOpen, setOperationsOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
   const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
@@ -111,6 +121,16 @@ export function CanvasRouter() {
   const mobileInspectorTriggerRef = useRef<HTMLElement | null>(null);
   const mobileInspectorTaskIdRef = useRef<string | null>(null);
   const mobileRestoreInspectorFocusRef = useRef(false);
+  const mobileCommandCenterTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileRestoreCommandCenterFocusRef = useRef(false);
+
+  const closeCommandCenterRail = () => {
+    setInboxTriageOpen(false);
+    setTodayFocusOpen(false);
+    setReviewRailOpen(false);
+    setOperationsOpen(false);
+    setLedgerOpen(false);
+  };
 
   const openMobileInspector = (task: Task, returnDestination: MobileInspectorReturnDestination) => {
     mobileInspectorTriggerRef.current = typeof document !== "undefined" && document.activeElement instanceof HTMLElement
@@ -142,6 +162,18 @@ export function CanvasRouter() {
     }
   }, [mobileDestination]);
 
+  useEffect(() => {
+    if (mobileRestoreCommandCenterFocusRef.current && !mobileCommandCenterOpen) {
+      mobileRestoreCommandCenterFocusRef.current = false;
+      queueMicrotask(() => mobileCommandCenterTriggerRef.current?.focus());
+    }
+  }, [mobileCommandCenterOpen]);
+
+  const closeMobileCommandCenter = () => {
+    mobileRestoreCommandCenterFocusRef.current = true;
+    setMobileCommandCenterOpen(false);
+  };
+
   const canvasId = params.id ?? null;
   const canvasIdRef = useRef(canvasId);
   canvasIdRef.current = canvasId;
@@ -152,8 +184,10 @@ export function CanvasRouter() {
   // Digest + wake notifications (60s cadence, per-day deduped).
   useEffect(() => startNotificationLoop(() => canvasIdRef.current), []);
 
-  useEffect(() => {
-    useStore
+  const loadCanvases = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    return useStore
       .getState()
       .loadCanvases()
       .then(() => setLoading(false))
@@ -162,6 +196,13 @@ export function CanvasRouter() {
         setLoading(false);
       });
   }, []);
+  const refreshTutorialOffer = useCallback(() => {
+    setTutorialOfferRevision((revision) => revision + 1);
+  }, []);
+
+  useEffect(() => {
+    void loadCanvases();
+  }, [loadCanvases]);
 
   // Redirect to the first canvas only when the URL doesn't name one.
   useEffect(() => {
@@ -216,13 +257,17 @@ export function CanvasRouter() {
         } else if (store.zoneDraw) {
           store.setZoneDraw(false);
         } else if (mobileCommandCenter) {
-          setMobileCommandCenterOpen(false);
+          closeMobileCommandCenter();
         } else if (spatialCommandCenterShell && inboxTriageOpen) {
           setInboxTriageOpen(false);
         } else if (spatialCommandCenterShell && todayFocusOpen) {
           setTodayFocusOpen(false);
         } else if (spatialCommandCenterShell && reviewRailOpen) {
           setReviewRailOpen(false);
+        } else if (spatialCommandCenterShell && operationsOpen) {
+          setOperationsOpen(false);
+        } else if (spatialCommandCenterShell && ledgerOpen) {
+          setLedgerOpen(false);
         } else if (spatialCommandCenterShell && (store.selectedIds.length || selectedWorkstreamId)) {
           store.clearSelection();
           setSelectedWorkstreamId(null);
@@ -433,7 +478,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, mobileCommandCenter, mobileDestination, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
+  }, [canvasId, inboxTriageOpen, ledgerOpen, mobileCommandCenter, mobileDestination, operationsOpen, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -441,7 +486,7 @@ export function CanvasRouter() {
       if (modal.mode === "edit") {
         await useStore.getState().patchTask(modal.task.id, data);
       } else {
-        let { x, y } = modal;
+        let { x, y } = modal.mode === "create" ? modal : {};
         if (x === undefined || y === undefined) {
           // Spawn at the center of the visible viewport, in world coordinates.
           const { zoom, panX, panY, viewportW, viewportH } = useStore.getState();
@@ -449,7 +494,10 @@ export function CanvasRouter() {
           x = (viewportW / 2 - panX) / zoom - 128 + jitter();
           y = (viewportH / 2 - panY) / zoom - 80 + jitter();
         }
-        await useStore.getState().addTask({ ...data, canvasId, x, y });
+        // The Command Center's visible Capture action is intentionally
+        // different from generic canvas creation: captured work begins in
+        // Inbox/Triage, where the user explicitly decides what happens next.
+        await useStore.getState().addTask({ ...data, canvasId, x, y, inbox: modal.mode === "capture" });
       }
     } catch (e) {
       console.error(e);
@@ -457,9 +505,13 @@ export function CanvasRouter() {
     }
   };
 
-  if (loading) return <div className="p-8 text-gray-400">{tr("a.router.loading")}</div>;
+  if (loading) {
+    if (spatialCommandCenterShell) return <CommandCenterState kind="loading" title={tr("a.router.loading")} detail={tr("d.state.loadingDetail")} />;
+    return <div className="p-8 text-gray-400">{tr("a.router.loading")}</div>;
+  }
 
   if (error) {
+    if (spatialCommandCenterShell) return <CommandCenterState kind="error" title={tr("a.router.apiError")} detail={tr("d.state.errorDetail")} action={<button type="button" onClick={() => void loadCanvases()}>{tr("d.state.retry")}</button>} />;
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-2 text-gray-400">
         <div className="text-red-400">{tr("a.router.apiError")}</div>
@@ -486,9 +538,32 @@ export function CanvasRouter() {
         <div className="mt-4 space-y-2">
           <button
             type="button"
+            aria-pressed={!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen}
+            onClick={() => {
+              setTodayFocusOpen(false);
+              setInboxTriageOpen(false);
+              setReviewRailOpen(false);
+              setLedgerOpen(false);
+              setOperationsOpen(false);
+            }}
+            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
+          >
+            <span>{tr("d.shell.canvas")}</span><span aria-hidden="true" className="text-cyan-300">⌘</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setModal({ mode: "capture" })}
+            className="flex w-full items-center justify-between rounded-lg border border-cyan-300 bg-cyan-300 px-3 py-2 text-left text-xs font-semibold text-slate-950 transition-colors hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+          >
+            <span>{tr("mobile.command.capture")}</span><span aria-hidden="true">+</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={todayFocusOpen}
             onClick={() => {
               if (!todayFocusOpen) setInboxTriageOpen(false);
               if (!todayFocusOpen) setReviewRailOpen(false);
+              if (!todayFocusOpen) setOperationsOpen(false);
               setTodayFocusOpen(!todayFocusOpen);
             }}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
@@ -502,9 +577,11 @@ export function CanvasRouter() {
           </button>
           <button
             type="button"
+            aria-pressed={inboxTriageOpen}
             onClick={() => {
               setTodayFocusOpen(false);
               setReviewRailOpen(false);
+              setOperationsOpen(false);
               setInboxTriageOpen(true);
               setInboxTriageFocusNonce((nonce) => nonce + 1);
             }}
@@ -519,10 +596,12 @@ export function CanvasRouter() {
           </button>
           <button
             type="button"
+            aria-pressed={reviewRailOpen}
             onClick={() => {
               if (!reviewRailOpen) {
                 setTodayFocusOpen(false);
                 setInboxTriageOpen(false);
+                setOperationsOpen(false);
               }
               setReviewRailOpen(!reviewRailOpen);
             }}
@@ -537,16 +616,33 @@ export function CanvasRouter() {
           </button>
           <button
             type="button"
+            aria-pressed={operationsOpen}
+            onClick={() => {
+              if (!operationsOpen) {
+                setTodayFocusOpen(false);
+                setInboxTriageOpen(false);
+                setReviewRailOpen(false);
+                setLedgerOpen(false);
+              }
+              setOperationsOpen(!operationsOpen);
+            }}
+            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
+          >
+            <span>{tr("operations.label")}</span><span aria-hidden="true" className="text-cyan-300">↗</span>
+          </button>
+          <button
+            type="button"
             aria-pressed={ledgerOpen}
             onClick={() => {
               setTodayFocusOpen(false);
               setInboxTriageOpen(false);
               setReviewRailOpen(false);
+              setOperationsOpen(false);
               setLedgerOpen(!ledgerOpen);
             }}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${ledgerOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
           >
-            <span>Ledger</span><span className="text-cyan-300">≡</span>
+            <span>{tr("d.shell.ledger")}</span><span className="text-cyan-300">≡</span>
           </button>
         </div>
       )}
@@ -597,6 +693,24 @@ export function CanvasRouter() {
         setLedgerOpen(false);
         useStore.getState().setSelected([task.id]);
       }} />
+    ) : operationsOpen ? (
+      <OperationsView
+        tasks={tasks}
+        workstreams={workstreams}
+        dependencies={dependencies}
+        onOpenInspector={(task) => {
+          setOperationsOpen(false);
+          setSelectedWorkstreamId(null);
+          useStore.getState().setSelected([task.id]);
+        }}
+        onReveal={(task) => {
+          const store = useStore.getState();
+          store.setSelected([task.id]);
+          store.flashTask(task.id);
+          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+          setOperationsOpen(false);
+        }}
+      />
     ) : reviewRailOpen ? (
       <ReviewRail
         tasks={tasks}
@@ -770,7 +884,7 @@ export function CanvasRouter() {
       {timelapse && <TimelapseBar canvasId={canvasId} onClose={() => setTimelapse(false)} />}
       {modal && (
         <CreateModal
-          key={modal.mode === "edit" ? modal.task.id : "create"}
+          key={modal.mode === "edit" ? modal.task.id : modal.mode}
           initial={modal.mode === "edit" ? modal.task : null}
           variant={modal.mode === "edit" ? "panel" : "modal"}
           onClose={() => setModal(null)}
@@ -779,9 +893,9 @@ export function CanvasRouter() {
       )}
     </>
   ) : (
-    <div className="flex items-center justify-center h-full text-gray-500">
-      {tr("a.router.noCanvases")}
-    </div>
+    spatialCommandCenterShell
+      ? <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />
+      : <div className="flex items-center justify-center h-full text-gray-500">{tr("a.router.noCanvases")}</div>
   );
   const overlays = (
     <>
@@ -790,14 +904,27 @@ export function CanvasRouter() {
         <HelpPanel
           spatialCommandCenterShell={spatialCommandCenterShell}
           onClose={() => useStore.getState().setHelpOpen(false)}
+          onStartTutorial={() => {
+            useStore.getState().setHelpOpen(false);
+            setTutorialReplay(true);
+            setTutorialOpen(true);
+          }}
         />
       )}
+      {spatialCommandCenterShell && <CommandCenterTutorialOffer key={tutorialOfferRevision} onStart={() => {
+        setTutorialReplay(false);
+        setTutorialOpen(true);
+      }} />}
+      {spatialCommandCenterShell && <CommandCenterTutorial open={tutorialOpen} replay={tutorialReplay} onClose={() => {
+        setTutorialOpen(false);
+        setTutorialReplay(false);
+      }} onStatusChange={refreshTutorialOffer} />}
       <Toast />
     </>
   );
 
   const mobileContent = (() => {
-    if (!canvasId) return <p>{tr("mobile.command.unavailable")}</p>;
+    if (!canvasId) return <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />;
 
     if (mobileDestination === "capture") {
       return (
@@ -853,11 +980,11 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
           onFocus={(task) => {
             useStore.getState().startFocus([task.id]);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
         />
       );
@@ -876,11 +1003,11 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
           onFocus={(task) => {
             useStore.getState().startFocus([task.id]);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
           onOpenToday={() => setMobileDestination("today")}
           onOpenInbox={() => setMobileDestination("inbox")}
@@ -891,6 +1018,7 @@ export function CanvasRouter() {
     if (mobileDestination === "operations") {
       return (
         <OperationsView
+          mobile
           tasks={tasks}
           workstreams={workstreams}
           dependencies={dependencies}
@@ -900,7 +1028,7 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
         />
       );
@@ -909,6 +1037,7 @@ export function CanvasRouter() {
     if (mobileDestination === "more") {
       return (
         <TaskRetrieval
+          mobile
           tasks={tasks}
           onOpenInspector={(task) => openMobileInspector(task, "more")}
           onReveal={(task) => {
@@ -916,7 +1045,7 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
         />
       );
@@ -940,16 +1069,19 @@ export function CanvasRouter() {
 
   if (mobileCommandCenter) {
     return (
+      <>
       <MobileCommandCenter
         destination={resolveMobileCommandDestination(mobileDestination)}
         onDestinationChange={(destination) => {
           setMobileInspectorTask(null);
           setMobileDestination(destination);
         }}
-        onClose={() => setMobileCommandCenterOpen(false)}
+        onClose={closeMobileCommandCenter}
       >
         {mobileContent}
       </MobileCommandCenter>
+      {overlays}
+      </>
     );
   }
 
@@ -959,7 +1091,9 @@ export function CanvasRouter() {
         spatialCommandCenterShell={spatialCommandCenterShell}
         navigationLabel={tr("d.shell.navigation")}
         commandLabel={tr("d.shell.globalCommands")}
-        railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen })}
+        railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen, operationsOpen })}
+        closeRailLabel={tr("d.shell.closeRail")}
+        onCloseRail={closeCommandCenterRail}
         navigation={navigation}
         commands={commands}
         rail={rail}
@@ -969,7 +1103,7 @@ export function CanvasRouter() {
         {mainContent}
       </CanvasRouterLayout>
       {mobileCommandCenterEligible && (
-        <button type="button" className="mobile-command-center-launcher" onClick={() => setMobileCommandCenterOpen(true)}>
+        <button ref={mobileCommandCenterTriggerRef} type="button" className="mobile-command-center-launcher" onClick={() => setMobileCommandCenterOpen(true)}>
           {tr("mobile.command.label")}
         </button>
       )}

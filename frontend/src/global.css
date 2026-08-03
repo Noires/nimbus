@@ -39,7 +39,7 @@ html, body, #root {
 }
 
 .command-center-shell--with-rail {
-  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr) minmax(16rem, 22rem);
+  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1.75fr) minmax(18rem, 0.75fr);
 }
 
 .command-center-shell__navigation {
@@ -59,6 +59,15 @@ html, body, #root {
   position: relative;
   z-index: 50;
   min-width: 0;
+  min-height: 10rem;
+  height: clamp(10.5rem, 24vh, 14rem);
+  padding: 1rem 0;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  background: rgb(26 29 36 / 90%);
+}
+
+.command-center-shell--with-rail .command-center-shell__commands {
+  grid-column: 2 / 4;
 }
 
 .command-center-shell__main {
@@ -72,29 +81,86 @@ html, body, #root {
 
 .command-center-shell__rail {
   grid-column: 3;
-  grid-row: 1 / -1;
+  grid-row: 2;
   min-width: 0;
   overflow-y: auto;
   border-left: 1px solid rgb(255 255 255 / 10%);
   background: rgb(26 29 36 / 90%);
 }
+.command-center-shell__rail-close { display: none; min-height: 2.75rem; margin: .5rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
+.command-center-shell__rail-close:focus-visible, .task-retrieval__input:focus-visible, .task-retrieval__task:focus-visible, .task-retrieval__reveal:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
-@media (max-width: 768px) {
-  .command-center-shell {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-
-  .command-center-shell__navigation,
-  .command-center-shell__rail {
-    display: none;
-  }
-
-  .command-center-shell__commands,
-  .command-center-shell__main {
-    grid-column: 1;
-  }
+.command-center-state {
+  display: flex; align-items: flex-start; gap: 1rem;
+  width: min(38rem, calc(100vw - 2rem)); margin: min(18vh, 10rem) auto; padding: 1.25rem;
+  border: 1px solid rgb(103 232 249 / 35%); border-radius: .85rem; background: #161b25;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
 }
+.command-center-state--error { border-color: rgb(252 165 165 / 60%); }
+.command-center-state__icon { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border-radius: 999px; background: rgb(103 232 249 / 15%); color: #a5f3fc; font-weight: 800; }
+.command-center-state--error .command-center-state__icon { background: rgb(252 165 165 / 15%); color: #fecaca; }
+.command-center-state__title { margin: 0; font-size: 1rem; color: #f8fafc; }
+.command-center-state__detail { margin: .4rem 0 0; color: #cbd5e1; line-height: 1.5; }
+.command-center-state__action { margin-top: .8rem; }
+.command-center-state__action button { min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
+.command-center-state__action button:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+
+/* Compact desktop keeps the Canvas usable: contextual information becomes an
+   on-demand overlay rather than a third permanently narrow column. */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .command-center-shell--with-rail { grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr); }
+  .command-center-shell--with-rail .command-center-shell__commands { grid-column: 2; }
+  .command-center-shell__rail {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+    width: min(22rem, 88vw);
+    height: 100%;
+    z-index: 60;
+    box-shadow: -12px 0 28px rgb(0 0 0 / 35%);
+  }
+  .command-center-shell__rail-close { display: inline-flex; align-items: center; }
+}
+
+.command-center-tutorial-offer {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 130;
+  max-width: 23rem;
+  padding: 1rem;
+  border: 1px solid rgb(103 232 249 / 40%);
+  border-radius: .75rem;
+  background: #161b25;
+  box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+.command-center-tutorial-offer button { pointer-events: auto; }
+.command-center-tutorial-offer p { margin: .4rem 0 .8rem; color: #cbd5e1; font-size: .875rem; }
+.command-center-tutorial-offer button, .command-center-tutorial__actions button, .command-center-tutorial__header button, .command-center-tutorial__sample > button {
+  min-height: 2.75rem; padding: .5rem .75rem; margin: .125rem; border: 1px solid rgb(255 255 255 / 20%); border-radius: .4rem; color: #f8fafc; background: transparent;
+}
+.command-center-tutorial__primary { background: #0e7490 !important; border-color: #67e8f9 !important; }
+.command-center-tutorial-backdrop { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 1rem; background: rgb(0 0 0 / 65%); }
+.command-center-tutorial { width: min(42rem, 100%); max-height: min(44rem, 100%); overflow: auto; padding: 1.25rem; border: 1px solid rgb(103 232 249 / 45%); border-radius: .9rem; background: #121722; color: #f8fafc; box-shadow: 0 24px 60px rgb(0 0 0 / 55%); }
+.command-center-tutorial__header, .command-center-tutorial__actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.command-center-tutorial__utilities { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem; }
+.command-center-tutorial__header h2 { margin: 0; font-size: 1.25rem; }
+.command-center-tutorial__eyebrow { margin: 0 0 .25rem; color: #67e8f9; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.command-center-tutorial__sample { position: relative; min-height: 8rem; margin: 1rem 0; padding: 3rem 1rem 1rem; border: 1px dashed rgb(103 232 249 / 60%); border-radius: .6rem; background: radial-gradient(circle at 30% 25%, rgb(34 211 238 / 18%), transparent 42%), #0b1019; }
+.command-center-tutorial__sample-badge { position: absolute; top: .75rem; left: .75rem; color: #67e8f9; font-size: .75rem; font-weight: 700; }
+.command-center-tutorial__sample-workflow { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem; }
+.command-center-tutorial__sample-card { display: grid; gap: .3rem; min-height: 4.5rem; padding: .7rem; border: 1px solid rgb(148 163 184 / 35%); border-radius: .45rem; background: #253147; color: #e2e8f0; }
+.command-center-tutorial__sample-card strong { font-size: .8rem; }
+.command-center-tutorial__sample-card span { color: #cbd5e1; font-size: .72rem; }
+.command-center-tutorial__sample-card.is-complete { border-color: rgb(103 232 249 / 75%); background: rgb(8 80 101 / 60%); box-shadow: inset 3px 0 #67e8f9; }
+.command-center-tutorial__sample-caption { margin: .8rem 0 0; color: #f8fafc; font-size: .875rem; font-weight: 650; }
+.command-center-tutorial__privacy { color: #a5f3fc; font-size: .875rem; }
+.command-center-tutorial__actions { flex-wrap: wrap; margin-top: 1rem; font-size: .875rem; }
+.command-center-tutorial button:focus-visible, .command-center-tutorial-offer button:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+@media (max-width: 768px) { .command-center-tutorial-offer { left: .75rem; right: .75rem; bottom: 4.5rem; max-width: none; } .command-center-tutorial { padding: 1rem; } }
+@media (prefers-reduced-motion: reduce) { .command-center-tutorial *, .command-center-tutorial-offer * { transition: none !important; animation: none !important; } }
+
 
 /* The mobile companion intentionally replaces, rather than compresses, the
    desktop command-center grid. These rules do not affect the legacy layout. */
@@ -126,6 +192,7 @@ html, body, #root {
 }
 
 .mobile-command-center__title { font-size: 1rem; }
+.mobile-command-center__title:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
 
 .mobile-command-center__close,
 .mobile-command-center__nav-button,
@@ -160,7 +227,8 @@ html, body, #root {
 }
 
 .mobile-command-center__nav-button { flex: 1 0 auto; padding: 0 0.75rem; }
-.mobile-command-center__nav-button[aria-current="page"] { border-color: rgb(34 211 238 / 70%); background: rgb(34 211 238 / 15%); }
+.mobile-command-center__nav-button[aria-current="page"] { border-color: rgb(34 211 238 / 70%); background: rgb(34 211 238 / 15%); box-shadow: inset 0 -3px #67e8f9; font-weight: 700; }
+.mobile-command-center__nav-button:focus-visible, .mobile-command-center__close:focus-visible, .mobile-capture__input:focus-visible, .mobile-capture__submit:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
 .mobile-inbox-triage { width: 100%; }
 .mobile-inbox-triage__list { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
@@ -180,6 +248,20 @@ html, body, #root {
 }
 .mobile-capture__input { padding: 0 0.75rem; border: 1px solid rgb(255 255 255 / 15%); border-radius: 0.5rem; background: rgb(255 255 255 / 5%); color: inherit; }
 .mobile-capture__submit { padding: 0 0.75rem; border: 1px solid rgb(34 211 238 / 70%); border-radius: 0.5rem; background: #164e63; color: #ecfeff; }
+.mobile-capture__submit:disabled { cursor: progress; opacity: .7; }
+.mobile-capture__hint, .mobile-capture__status { margin: 0.5rem 0 0; color: #cbd5e1; font-size: .875rem; line-height: 1.4; }
+.mobile-capture__status { min-height: 1.4em; color: #a5f3fc; }
+
+/* Operations and search are companion destinations too: retain 44px targets
+   without changing the compact desktop rail. */
+.mobile-operations button,
+.mobile-task-retrieval button,
+.mobile-task-retrieval input { min-height: 44px; }
+.mobile-operations button { padding-inline: .75rem; }
+.mobile-operations__task { align-items: flex-start; flex-wrap: wrap; }
+.mobile-operations__title { flex: 1 1 100%; }
+.mobile-operations__actions { flex: 1 1 100%; flex-wrap: wrap; }
+.mobile-operations__actions button { flex: 1 1 9rem; }
 
 .mobile-command-center-launcher {
   position: fixed;

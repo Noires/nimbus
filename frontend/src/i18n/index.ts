@@ -7,9 +7,18 @@ import { enD, deD } from "./fragments/d";
 // Lightweight i18n: flat key → string dictionaries per locale, merged from
 // per-area fragment files. `t()` is callable anywhere (store actions, module
 // functions); components use `useT()` so they re-render on locale switch.
-// Missing keys fall back English → key, so partial dictionaries never crash.
+// Production retains English fallback for legacy surfaces. Tests can opt into
+// strict lookup so a missing changed-flow key fails CI instead of silently
+// rendering fallback copy.
 
 export type Locale = "en" | "de";
+
+declare global {
+  // Runtime-configurable so Vitest can verify both dictionaries without
+  // changing production behavior.
+  // eslint-disable-next-line no-var
+  var __NIMBUS_STRICT_I18N__: boolean | undefined;
+}
 
 const dictionaries: Record<Locale, Record<string, string>> = {
   en: { ...enA, ...enB, ...enC, ...enD },
@@ -31,15 +40,25 @@ export const useLocale = create<{ locale: Locale; setLocale: (locale: Locale) =>
   },
 }));
 
-export function t(key: string, vars?: Record<string, string | number>): string {
-  const { locale } = useLocale.getState();
-  let text = dictionaries[locale][key] ?? dictionaries.en[key] ?? key;
+export function t(key: string, vars?: Record<string, string | number>, localeOverride?: Locale): string {
+  const locale = localeOverride ?? useLocale.getState().locale;
+  const localeText = dictionaries[locale][key];
+  const englishText = dictionaries.en[key];
+  if (globalThis.__NIMBUS_STRICT_I18N__ && (!localeText || !englishText)) {
+    throw new Error(`Missing ${locale} translation: ${key}`);
+  }
+  let text = localeText ?? englishText ?? key;
   if (vars) {
     for (const [name, value] of Object.entries(vars)) {
       text = text.replaceAll(`{${name}}`, String(value));
     }
   }
   return text;
+}
+
+/** Test-only guard for rendering changed EN/DE flows without fallback. */
+export function setStrictI18nForTests(enabled: boolean) {
+  globalThis.__NIMBUS_STRICT_I18N__ = enabled;
 }
 
 /** Hook variant: subscribes to the locale so the component re-renders on switch. */

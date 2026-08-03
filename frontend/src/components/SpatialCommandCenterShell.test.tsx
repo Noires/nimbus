@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SpatialCommandCenterShell } from "./SpatialCommandCenterShell";
 
 describe("SpatialCommandCenterShell", () => {
-  it("renders landmarked navigation, command, main, and optional contextual rail regions", () => {
+  it("renders header, primary, and secondary regions in reading order while retaining navigation", () => {
     const html = renderToStaticMarkup(
       <SpatialCommandCenterShell
         navigationLabel="Boards"
@@ -17,10 +17,14 @@ describe("SpatialCommandCenterShell", () => {
       </SpatialCommandCenterShell>,
     );
 
+    const header = html.indexOf('<header class="command-center-shell__commands" aria-label="Global commands">');
+    const primary = html.indexOf('<main class="command-center-shell__main">');
+    const secondary = html.indexOf('<aside class="command-center-shell__rail" aria-label="Context">');
+
+    expect(header).toBeGreaterThanOrEqual(0);
+    expect(primary).toBeGreaterThan(header);
+    expect(secondary).toBeGreaterThan(primary);
     expect(html).toContain('<aside class="command-center-shell__navigation" aria-label="Boards">');
-    expect(html).toContain('<header class="command-center-shell__commands" aria-label="Global commands">');
-    expect(html).toContain('<main class="command-center-shell__main">');
-    expect(html).toContain('<aside class="command-center-shell__rail" aria-label="Context">');
     expect(html).toContain("Canvas content");
   });
 

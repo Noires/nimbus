@@ -4,6 +4,8 @@ interface SpatialCommandCenterShellProps {
   navigationLabel: string;
   commandLabel: string;
   railLabel?: string;
+  closeRailLabel?: string;
+  onCloseRail?: () => void;
   navigation: ReactNode;
   commands: ReactNode;
   rail?: ReactNode;
@@ -15,6 +17,8 @@ export function SpatialCommandCenterShell({
   navigationLabel,
   commandLabel,
   railLabel,
+  closeRailLabel,
+  onCloseRail,
   navigation,
   commands,
   rail,
@@ -22,7 +26,7 @@ export function SpatialCommandCenterShell({
   children,
 }: SpatialCommandCenterShellProps) {
   return (
-    <div className={`command-center-shell${rail ? " command-center-shell--with-rail" : ""}`}>
+    <div id="command-center-tutorial-return" className={`command-center-shell${rail ? " command-center-shell--with-rail" : ""}`} tabIndex={-1}>
       <aside className="command-center-shell__navigation" aria-label={navigationLabel}>
         {navigation}
       </aside>
@@ -34,6 +38,7 @@ export function SpatialCommandCenterShell({
       </main>
       {rail && (
         <aside className="command-center-shell__rail" aria-label={railLabel}>
+          {onCloseRail && <button type="button" className="command-center-shell__rail-close" onClick={onCloseRail}>{closeRailLabel}</button>}
           {rail}
         </aside>
       )}

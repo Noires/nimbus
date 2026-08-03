@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { Dependency, Task } from "../data/api";
+import { useLocale } from "../i18n";
 import { WorkstreamArrangementPreview, WorkstreamsPanel } from "./WorkstreamsPanel";
 
 const workstreams = [{
@@ -24,6 +25,8 @@ const tasks = [
 ] as Task[];
 
 describe("WorkstreamsPanel", () => {
+  afterEach(() => useLocale.setState({ locale: "en" }));
+
   it("labels durable workstreams separately from transient proximity suggestions", () => {
     const html = renderToStaticMarkup(
       <WorkstreamsPanel
@@ -84,5 +87,19 @@ describe("WorkstreamsPanel", () => {
     expect(html).toContain('disabled=""');
     expect(html).toContain("Apply");
     expect(html).toContain("Cancel");
+  });
+
+  it("localizes arrangement skip reasons instead of exposing internal reason identifiers", () => {
+    useLocale.setState({ locale: "de" });
+    const html = renderToStaticMarkup(
+      <WorkstreamArrangementPreview
+        preview={{ strategy: "tidy-overlaps", scope: "canvas", moved: [], unchanged: [], positions: [], inverse: [], isNoop: true, explanation: "", explanations: [], revision: "test", skipped: [{ id: "task-1", reason: "zone-too-small" }] }}
+        onApply={async () => undefined}
+        onCancel={() => undefined}
+      />,
+    );
+
+    expect(html).toContain("Ausgewählte Zone ist zu klein");
+    expect(html).not.toContain("zone-too-small");
   });
 });

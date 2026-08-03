@@ -82,10 +82,13 @@ describe("OperationsView", () => {
         dependencies={[]}
         onOpenInspector={() => {}}
         onReveal={() => {}}
+        mobile
       />,
     );
 
     expect(html).toContain('data-operations-view="local-derived"');
+    expect(html).toContain("mobile-operations__task");
+    expect(html).toContain("mobile-operations__actions");
     expect(html).toContain('aria-label="Operations"');
     expect(html).toContain("Alpha");
     expect(html).toContain("Assigned task");

@@ -11,6 +11,8 @@ interface OperationsViewProps {
   now?: Date;
   onOpenInspector: (task: Task) => void;
   onReveal: (task: Task) => void;
+  /** The mobile companion guarantees 44px action targets. */
+  mobile?: boolean;
 }
 
 function healthReason(health: WorkstreamHealth, t: ReturnType<typeof useT>): string {
@@ -32,14 +34,14 @@ function healthReason(health: WorkstreamHealth, t: ReturnType<typeof useT>): str
 }
 
 /** Read-only local projection of active tasks, grouped by canonical workstream. */
-export function OperationsView({ tasks, workstreams, dependencies, now = new Date(), onOpenInspector, onReveal }: OperationsViewProps) {
+export function OperationsView({ tasks, workstreams, dependencies, now = new Date(), onOpenInspector, onReveal, mobile = false }: OperationsViewProps) {
   const t = useT();
   const groups = selectOperationsWorkstreams({ tasks, workstreams });
   const workstreamById = new Map(workstreams.map((workstream) => [workstream.id, workstream]));
   const today = localDayKey(now);
 
   return (
-    <section data-operations-view="local-derived" aria-label={t("operations.label")} className="space-y-3">
+    <section data-operations-view="local-derived" aria-label={t("operations.label")} className={`space-y-3${mobile ? " mobile-operations" : ""}`}>
       <h2 className="text-xs font-semibold uppercase tracking-wider text-cyan-200">{t("operations.title")}</h2>
       {groups.length === 0 ? (
         <p className="text-xs text-gray-400">{t("operations.empty")}</p>
@@ -50,7 +52,7 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
           <section key={group.id} aria-label={group.name} className="rounded border border-white/10 bg-black/10 p-2">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
               <h3 className="text-xs font-medium text-cyan-100">{group.name}</h3>
-              {health && <span data-workstream-open-count={health.openCount} className="text-[10px] text-gray-400">{health.openCount} open</span>}
+              {health && <span data-workstream-open-count={health.openCount} className="text-[10px] text-gray-400">{t("operations.openCount", { count: health.openCount })}</span>}
             </div>
             {health && (
               <p data-workstream-health={health.status} data-workstream-health-reason={health.primaryReason} className="mt-1 text-[10px] text-gray-400">
@@ -62,9 +64,9 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
               {group.tasks.map((task) => {
                 const dueToday = task.dueDate !== null && localDayKey(task.dueDate) === today;
                 return (
-                  <li key={task.id} className="flex items-center justify-between gap-2 text-xs text-gray-200">
-                    <span className="min-w-0 truncate">{task.title}</span>
-                    <span className="flex shrink-0 items-center gap-1">
+                  <li key={task.id} className={`flex items-center justify-between gap-2 text-xs text-gray-200${mobile ? " mobile-operations__task" : ""}`}>
+                    <span className={`min-w-0 truncate${mobile ? " mobile-operations__title" : ""}`} title={task.title}>{task.title}</span>
+                    <span className={`flex shrink-0 items-center gap-1${mobile ? " mobile-operations__actions" : ""}`}>
                       <span data-task-priority={task.priority} className="rounded bg-white/5 px-1 text-[10px] text-gray-300">{t(`inspector.priority.${task.priority}`)}</span>
                       {dueToday && <span data-task-today="true" className="rounded bg-cyan-400/10 px-1 text-[10px] text-cyan-100">{t("today.today")}</span>}
                       <button type="button" onClick={() => onOpenInspector(task)} data-mobile-inspector-task={task.id} className="rounded border border-white/15 px-2 py-1 text-[10px] text-gray-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
