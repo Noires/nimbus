@@ -98,9 +98,9 @@ describe("CommandCenterTutorial interactions", () => {
     await act(async () => button(container, "Next")?.click());
     await act(async () => button(container, "Complete sample task")?.click());
     await act(async () => button(container, "Next")?.click());
-    expect(button(container, "Finish tutorial")?.disabled).toBe(true);
+    expect(button(container, "Open my workspace")?.disabled).toBe(true);
     await act(async () => button(container, "Inspect sample Review")?.click());
-    expect(button(container, "Finish tutorial")?.disabled).toBe(false);
+    expect(button(container, "Open my workspace")?.disabled).toBe(false);
     const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
     expect(saved.sample).toMatchObject({ workstreamInspected: true, reviewInspected: true });
   });

@@ -158,7 +158,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
           {progress.step > 0 && <button type="button" onClick={() => go(progress.step - 1)}>{t("tutorial.back")}</button>}
           <button type="button" onClick={() => { save(newProgress()); onStatusChange?.("in-progress"); }}>{t("tutorial.reset")}</button>
           <button type="button" onClick={() => close("skipped")}>{t("tutorial.skip")}</button>
-          <button type="button" className="command-center-tutorial__primary" disabled={!complete} onClick={() => progress.step === STEPS.length - 1 ? close("completed") : go(progress.step + 1)}>{progress.step === STEPS.length - 1 ? t("tutorial.finish") : t("tutorial.next")}</button>
+          <button type="button" className="command-center-tutorial__primary" disabled={!complete} onClick={() => progress.step === STEPS.length - 1 ? close("completed") : go(progress.step + 1)}>{progress.step === STEPS.length - 1 ? t("tutorial.openWorkspace") : t("tutorial.next")}</button>
         </div>
       </footer>
     </section>
