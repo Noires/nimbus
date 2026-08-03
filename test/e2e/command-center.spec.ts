@@ -42,6 +42,19 @@ test("axe: flag-off retains the legacy canvas and has no command-center Ledger",
   await assertAxe(page);
 });
 
+test("flag-off mobile retains the legacy canvas and never exposes command-center navigation or its tutorial", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.setViewportSize({ width: 390, height: 844 });
+  // Deliberately use a malformed, truthy value: only the exact string "true"
+  // may enable the redesigned Command Center.
+  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "enabled"));
+  await page.goto(`/canvas/${canvas.id}`);
+
+  await expect(page.getByRole("region", { name: "Canvas" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Command Center" })).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toHaveCount(0);
+});
+
 test("command header contains the wrapping toolbar before the main region at compact desktop widths", async ({ page }) => {
   const { canvas } = await seed();
   await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));

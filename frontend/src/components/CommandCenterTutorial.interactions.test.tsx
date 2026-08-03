@@ -81,6 +81,19 @@ describe("CommandCenterTutorial interactions", () => {
     expect(localStorage.getItem("locale")).toBeNull();
   });
 
+  it("adopts an application locale change without losing the persisted sample checkpoint", async () => {
+    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+    await act(async () => button(container, "Next")?.click());
+    await act(async () => button(container, "Capture sample task")?.click());
+
+    await act(async () => useLocale.setState({ locale: "de" }));
+
+    expect(container.textContent).toContain("Eine Idee erfassen");
+    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
+      version: 5, status: "in-progress", step: 1, sample: { captured: true, triaged: false, assigned: false },
+    });
+  });
+
   it("requires explicit sample-only Workstream and Review outcomes before advancing", async () => {
     await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
     await act(async () => button(container, "Next")?.click());
