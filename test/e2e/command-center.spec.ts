@@ -33,32 +33,28 @@ async function assertAxe(page: Page) {
   expect(violations, JSON.stringify(violations, null, 2)).toEqual([]);
 }
 
-test("axe: flag-off retains the legacy canvas and has no command-center Ledger", async ({ page }) => {
+test("axe: Command Center is available on desktop without a legacy value", async ({ page }) => {
   const { canvas } = await seed();
   await page.goto(`/canvas/${canvas.id}`);
   await expect(page.getByRole("region", { name: "Canvas" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Ledger" })).toHaveCount(0);
-  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Ledger" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toBeVisible();
   await assertAxe(page);
 });
 
-test("flag-off mobile retains the legacy canvas and never exposes command-center navigation or its tutorial", async ({ page }) => {
+test("a malformed retired legacy value is ignored without being recreated", async ({ page }) => {
   const { canvas } = await seed();
   await page.setViewportSize({ width: 390, height: 844 });
-  // Deliberately use a malformed, truthy value: only the exact string "true"
-  // may enable the redesigned Command Center.
   await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "enabled"));
   await page.goto(`/canvas/${canvas.id}`);
 
-  await expect(page.getByRole("region", { name: "Canvas" })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Command Center" })).toHaveCount(0);
-  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Command Center" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toBeVisible();
+  await expect(page.evaluate(() => localStorage.getItem("nimbus:spatial-command-center-shell"))).resolves.toBe("enabled");
 });
 
 test("command header contains the wrapping toolbar before the main region at compact desktop widths", async ({ page }) => {
   const { canvas } = await seed();
-  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
-
   for (const width of [769, 800]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(`/canvas/${canvas.id}`);
@@ -82,9 +78,8 @@ test("command header contains the wrapping toolbar before the main region at com
   }
 });
 
-test("axe: flag-on supports Ledger saved views, keyboard focus, blocker status, and axe", async ({ page }) => {
+test("axe: universal Command Center supports Ledger saved views, keyboard focus, blocker status, and axe", async ({ page }) => {
   const { canvas } = await seed();
-  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
   await page.goto(`/canvas/${canvas.id}`);
   const ledger = page.getByRole("button", { name: "Ledger" });
   await expect(ledger).toBeVisible();
@@ -101,10 +96,9 @@ test("axe: flag-on supports Ledger saved views, keyboard focus, blocker status, 
   await assertAxe(page);
 });
 
-test("axe: mobile command-center destinations are flag-gated and announced", async ({ page }) => {
+test("axe: mobile Command Center destinations are universally available and announced", async ({ page }) => {
   const { canvas } = await seed();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
   await page.goto(`/canvas/${canvas.id}`);
   const navigation = page.getByRole("navigation", { name: "Command Center" });
   await expect(navigation).toBeVisible();
@@ -117,7 +111,6 @@ test("axe: mobile command-center destinations are flag-gated and announced", asy
 test("tutorial: safe sample completes, resumes, replays, and stays isolated", async ({ page }) => {
   const { canvas } = await seed();
   const productiveBefore = await productiveSnapshot(canvas.id);
-  await page.addInitScript(() => localStorage.setItem("nimbus:spatial-command-center-shell", "true"));
   await page.goto(`/canvas/${canvas.id}`);
   await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toBeVisible();
   await page.getByRole("button", { name: "Start tutorial" }).click();
@@ -156,7 +149,6 @@ test("tutorial: safe sample completes, resumes, replays, and stays isolated", as
 test("tutorial: German first-run copy stays localized and skip remains non-blocking", async ({ page }) => {
   const { canvas } = await seed();
   await page.addInitScript(() => {
-    localStorage.setItem("nimbus:spatial-command-center-shell", "true");
     localStorage.setItem("locale", "de");
   });
   await page.goto(`/canvas/${canvas.id}`);

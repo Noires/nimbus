@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Canvas, Task } from "../store";
 import { CARD_H, CARD_W, useStore } from "../store";
 import { CanvasRouter } from "./CanvasRouter";
-import { SPATIAL_COMMAND_CENTER_SHELL_FLAG } from "./spatialCommandCenterFlag";
+
 
 const canvas: Canvas = {
   id: "canvas-1",
@@ -126,8 +126,7 @@ describe("CanvasRouter task retrieval", () => {
     });
   }
 
-  it("shows localized search in the flag-on desktop rail, opens the existing Inspector by default, and reveals explicitly", async () => {
-    localStorage.setItem(SPATIAL_COMMAND_CENTER_SHELL_FLAG, "true");
+  it("shows localized search in the desktop rail, opens the existing Inspector by default, and reveals explicitly", async () => {
     setStore();
     await render(false);
 
@@ -148,7 +147,7 @@ describe("CanvasRouter task retrieval", () => {
   });
 
   it("uses the More mobile route, opens the existing Inspector by default, and closes the mobile command center after an explicit reveal", async () => {
-    localStorage.setItem(SPATIAL_COMMAND_CENTER_SHELL_FLAG, "true");
+
     setStore();
     await render(true);
 
@@ -169,12 +168,23 @@ describe("CanvasRouter task retrieval", () => {
     expect(container.querySelector('[aria-label="Mobile command center"]')).toBeNull();
   });
 
-  it("does not render task retrieval when the command center flag is off", async () => {
+  it.each([
+    ["absent", null],
+    ["malformed", "enabled"],
+    ["true", "true"],
+  ])("keeps the first-run tutorial offer and Help replay available with a %s retired legacy value", async (_description, legacyValue) => {
+    if (legacyValue !== null) localStorage.setItem("nimbus:spatial-command-center-shell", legacyValue);
     setStore();
     await render(false);
 
-    expect(container.querySelector('[aria-label="Task search"]')).toBeNull();
-    expect(container.querySelector('[aria-label="Mobile command center"]')).toBeNull();
+    expect(container.querySelector('[aria-label="First-time tutorial offer"]')).not.toBeNull();
+    await act(async () => button(container, "Start tutorial")?.click());
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    await act(async () => button(container, "Exit tutorial")?.click());
+    await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true })));
+    expect(button(container, "Replay safe sample tutorial")).toBeDefined();
+    await act(async () => button(container, "Replay safe sample tutorial")?.click());
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
   });
 
   it("opens the command palette from Ctrl+K, focuses its input, and returns Escape focus to the canvas", async () => {

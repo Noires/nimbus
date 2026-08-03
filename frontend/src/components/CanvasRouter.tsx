@@ -7,7 +7,7 @@ import { Canvas } from "./Canvas";
 import { Toolbar } from "./Toolbar";
 import { Toast } from "./Toast";
 import { CommandPalette } from "./CommandPalette";
-import { InboxDock } from "./InboxDock";
+
 import { DayDock } from "./DayDock";
 import { SelectionBar } from "./SelectionBar";
 import { TableView } from "./TableView";
@@ -21,7 +21,7 @@ import { startNotificationLoop } from "../utils/notifications";
 import { HelpPanel } from "./HelpPanel";
 import { t as tr, useT } from "../i18n";
 import { CanvasRouterLayout } from "./CanvasRouterLayout";
-import { readSpatialCommandCenterShellFlag } from "./spatialCommandCenterFlag";
+
 import { WorkstreamsPanel } from "./WorkstreamsPanel";
 import { DensitySelector } from "./DensitySelector";
 import { InspectorRail } from "./InspectorRail";
@@ -86,12 +86,8 @@ export function CanvasRouter() {
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialReplay, setTutorialReplay] = useState(false);
   const [tutorialOfferRevision, setTutorialOfferRevision] = useState(0);
-  const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
   const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
-  const mobileCommandCenterEligible = isMobileCommandCenterEnabled({
-    commandCenterEnabled: spatialCommandCenterShell,
-    viewport: narrowViewport ? "narrow" : "wide",
-  });
+  const mobileCommandCenterEligible = isMobileCommandCenterEnabled(narrowViewport ? "narrow" : "wide");
   const [mobileCommandCenterOpen, setMobileCommandCenterOpen] = useState(true);
   const [mobileDestination, setMobileDestination] = useState<MobileCommandDestination>("capture");
   const [mobileInspectorTask, setMobileInspectorTask] = useState<Task | null>(null);
@@ -258,17 +254,17 @@ export function CanvasRouter() {
           store.setZoneDraw(false);
         } else if (mobileCommandCenter) {
           closeMobileCommandCenter();
-        } else if (spatialCommandCenterShell && inboxTriageOpen) {
+        } else if (inboxTriageOpen) {
           setInboxTriageOpen(false);
-        } else if (spatialCommandCenterShell && todayFocusOpen) {
+        } else if (todayFocusOpen) {
           setTodayFocusOpen(false);
-        } else if (spatialCommandCenterShell && reviewRailOpen) {
+        } else if (reviewRailOpen) {
           setReviewRailOpen(false);
-        } else if (spatialCommandCenterShell && operationsOpen) {
+        } else if (operationsOpen) {
           setOperationsOpen(false);
-        } else if (spatialCommandCenterShell && ledgerOpen) {
+        } else if (ledgerOpen) {
           setLedgerOpen(false);
-        } else if (spatialCommandCenterShell && (store.selectedIds.length || selectedWorkstreamId)) {
+        } else if (store.selectedIds.length || selectedWorkstreamId) {
           store.clearSelection();
           setSelectedWorkstreamId(null);
         } else if (store.selectedIds.length) {
@@ -432,32 +428,24 @@ export function CanvasRouter() {
           break;
         case "i":
           e.preventDefault();
-          if (spatialCommandCenterShell) {
-            setTodayFocusOpen(false);
-            setReviewRailOpen(false);
-            setInboxTriageOpen(true);
-            setInboxTriageFocusNonce((nonce) => nonce + 1);
-          } else {
-            store.setInboxOpen(!store.inboxOpen);
-          }
+          setTodayFocusOpen(false);
+          setReviewRailOpen(false);
+          setInboxTriageOpen(true);
+          setInboxTriageFocusNonce((nonce) => nonce + 1);
           break;
         case "o":
-          if (spatialCommandCenterShell) {
-            e.preventDefault();
-            if (!todayFocusOpen) setInboxTriageOpen(false);
-            if (!todayFocusOpen) setReviewRailOpen(false);
-            setTodayFocusOpen(!todayFocusOpen);
-          }
+          e.preventDefault();
+          if (!todayFocusOpen) setInboxTriageOpen(false);
+          if (!todayFocusOpen) setReviewRailOpen(false);
+          setTodayFocusOpen(!todayFocusOpen);
           break;
         case "v":
-          if (spatialCommandCenterShell) {
-            e.preventDefault();
-            if (!reviewRailOpen) {
-              setTodayFocusOpen(false);
-              setInboxTriageOpen(false);
-            }
-            setReviewRailOpen(!reviewRailOpen);
+          e.preventDefault();
+          if (!reviewRailOpen) {
+            setTodayFocusOpen(false);
+            setInboxTriageOpen(false);
           }
+          setReviewRailOpen(!reviewRailOpen);
           break;
         case "w":
           startReview();
@@ -478,7 +466,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, ledgerOpen, mobileCommandCenter, mobileDestination, operationsOpen, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
+  }, [canvasId, inboxTriageOpen, ledgerOpen, mobileCommandCenter, mobileDestination, operationsOpen, reviewRailOpen, selectedWorkstreamId, todayFocusOpen]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -505,20 +493,9 @@ export function CanvasRouter() {
     }
   };
 
-  if (loading) {
-    if (spatialCommandCenterShell) return <CommandCenterState kind="loading" title={tr("a.router.loading")} detail={tr("d.state.loadingDetail")} />;
-    return <div className="p-8 text-gray-400">{tr("a.router.loading")}</div>;
-  }
+  if (loading) return <CommandCenterState kind="loading" title={tr("a.router.loading")} detail={tr("d.state.loadingDetail")} />;
 
-  if (error) {
-    if (spatialCommandCenterShell) return <CommandCenterState kind="error" title={tr("a.router.apiError")} detail={tr("d.state.errorDetail")} action={<button type="button" onClick={() => void loadCanvases()}>{tr("d.state.retry")}</button>} />;
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-2 text-gray-400">
-        <div className="text-red-400">{tr("a.router.apiError")}</div>
-        <div className="text-xs">{error}</div>
-      </div>
-    );
-  }
+  if (error) return <CommandCenterState kind="error" title={tr("a.router.apiError")} detail={tr("d.state.errorDetail")} action={<button type="button" onClick={() => void loadCanvases()}>{tr("d.state.retry")}</button>} />;
 
   const navigation = (
     <>
@@ -534,7 +511,7 @@ export function CanvasRouter() {
         <span className="text-base font-semibold tracking-wide text-gray-100">{tr("app.name")}</span>
       </div>
       <CanvasList canvases={canvases} canvasId={canvasId} />
-      {spatialCommandCenterShell && canvasId && (
+      {canvasId && (
         <div className="mt-4 space-y-2">
           <button
             type="button"
@@ -668,7 +645,7 @@ export function CanvasRouter() {
     setSelectedWorkstreamId(null);
   };
   // Desktop-only, read-only entry in the contextual rail. Mobile keeps its existing route.
-  const desktopOperationsEntry = spatialCommandCenterShell && !narrowViewport && canvasId ? (
+  const desktopOperationsEntry = !narrowViewport && canvasId ? (
     <section data-operations-view="desktop-contextual-rail">
       <OperationsView
         tasks={tasks}
@@ -687,7 +664,7 @@ export function CanvasRouter() {
       />
     </section>
   ) : null;
-  const rail = spatialCommandCenterShell && canvasId ? (
+  const rail = canvasId ? (
     ledgerOpen ? (
       <LedgerView canvasId={canvasId} tasks={tasks} onOpenInspector={(task) => {
         setLedgerOpen(false);
@@ -748,7 +725,7 @@ export function CanvasRouter() {
         dependencies={dependencies}
         state={inboxTriageState}
         focusEnabled
-        blockerStatusEnabled={spatialCommandCenterShell && !narrowViewport}
+        blockerStatusEnabled={!narrowViewport}
         onComplete={(task) => useStore.getState().patchTask(task.id, { done: true })}
         onReturnToInbox={(task) => useStore.getState().patchTask(task.id, { inbox: true })}
         onOpenInspector={(task) => {
@@ -807,7 +784,7 @@ export function CanvasRouter() {
       workstreams={workstreams}
       dependencies={dependencies}
       onBack={returnToWorkstreams}
-      blockerEditor={spatialCommandCenterShell && !narrowViewport ? {
+      blockerEditor={!narrowViewport ? {
         enabled: true,
         onSetBlocker: (taskId, blockerId) => useStore.getState().setTaskBlocker(taskId, blockerId),
       } : undefined}
@@ -868,12 +845,11 @@ export function CanvasRouter() {
       <Canvas
         ref={canvasRef}
         canvasId={canvasId}
-        semanticDensity={spatialCommandCenterShell ? semanticDensity : "normal"}
+        semanticDensity={semanticDensity}
         onCreateAt={(x, y) => setModal({ mode: "create", x, y })}
         onEditTask={(task) => setModal({ mode: "edit", task })}
       />
-      {!spatialCommandCenterShell && <InboxDock canvasId={canvasId} viewportRef={mainRef} />}
-      <SelectionBar canvasId={canvasId} tidyEnabled={spatialCommandCenterShell} />
+      <SelectionBar canvasId={canvasId} tidyEnabled />
       <DayDock />
       <ReviewHud />
       <FocusTimer />
@@ -893,16 +869,13 @@ export function CanvasRouter() {
       )}
     </>
   ) : (
-    spatialCommandCenterShell
-      ? <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />
-      : <div className="flex items-center justify-center h-full text-gray-500">{tr("a.router.noCanvases")}</div>
+    <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />
   );
   const overlays = (
     <>
       <CommandPalette canvasId={canvasId} onNewTask={() => setModal({ mode: "create" })} fallbackFocusRef={canvasRef} />
       {helpOpen && (
         <HelpPanel
-          spatialCommandCenterShell={spatialCommandCenterShell}
           onClose={() => useStore.getState().setHelpOpen(false)}
           onStartTutorial={() => {
             useStore.getState().setHelpOpen(false);
@@ -911,14 +884,14 @@ export function CanvasRouter() {
           }}
         />
       )}
-      {spatialCommandCenterShell && <CommandCenterTutorialOffer key={tutorialOfferRevision} onStart={() => {
+      <CommandCenterTutorialOffer key={tutorialOfferRevision} onStart={() => {
         setTutorialReplay(false);
         setTutorialOpen(true);
-      }} />}
-      {spatialCommandCenterShell && <CommandCenterTutorial open={tutorialOpen} replay={tutorialReplay} onClose={() => {
+      }} />
+      <CommandCenterTutorial open={tutorialOpen} replay={tutorialReplay} onClose={() => {
         setTutorialOpen(false);
         setTutorialReplay(false);
-      }} onStatusChange={refreshTutorialOffer} />}
+      }} onStatusChange={refreshTutorialOffer} />
       <Toast />
     </>
   );
@@ -1088,7 +1061,6 @@ export function CanvasRouter() {
   return (
     <>
       <CanvasRouterLayout
-        spatialCommandCenterShell={spatialCommandCenterShell}
         navigationLabel={tr("d.shell.navigation")}
         commandLabel={tr("d.shell.globalCommands")}
         railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen, operationsOpen })}

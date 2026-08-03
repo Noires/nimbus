@@ -29,7 +29,7 @@ describe("HelpPanel dialog behavior", () => {
     document.body.append(trigger);
     trigger.focus();
     const onClose = vi.fn();
-    await act(async () => root.render(<HelpPanel spatialCommandCenterShell onClose={onClose} onStartTutorial={() => {}} />));
+    await act(async () => root.render(<HelpPanel onClose={onClose} onStartTutorial={() => {}} />));
     await act(async () => { await Promise.resolve(); });
 
     const dialog = container.querySelector<HTMLElement>("[role=dialog]");
@@ -57,7 +57,7 @@ describe("HelpPanel dialog behavior", () => {
       const [helpOpen, setHelpOpen] = useState(true);
       const [tutorialOpen, setTutorialOpen] = useState(false);
       return <>
-        {helpOpen && <HelpPanel spatialCommandCenterShell onClose={() => setHelpOpen(false)} onStartTutorial={() => {
+        {helpOpen && <HelpPanel onClose={() => setHelpOpen(false)} onStartTutorial={() => {
           setHelpOpen(false);
           setTutorialOpen(true);
         }} />}

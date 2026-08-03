@@ -32,11 +32,9 @@ const GROUPS: Array<{ group: string; features: string[] }> = [
 
 export function HelpPanel({
   onClose,
-  spatialCommandCenterShell = false,
   onStartTutorial,
 }: {
   onClose: () => void;
-  spatialCommandCenterShell?: boolean;
   onStartTutorial?: () => void;
 }) {
   const t = useT();
@@ -99,7 +97,7 @@ export function HelpPanel({
             <div id="help-panel-subtitle" className="text-[11px] text-gray-500">{t("help.subtitle")}</div>
           </div>
           <div className="flex items-center gap-2">
-            {spatialCommandCenterShell && onStartTutorial && (
+            {onStartTutorial && (
               <button onClick={onStartTutorial} className="px-2 py-1 rounded-md text-xs text-cyan-200 border border-cyan-300/30 hover:bg-cyan-300/10 transition-colors">
                 {t("tutorial.help")}
               </button>
@@ -126,9 +124,7 @@ export function HelpPanel({
                   <div key={key}>
                     <div className="text-xs font-medium text-gray-200">{t(`${key}.name`)}</div>
                     <div className="text-[11px] text-gray-500 leading-relaxed">
-                      {key === "help.inbox"
-                        ? t(spatialCommandCenterShell ? "help.inbox.triage.desc" : "help.inbox.legacy.desc")
-                        : t(`${key}.desc`)}
+                      {key === "help.inbox" ? t("help.inbox.triage.desc") : t(`${key}.desc`)}
                     </div>
                   </div>
                 ))}

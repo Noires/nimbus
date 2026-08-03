@@ -1,6 +1,6 @@
 # Command Center accessibility release gate / Accessibility-Release-Gate
 
-**Scope / Umfang:** experimental spatial Command Center shell only. Record the release candidate build, browser/OS, viewport, canvas ID, and tester for every run. Mark each box **Pass / Fail / N/A**; a failure is a no-go unless Product Owner accepts it in writing.
+**Scope / Umfang:** universal Command Center. Record the release candidate build, browser/OS, viewport, canvas ID, and tester for every run. Mark each box **Pass / Fail / N/A**; a failure is a no-go unless Product Owner accepts it in writing.
 
 ## 1. Preflight / Vorabprüfung
 
@@ -11,19 +11,19 @@
 - [ ] **EN:** Test desktop at a width above 768 px and mobile at 768 px or below; record exact viewport/device.
   **DE:** Desktop bei mehr als 768 px und Mobil bei 768 px oder weniger testen; exakten Viewport/das Gerät notieren.
 
-## 2. Rollout switch / Rollout-Schalter
+## 2. Universal availability / Universelle Verfügbarkeit
 
-- [ ] **EN — flag off:** In a fresh browser profile, remove `nimbus:spatial-command-center-shell` from Local Storage, reload, and verify the legacy layout is shown and **Tidy selected** is absent.
-  **DE — Flag aus:** In einem frischen Browserprofil `nimbus:spatial-command-center-shell` aus Local Storage entfernen, neu laden und prüfen, dass das Legacy-Layout erscheint und **Auswahl aufräumen** nicht vorhanden ist.
-- [ ] **EN — flag on:** Run `localStorage.setItem('nimbus:spatial-command-center-shell', 'true')`, reload, and verify the Command Center shell and selected-task Tidy control are available on desktop.
-  **DE — Flag an:** `localStorage.setItem('nimbus:spatial-command-center-shell', 'true')` ausführen, neu laden und prüfen, dass die Command-Center-Shell und die Aufräumen-Funktion für ausgewählte Aufgaben auf dem Desktop verfügbar sind.
-- [ ] **EN:** Remove the key, reload, and repeat the flag-off check (rollback proof).
-  **DE:** Den Schlüssel entfernen, neu laden und die Flag-aus-Prüfung wiederholen (Rollback-Nachweis).
+- [ ] **EN:** In a fresh browser profile, load a desktop Canvas and verify the Command Center shell and **Tidy selected** are available without local configuration.
+  **DE:** In einem frischen Browserprofil ein Desktop-Canvas laden und prüfen, dass die Command-Center-Shell und **Auswahl aufräumen** ohne lokale Konfiguration verfügbar sind.
+- [ ] **EN:** At 768 px or below, verify Mobile command center is available without local configuration.
+  **DE:** Bei 768 px oder weniger prüfen, dass Mobiles Command Center ohne lokale Konfiguration verfügbar ist.
+- [ ] **EN:** If a browser retains a stale rollout-flag value, reload and verify the same Command Center is shown; the value must not be read, replaced, or cause an error.
+  **DE:** Wenn ein Browser einen veralteten Rollout-Flag-Wert behält, neu laden und prüfen, dass dasselbe Command Center gezeigt wird; der Wert darf nicht gelesen, ersetzt oder einen Fehler verursachen.
 
 ## 3. Desktop keyboard and focus / Desktop: Tastatur und Fokus
 
-- [ ] **EN:** With the flag on, use only keyboard navigation to reach navigation, global commands, canvas, and contextual rail; each visible focus indicator is perceivable and focus order is logical.
-  **DE:** Bei aktiviertem Flag ausschließlich mit der Tastatur Navigation, globale Befehle, Canvas und Kontextleiste erreichen; jeder sichtbare Fokusindikator ist erkennbar und die Fokusreihenfolge ist logisch.
+- [ ] **EN:** Use only keyboard navigation to reach navigation, global commands, canvas, and contextual rail; each visible focus indicator is perceivable and focus order is logical.
+  **DE:** Ausschließlich mit der Tastatur Navigation, globale Befehle, Canvas und Kontextleiste erreichen; jeder sichtbare Fokusindikator ist erkennbar und die Fokusreihenfolge ist logisch.
 - [ ] **EN:** Open the command palette with `Ctrl+K`; its search field receives focus. Use Arrow Up/Down and Enter to choose a result; press Escape to close. Focus returns to the opener (or canvas fallback) and does not disappear.
   **DE:** Die Befehlspalette mit `Strg+K` öffnen; das Suchfeld erhält Fokus. Mit Pfeil hoch/runter und Enter ein Ergebnis wählen; mit Escape schließen. Der Fokus kehrt zum Auslöser (oder Canvas-Fallback) zurück und geht nicht verloren.
 - [ ] **EN:** In the open palette, Tab and Shift+Tab wrap within the modal; background controls are not reached by keyboard.
@@ -31,7 +31,7 @@
 
 ## 4. Mobile command center / Mobiles Command Center
 
-At 768 px or below with the flag on, open **Mobile command center** and complete all destinations:
+At 768 px or below, open **Mobile command center** and complete all destinations:
 
 - [ ] **EN — Capture:** Capture a non-empty task; it enters Inbox. Submit blank text; no task is created. Simulate or induce a failed request if feasible; input remains and an error is announced.
   **DE — Erfassen:** Eine nicht leere Aufgabe erfassen; sie landet in der Inbox. Leeren Text absenden; es wird keine Aufgabe erstellt. Wenn möglich einen fehlgeschlagenen Request simulieren oder auslösen; die Eingabe bleibt erhalten und ein Fehler wird angekündigt.
@@ -80,7 +80,7 @@ npm run docker:smoke
 
 ## 8. Evidence and decision / Nachweise und Entscheidung
 
-- [ ] **EN:** Attach console/test output, Docker-smoke output, viewport/device/browser/OS, commit SHA, and before/after screenshots or short recordings for flag off/on, keyboard palette focus restoration, each mobile destination, Tidy preview/cancel/apply/undo/stale case, and accessibility-tree/screen-reader checks. Redact task content or identifiers if required.
-  **DE:** Konsolen-/Testausgabe, Docker-Smoke-Ausgabe, Viewport/Gerät/Browser/OS, Commit-SHA sowie Vorher-/Nachher-Screenshots oder kurze Aufzeichnungen für Flag aus/an, Tastatur-Paletten-Fokuswiederherstellung, jedes mobile Ziel, Aufräumen-Vorschau/Abbruch/Anwenden/Rückgängig/veralteter Fall und Accessibility-Tree-/Screenreader-Prüfungen anhängen. Aufgabeninhalte oder Kennungen bei Bedarf schwärzen.
+- [ ] **EN:** Attach console/test output, Docker-smoke output, viewport/device/browser/OS, commit SHA, and screenshots or short recordings proving universal Command Center availability in a fresh browser profile and with a stale retired rollout value, keyboard palette focus restoration, each mobile destination, Tidy preview/cancel/apply/undo/stale case, and accessibility-tree/screen-reader checks. Redact task content or identifiers if required.
+  **DE:** Konsolen-/Testausgabe, Docker-Smoke-Ausgabe, Viewport/Gerät/Browser/OS, Commit-SHA sowie Screenshots oder kurze Aufzeichnungen als Nachweis für die universelle Command-Center-Verfügbarkeit in einem frischen Browserprofil und mit einem veralteten Rollout-Wert, Tastatur-Paletten-Fokuswiederherstellung, jedes mobile Ziel, Aufräumen-Vorschau/Abbruch/Anwenden/Rückgängig/veralteter Fall und Accessibility-Tree-/Screenreader-Prüfungen anhängen. Aufgabeninhalte oder Kennungen bei Bedarf schwärzen.
 - [ ] **GO / FREIGABE:** **EN:** Every applicable item passes, required evidence is attached, and there are no unresolved blocking accessibility, data-loss, rollback, build, or smoke failures. **DE:** Jeder zutreffende Punkt besteht, die erforderlichen Nachweise sind angehängt und es gibt keine ungelösten blockierenden Accessibility-, Datenverlust-, Rollback-, Build- oder Smoke-Fehler.
 - [ ] **NO-GO / KEINE FREIGABE:** **EN:** Any applicable item fails, evidence is missing, an accessibility name/dialog/focus failure remains, Tidy can persist before Apply or overwrite newer data, rollback fails, or build/smoke fails. Escalate to the Product Owner only for an explicit, recorded risk acceptance. **DE:** Jeder fehlgeschlagene zutreffende Punkt, fehlende Nachweise, ein verbleibender Fehler bei zugänglichem Namen/Dialog/Fokus, vor Anwenden gespeichertes Aufräumen oder Überschreiben neuerer Daten, fehlgeschlagener Rollback oder fehlgeschlagener Build/Smoke ist ein No-Go. Nur mit ausdrücklich dokumentierter Risikoakzeptanz an den Product Owner eskalieren.

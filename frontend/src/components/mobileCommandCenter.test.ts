@@ -7,11 +7,10 @@ import {
 } from "./mobileCommandCenter";
 
 describe("mobileCommandCenter", () => {
-  it("enables the companion only when the command-center flag is on at the narrow breakpoint", () => {
+  it("enables the companion at the narrow breakpoint", () => {
     expect(MOBILE_COMMAND_CENTER_QUERY).toBe("(max-width: 768px)");
-    expect(isMobileCommandCenterEnabled({ commandCenterEnabled: true, viewport: "narrow" })).toBe(true);
-    expect(isMobileCommandCenterEnabled({ commandCenterEnabled: false, viewport: "narrow" })).toBe(false);
-    expect(isMobileCommandCenterEnabled({ commandCenterEnabled: true, viewport: "wide" })).toBe(false);
+    expect(isMobileCommandCenterEnabled("narrow")).toBe(true);
+    expect(isMobileCommandCenterEnabled("wide")).toBe(false);
   });
 
   it("keeps an explicit valid destination and only opens Capture for an invalid or absent destination", () => {
