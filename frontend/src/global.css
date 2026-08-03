@@ -126,14 +126,16 @@ html, body, #root {
 .command-center-shell--workspace .command-center-shell__rail { justify-self: end; width: min(24rem, 30vw); height: 100%; z-index: 60; box-shadow: -12px 0 28px rgb(0 0 0 / 35%); }
 .command-center-shell--workspace .command-center-shell__rail-close { display: inline-flex; align-items: center; }
 .command-center-shell__rail-close { display: none; min-height: 2.75rem; margin: .5rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
+.command-center-shell__rail-open, .command-center-shell__rail-backdrop { display: none; }
 .command-center-shell__rail-close:focus-visible, .task-retrieval__input:focus-visible, .task-retrieval__task:focus-visible, .task-retrieval__reveal:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
 /* Night Cartography assigns visual roles rather than treating every pane as a
    card: canvas stays deep, destinations are raised zones, and task rows are
    quiet workstream markers with a single accessible focus grammar. */
-.night-cartography { display: flex; min-height: 100%; flex-direction: column; overflow: auto; background: var(--nc-canvas); color: var(--nc-text); }
+.night-cartography { display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: auto; background: var(--nc-canvas); color: var(--nc-text); }
 .night-cartography__header { flex: 0 0 auto; padding: var(--nc-space-6) clamp(var(--nc-space-4), 4vw, var(--nc-space-8)); border-bottom: 1px solid var(--nc-border); background: linear-gradient(120deg, rgb(17 28 43 / 98%), rgb(9 17 29 / 98%)); }
 .night-cartography__eyebrow { margin: 0 0 var(--nc-space-1); color: var(--nc-accent); font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.night-cartography__title { margin: 0; color: var(--nc-text); font-size: clamp(1.1rem, 2vw, 1.4rem); font-weight: 700; letter-spacing: .01em; }
 .night-cartography__detail { margin: var(--nc-space-2) 0 0; color: var(--nc-text-muted); }
 /* Legacy muted utility copy becomes readable when it inherits a Night
    Cartography surface or the exposed Inspector rail. */
@@ -166,15 +168,9 @@ html, body, #root {
 @media (min-width: 769px) and (max-width: 1100px) {
   .command-center-shell--with-rail { grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr); }
   .command-center-shell--with-rail .command-center-shell__commands { grid-column: 2; }
-  .command-center-shell__rail {
-    grid-column: 2;
-    grid-row: 2;
-    justify-self: end;
-    width: min(22rem, 88vw);
-    height: 100%;
-    z-index: 60;
-    box-shadow: -12px 0 28px rgb(0 0 0 / 35%);
-  }
+  .command-center-shell__rail-open { display: inline-flex; position: absolute; right: 1rem; bottom: .75rem; min-height: 2.75rem; align-items: center; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
+  .command-center-shell__rail-backdrop { display: block; position: fixed; inset: 0; z-index: 59; border: 0; background: rgb(0 0 0 / 45%); }
+  .command-center-shell__rail[role="dialog"] { position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: min(22rem, 88vw); box-shadow: -12px 0 28px rgb(0 0 0 / 35%); }
   .command-center-shell__rail-close { display: inline-flex; align-items: center; }
 }
 
@@ -221,7 +217,8 @@ html, body, #root {
 .command-center-tutorial__privacy { color: #a5f3fc; font-size: .875rem; }
 .command-center-tutorial__actions { flex-wrap: wrap; margin-top: 1rem; font-size: .875rem; }
 .command-center-tutorial button:focus-visible, .command-center-tutorial-offer button:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
-@media (max-width: 768px) { .command-center-tutorial-offer { left: .75rem; right: .75rem; bottom: 4.5rem; max-width: none; } .command-center-tutorial { padding: 1rem; } }
+@media (max-width: 1100px) { .command-center-tutorial-offer { display: none; } }
+@media (max-width: 768px) { .command-center-tutorial { padding: 1rem; } }
 @media (prefers-reduced-motion: reduce) { .command-center-tutorial *, .command-center-tutorial-offer * { transition: none !important; animation: none !important; } }
 
 

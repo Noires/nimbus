@@ -5,12 +5,12 @@ import { describe, expect, it } from "vitest";
 const stylesheet = readFileSync(new URL("../global.css", import.meta.url), "utf8");
 
 describe("command-center shell responsive layout", () => {
-  it("moves the desktop rail over the primary region at compact desktop widths so it cannot take a competing column", () => {
+  it("uses a modal overlay for the compact rail so the work area retains both grid columns", () => {
     const compactDesktop = stylesheet.match(/@media \(min-width: 769px\) and \(max-width: 1100px\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
 
     expect(compactDesktop).toContain("grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr);");
-    expect(compactDesktop).toMatch(/\.command-center-shell__rail\s*\{[\s\S]*?grid-column:\s*2;[\s\S]*?grid-row:\s*2;[\s\S]*?justify-self:\s*end;/);
-    expect(compactDesktop).toMatch(/\.command-center-shell__rail\s*\{[\s\S]*?width:\s*min\(22rem, 88vw\);/);
+    expect(compactDesktop).toMatch(/\.command-center-shell__rail-backdrop\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?inset:\s*0;/);
+    expect(compactDesktop).toMatch(/\.command-center-shell__rail\[role="dialog"\]\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?width:\s*min\(22rem, 88vw\);/);
   });
 
   it("keeps the optional no-rail shell in two explicit columns while sharing the header only when the rail exists", () => {

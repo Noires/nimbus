@@ -10,8 +10,8 @@ async function api(path: string, init?: RequestInit) {
 async function seed() {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const canvas = await api("/api/canvases", { method: "POST", body: JSON.stringify({ name: `E2E ${suffix}` }) });
-  const blocker = await api("/api/tasks", { method: "POST", body: JSON.stringify({ canvasId: canvas.id, title: "E2E blocker", priority: "high" }) });
-  const blocked = await api("/api/tasks", { method: "POST", body: JSON.stringify({ canvasId: canvas.id, title: "E2E blocked", priority: "medium" }) });
+  const blocker = await api("/api/tasks", { method: "POST", body: JSON.stringify({ canvasId: canvas.id, title: "E2E blocker", priority: "high", x: 32, y: 32 }) });
+  const blocked = await api("/api/tasks", { method: "POST", body: JSON.stringify({ canvasId: canvas.id, title: "E2E blocked", priority: "medium", x: 352, y: 32 }) });
   await api(`/api/tasks/${blocked.id}/blocker`, { method: "PUT", body: JSON.stringify({ blockerId: blocker.id }) });
   return { canvas, blocker, blocked };
 }
@@ -60,7 +60,9 @@ test("a malformed retired legacy value is ignored without being recreated", asyn
   await page.goto(`/canvas/${canvas.id}`);
 
   await expect(page.getByRole("navigation", { name: "Command Center" })).toBeVisible();
-  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).not.toBeVisible();
+  await page.keyboard.press("?");
+  await expect(page.getByRole("button", { name: "Replay safe sample tutorial" })).toBeVisible();
   await expect(page.evaluate(() => localStorage.getItem("nimbus:spatial-command-center-shell"))).resolves.toBe("enabled");
 });
 
@@ -87,6 +89,83 @@ test("command header contains the wrapping toolbar before the main region at com
     expect(bounds.toolbar.bottom).toBeLessThanOrEqual(bounds.header.bottom);
     expect(bounds.header.bottom).toBeLessThanOrEqual(bounds.main.top);
   }
+});
+
+test("Canvas cards retain visible, clickable work area at desktop, compact, and mobile viewports", async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 390, height: 844 }]) {
+    const { canvas, blocker } = await seed();
+    await page.setViewportSize(viewport);
+    await page.addInitScript(() => localStorage.setItem("nimbus:command-center-tutorial-v6", JSON.stringify({ version: 6, status: "skipped", step: 0, sample: { captured: false, triaged: false, assigned: false, today: false, completed: false, workstreamInspected: false, reviewInspected: false } })));
+    await page.goto(`/canvas/${canvas.id}`);
+    if (viewport.width < 769) await page.getByRole("button", { name: "Canvas", exact: true }).click();
+
+    const card = page.locator(`[aria-label="${blocker.title}"]`);
+    await expect(card).toBeVisible();
+    const cardBounds = await card.boundingBox();
+    expect(cardBounds?.width).toBeGreaterThan(100);
+    expect(cardBounds?.height).toBeGreaterThan(60);
+    await card.getByRole("button", { name: "Mark done" }).click();
+    await expect(card).toHaveCount(0);
+  }
+});
+
+test("ordinary Canvas card release selects its task Inspector while a drag does not select", async ({ page }) => {
+  const { canvas, blocker, blocked } = await seed();
+  await page.goto(`/canvas/${canvas.id}`);
+  const card = page.locator(`[aria-label="${blocker.title}"]`);
+  await expect(card).toBeVisible();
+
+  const box = await card.boundingBox();
+  if (!box) throw new Error("Canvas task card has no bounding box");
+  await page.mouse.move(box.x + 32, box.y + 24);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 64, box.y + 24);
+  await page.mouse.up();
+  await expect(page.locator('[data-selection-context="directory"]')).toBeVisible();
+
+  const untouchedCard = page.locator(`[aria-label="${blocked.title}"]`);
+  await untouchedCard.click({ position: { x: 32, y: 24 } });
+  await expect(page.locator('[data-selection-context="task"]')).toBeVisible();
+  await expect(page.getByRole("heading", { name: blocked.title })).toBeVisible();
+});
+
+test("compact desktop defers tutorial and opens utilities only on explicit request", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto(`/canvas/${canvas.id}/inbox`);
+
+  await expect(page.getByRole("complementary", { name: "First-time tutorial offer" })).not.toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Utilities" })).toHaveCount(0);
+  await expect(page.getByPlaceholder("Capture into Inbox")).toBeVisible();
+  await page.getByRole("button", { name: "Utilities", exact: true }).click();
+  const utilities = page.getByRole("dialog", { name: "Utilities" });
+  await expect(utilities).toBeVisible();
+  await expect(utilities).toHaveAttribute("aria-modal", "true");
+  await expect(utilities.getByRole("button", { name: "Close panel" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(utilities).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Utilities", exact: true })).toBeFocused();
+  await expect(page.getByPlaceholder("Capture into Inbox")).toBeVisible();
+});
+
+test("More menu empty saved-views message meets AA contrast against its documented surface", async ({ page }) => {
+  const { canvas } = await seed();
+  await page.goto(`/canvas/${canvas.id}`);
+  await page.getByRole("button", { name: "More" }).click();
+  const emptySavedViews = page.getByText("None saved yet.", { exact: true });
+  await expect(emptySavedViews).toBeVisible();
+  const ratio = await emptySavedViews.evaluate((element) => {
+    const channels = getComputedStyle(element).color.match(/\d+/g)?.map(Number);
+    if (!channels || channels.length < 3) throw new Error("Empty saved-views text has no RGB color");
+    const luminance = (rgb: number[]) => rgb.slice(0, 3).map((channel) => {
+      const normalized = channel / 255;
+      return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+    }).reduce((value, channel, index) => value + channel * [0.2126, 0.7152, 0.0722][index], 0);
+    const foreground = luminance(channels);
+    const background = luminance([26, 29, 36]);
+    return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+  });
+  expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
 
 test("axe: universal Command Center supports Ledger saved views, keyboard focus, blocker status, and axe", async ({ page }) => {

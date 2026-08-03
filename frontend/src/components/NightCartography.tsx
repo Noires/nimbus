@@ -15,6 +15,7 @@ export function NightCartographySurface({ kind, title, detail, children }: {
       <header className="night-cartography__header">
         <div>
           <p className="night-cartography__eyebrow">Night Cartography</p>
+          <p className="night-cartography__title" data-workspace-title>{title}</p>
           <span data-workspace-label className="sr-only">{title} workspace</span>
           {detail && <p className="night-cartography__detail">{detail}</p>}
         </div>

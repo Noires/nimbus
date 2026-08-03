@@ -90,6 +90,7 @@ export function CanvasRouter() {
   const [tutorialReplay, setTutorialReplay] = useState(false);
   const [tutorialOfferRevision, setTutorialOfferRevision] = useState(0);
   const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
+  const compactDesktop = useMediaQuery("(min-width: 769px) and (max-width: 1100px)", false);
   const mobileCommandCenterEligible = isMobileCommandCenterEnabled(narrowViewport ? "narrow" : "wide");
   const [mobileCommandCenterOpen, setMobileCommandCenterOpen] = useState(true);
   const [mobileDestination, setMobileDestination] = useState<MobileCommandDestination>("today");
@@ -112,6 +113,7 @@ export function CanvasRouter() {
   const [reviewRailOpen, setReviewRailOpen] = useState(false);
   const [operationsOpen, setOperationsOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [compactRailOpen, setCompactRailOpen] = useState(false);
   const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
   const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
   const modalRef = useRef(modal);
@@ -127,6 +129,7 @@ export function CanvasRouter() {
   const closeCommandCenterRail = () => {
     useStore.getState().clearSelection();
     setSelectedWorkstreamId(null);
+    setCompactRailOpen(false);
   };
 
   const openMobileInspector = (task: Task, returnDestination: MobileInspectorReturnDestination) => {
@@ -614,7 +617,7 @@ export function CanvasRouter() {
     store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
     navigateDestination("canvas");
   };
-  const rail = canvasId ? <InspectorRail
+  const rail = canvasId && (!compactDesktop || compactRailOpen) ? <InspectorRail
     context={selectionContext}
     tasks={tasks}
     workstreams={workstreams}
@@ -887,8 +890,11 @@ export function CanvasRouter() {
         navigationLabel={tr("d.shell.navigation")}
         commandLabel={tr("d.shell.globalCommands")}
         railLabel={selectionContext.kind === "directory" ? tr("d.utilities.label") : tr("inspector.label")}
+        railModal={compactDesktop && compactRailOpen}
+        railToggle={compactDesktop}
+        openRailLabel={selectionContext.kind === "directory" ? tr("d.utilities.label") : tr("inspector.label")}
         closeRailLabel={tr("d.shell.closeRail")}
-        onCloseRail={closeCommandCenterRail}
+        onCloseRail={compactDesktop && !compactRailOpen ? () => setCompactRailOpen(true) : closeCommandCenterRail}
         navigation={navigation}
         commands={commands}
         rail={rail}

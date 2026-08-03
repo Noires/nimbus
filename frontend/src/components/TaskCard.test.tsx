@@ -1,7 +1,10 @@
+// @vitest-environment jsdom
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskCard, taskCardTransition } from "./TaskCard";
-import type { Task } from "../store";
+import { useStore, type Task } from "../store";
 
 const task = {
   id: "task-1",
@@ -79,5 +82,67 @@ describe("TaskCard semantic density", () => {
 
   it("disables card motion when reduced motion is requested", () => {
     expect(taskCardTransition(true, false)).toEqual({ duration: 0 });
+  });
+});
+
+describe("TaskCard pointer selection", () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+    Element.prototype.setPointerCapture = () => {};
+    container = document.createElement("div");
+    document.body.append(container);
+    root = createRoot(container);
+    useStore.setState({
+      tasks: [task],
+      selectedIds: [],
+      draggingTaskId: null,
+      lens: "off",
+      readOnly: false,
+      zones: [],
+      patchTask: vi.fn().mockResolvedValue(undefined),
+    });
+  });
+
+  afterEach(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+
+  const pointer = (type: string, clientX: number, clientY: number) => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.assign(event, { button: 0, pointerId: 1, clientX, clientY });
+    return event;
+  };
+
+  it("selects an ordinary card click after pointer release", async () => {
+    await act(async () => {
+      root.render(<TaskCard task={task} dimmed={false} blocked={false} onEdit={() => {}} />);
+    });
+    const card = container.querySelector<HTMLElement>(`[aria-label="${task.title}"]`)!;
+
+    await act(async () => {
+      card.dispatchEvent(pointer("pointerdown", 20, 20));
+      card.dispatchEvent(pointer("pointerup", 20, 20));
+    });
+
+    expect(useStore.getState().selectedIds).toEqual([task.id]);
+  });
+
+  it("does not select a card when its pointer gesture moved it", async () => {
+    await act(async () => {
+      root.render(<TaskCard task={task} dimmed={false} blocked={false} onEdit={() => {}} />);
+    });
+    const card = container.querySelector<HTMLElement>(`[aria-label="${task.title}"]`)!;
+
+    await act(async () => {
+      card.dispatchEvent(pointer("pointerdown", 20, 20));
+      card.dispatchEvent(pointer("pointermove", 40, 20));
+      card.dispatchEvent(pointer("pointerup", 40, 20));
+    });
+
+    expect(useStore.getState().selectedIds).toEqual([]);
   });
 });

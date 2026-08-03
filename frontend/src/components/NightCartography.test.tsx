@@ -20,7 +20,7 @@ describe("NightCartographySurface semantics", () => {
     container.remove();
   });
 
-  it("uses a non-landmark workspace label instead of adding a second Canvas region", async () => {
+  it("gives Canvas a visible identity without adding a second landmark or heading", async () => {
     await act(async () => {
       root.render(<NightCartographySurface kind="canvas" title="Canvas"><div role="region" aria-label="Canvas" /></NightCartographySurface>);
     });
@@ -29,6 +29,7 @@ describe("NightCartographySurface semantics", () => {
     expect(surface).not.toBeNull();
     expect(surface?.getAttribute("aria-labelledby")).toBeNull();
     expect(surface?.querySelector("[data-workspace-label]")?.textContent).toBe("Canvas workspace");
+    expect(surface?.querySelector("[data-workspace-title]")?.textContent).toBe("Canvas");
     expect(surface?.querySelector("h1, h2, h3, h4, h5, h6")).toBeNull();
     expect(container.querySelectorAll('[role="region"][aria-label="Canvas"]')).toHaveLength(1);
   });

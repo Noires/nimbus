@@ -169,16 +169,22 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
     drag.current = null;
     store.setDragging(null);
 
-    // Group move: commit the whole selection as one batch-undo step.
-    if (d.group) {
-      store.commitClusterMove(store.selectedIds, d.group).catch((err) => console.error(err));
-      return;
-    }
-
-    // Shift+click (no movement) toggles lasso membership instead of dragging.
     const moved = Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY) > 4;
     if (!moved && e.shiftKey && !timeLens) {
       store.toggleSelected(task.id);
+      return;
+    }
+    // A regular release is an explicit Inspector handoff, not merely an
+    // opportunity to bump the card's z-index. Keep this ahead of group-move
+    // handling so clicking one member of a multi-selection makes it active.
+    if (!moved && !timeLens) {
+      store.setSelected([task.id]);
+      return;
+    }
+
+    // Group move: commit the whole selection as one batch-undo step.
+    if (d.group) {
+      store.commitClusterMove(store.selectedIds, d.group).catch((err) => console.error(err));
       return;
     }
 

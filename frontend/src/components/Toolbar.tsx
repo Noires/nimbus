@@ -406,7 +406,7 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
               <MenuDivider />
               <MenuLabel>{t("a.toolbar.constellations")}</MenuLabel>
               {templates.length === 0 && (
-                <div className="px-3 py-1 text-[10px] text-gray-600">{t("a.toolbar.noneSaved")}</div>
+                <div className="px-3 py-1 text-[10px] text-gray-300">{t("a.toolbar.noneSaved")}</div>
               )}
               {templates.map((tpl) => (
                 <div key={tpl.id} className="group flex items-center">

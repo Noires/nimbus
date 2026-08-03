@@ -65,4 +65,5 @@ describe("Toolbar information architecture", () => {
     expect(html).toContain('data-redo-available="true"');
     expect(html).not.toContain('data-toolbar-primary="redo"');
   });
+
 });

@@ -5,6 +5,9 @@ interface CanvasRouterLayoutProps {
   navigationLabel: string;
   commandLabel: string;
   railLabel?: string;
+  railModal?: boolean;
+  railToggle?: boolean;
+  openRailLabel?: string;
   closeRailLabel?: string;
   onCloseRail?: () => void;
   navigation: ReactNode;
@@ -20,6 +23,9 @@ export function CanvasRouterLayout({
   navigationLabel,
   commandLabel,
   railLabel,
+  railModal,
+  railToggle,
+  openRailLabel,
   closeRailLabel,
   onCloseRail,
   navigation,
@@ -36,6 +42,9 @@ export function CanvasRouterLayout({
         navigationLabel={navigationLabel}
         commandLabel={commandLabel}
         railLabel={railLabel}
+        railModal={railModal}
+        railToggle={railToggle}
+        openRailLabel={openRailLabel}
         closeRailLabel={closeRailLabel}
         onCloseRail={onCloseRail}
         navigation={navigation}
