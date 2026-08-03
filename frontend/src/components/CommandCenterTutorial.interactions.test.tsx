@@ -130,4 +130,16 @@ describe("CommandCenterTutorial interactions", () => {
     expect(dialog?.contains(document.activeElement)).toBe(true);
     expect(document.activeElement).toBe(button(container, "Next"));
   });
+
+  it("does not bubble productive Canvas shortcut keys while the sample dialog is open", async () => {
+    const liveCanvasShortcut = vi.fn();
+    window.addEventListener("keydown", liveCanvasShortcut);
+    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+
+    await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true })));
+    await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true })));
+
+    window.removeEventListener("keydown", liveCanvasShortcut);
+    expect(liveCanvasShortcut).not.toHaveBeenCalled();
+  });
 });

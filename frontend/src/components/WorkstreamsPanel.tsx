@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Dependency, Task, Workstream } from "../data/api";
 import { workstreamTaskCount } from "../data/workstreamSelectors";
 import { selectWorkstreamHealth, type WorkstreamHealth } from "../data/workstreamHealthSelectors";
-import { previewArrangementOperation, type ArrangementPreview } from "../engine/arrangementOperation";
+import { previewArrangementOperation, type ArrangementPreview, type SkippedArrangementEntity } from "../engine/arrangementOperation";
 import type { ArrangementStrategy } from "../engine/arrangementOperation";
 import { useT } from "../i18n";
 
@@ -31,6 +31,10 @@ function healthReason(health: WorkstreamHealth, t: ReturnType<typeof useT>): str
   }
 }
 
+function arrangementSkipReason(reason: SkippedArrangementEntity["reason"], t: ReturnType<typeof useT>): string {
+  return t(`workstreams.arrangementReason.${reason}`);
+}
+
 export function WorkstreamArrangementPreview({
   preview,
   onApply,
@@ -49,7 +53,7 @@ export function WorkstreamArrangementPreview({
           : t("workstreams.arrangementPreview", { moved: preview.moved.length, skipped: preview.skipped.length })}
         {` ${t("workstreams.arrangementUnchanged", { count: preview.unchanged.length })}`}
       </p>
-      {preview.skipped.length > 0 && <ul className="text-xs text-gray-300" aria-label={t("workstreams.arrangementSkipped")}>{preview.skipped.map((item) => <li key={`${item.id}-${item.reason}`}>{item.id}: {item.reason.replaceAll("-", " ")}</li>)}</ul>}
+      {preview.skipped.length > 0 && <ul className="text-xs text-gray-300" aria-label={t("workstreams.arrangementSkipped")}>{preview.skipped.map((item) => <li key={`${item.id}-${item.reason}`}>{item.id}: {arrangementSkipReason(item.reason, t)}</li>)}</ul>}
       <div className="flex gap-2">
         <button
           type="button"

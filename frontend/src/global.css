@@ -258,6 +258,10 @@ html, body, #root {
 .mobile-task-retrieval button,
 .mobile-task-retrieval input { min-height: 44px; }
 .mobile-operations button { padding-inline: .75rem; }
+.mobile-operations__task { align-items: flex-start; flex-wrap: wrap; }
+.mobile-operations__title { flex: 1 1 100%; }
+.mobile-operations__actions { flex: 1 1 100%; flex-wrap: wrap; }
+.mobile-operations__actions button { flex: 1 1 9rem; }
 
 .mobile-command-center-launcher {
   position: fixed;

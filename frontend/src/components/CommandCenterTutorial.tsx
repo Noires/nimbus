@@ -115,11 +115,14 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
     save({ ...progress, status: "in-progress", sample });
   };
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    // The dialog is a self-contained sample environment. Do not let any key
+    // reach CanvasRouter's productive global shortcuts (Space, N, undo, etc.).
+    // Tab and Escape retain the explicit tutorial behavior below.
+    event.stopPropagation();
     if (event.key === "Escape") {
       // CanvasRouter owns global Escape shortcuts. The tutorial is a local,
       // isolated lab, so closing it must not also alter the productive Canvas.
       event.preventDefault();
-      event.stopPropagation();
       close("in-progress");
       return;
     }
