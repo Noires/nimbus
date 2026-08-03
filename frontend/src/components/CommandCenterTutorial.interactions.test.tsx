@@ -47,7 +47,7 @@ describe("CommandCenterTutorial interactions", () => {
     await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
     window.removeEventListener("keydown", liveCanvasEscape);
     const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
-    expect(saved).toMatchObject({ version: 4, status: "in-progress", step: 2, sample: { captured: true } });
+    expect(saved).toMatchObject({ version: 5, status: "in-progress", step: 2, sample: { captured: true } });
     expect(liveCanvasEscape).not.toHaveBeenCalled();
   });
 
@@ -75,7 +75,7 @@ describe("CommandCenterTutorial interactions", () => {
 
     expect(container.textContent).toContain("Eine Idee erfassen");
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      version: 4, step: 1, sample: { captured: true, assigned: false },
+      version: 5, step: 1, sample: { captured: true, assigned: false },
     });
     expect(useLocale.getState().locale).toBe("en");
     expect(localStorage.getItem("locale")).toBeNull();

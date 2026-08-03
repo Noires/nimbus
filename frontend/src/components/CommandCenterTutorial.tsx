@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { t as translate, useLocale, useT } from "../i18n";
+import { applyTutorialSampleAction, createTutorialSample, type TutorialSampleAction, type TutorialSampleState } from "./tutorialSample";
 
-export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v4";
-const TUTORIAL_VERSION = 4;
+export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v5";
+const TUTORIAL_VERSION = 5;
 const STEPS = ["welcome", "capture", "triage", "today", "workstream", "complete", "review"] as const;
 type TutorialStep = typeof STEPS[number];
 export type TutorialStatus = "in-progress" | "completed" | "skipped";
-type SampleState = { captured: boolean; triaged: boolean; assigned: boolean; today: boolean; completed: boolean; workstreamInspected: boolean; reviewInspected: boolean };
-type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: SampleState };
-const INITIAL_SAMPLE: SampleState = { captured: false, triaged: false, assigned: false, today: false, completed: false, workstreamInspected: false, reviewInspected: false };
+type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: TutorialSampleState };
 
 function normalizedStep(step: unknown): number {
   return typeof step === "number" ? Math.max(0, Math.min(STEPS.length - 1, Math.floor(step))) : 0;
@@ -32,10 +31,10 @@ function writeProgress(progress: TutorialProgress) {
 }
 
 function newProgress(): TutorialProgress {
-  return { version: TUTORIAL_VERSION, status: "in-progress", step: 0, sample: { ...INITIAL_SAMPLE } };
+  return { version: TUTORIAL_VERSION, status: "in-progress", step: 0, sample: createTutorialSample() };
 }
 
-function actionComplete(step: TutorialStep, sample: SampleState): boolean {
+function actionComplete(step: TutorialStep, sample: TutorialSampleState): boolean {
   if (step === "capture") return sample.captured;
   if (step === "triage") return sample.triaged && sample.assigned;
   if (step === "today") return sample.today;
@@ -104,13 +103,8 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
   };
   const go = (step: number) => save({ ...progress, status: "in-progress", step: normalizedStep(step) });
   const performSampleAction = () => {
-    const sample = current === "capture" ? { ...progress.sample, captured: true }
-      : current === "triage" ? { ...progress.sample, captured: true, triaged: true, assigned: true }
-        : current === "today" ? { ...progress.sample, captured: true, triaged: true, today: true }
-          : current === "complete" ? { ...progress.sample, captured: true, triaged: true, today: true, completed: true }
-            : current === "workstream" ? { ...progress.sample, workstreamInspected: true }
-              : current === "review" ? { ...progress.sample, reviewInspected: true }
-            : progress.sample;
+    if (current === "welcome") return;
+    const sample = applyTutorialSampleAction(progress.sample, current as TutorialSampleAction);
     save({ ...progress, status: "in-progress", sample });
   };
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
