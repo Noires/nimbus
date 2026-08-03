@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Template } from "../data/api";
 import { useStore, CARD_W, CARD_H, type LensMode } from "../store";
@@ -8,6 +8,7 @@ import { AutopilotPopover } from "./AutopilotPopover";
 import { OrbitPopover } from "./OrbitPopover";
 import { ConnectionsModal } from "./ConnectionsModal";
 import { useLocale, useT } from "../i18n";
+import { history } from "../engine/history";
 
 interface ToolbarProps {
   canvasId: string;
@@ -15,6 +16,8 @@ interface ToolbarProps {
   onOpenTimelapse: () => void;
   onOpenPulse: () => void;
 }
+
+type ToolbarMenu = "lens" | "visibility" | "view" | "more";
 
 const LENSES: Array<{ mode: LensMode; labelKey: string; titleKey: string }> = [
   { mode: "time", labelKey: "a.toolbar.lens.time", titleKey: "a.toolbar.lens.timeTitle" },
@@ -41,6 +44,17 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
   const locale = useLocale((s) => s.locale);
   const setLocale = useLocale((s) => s.setLocale);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [lensOpen, setLensOpen] = useState(false);
+  const [visibilityOpen, setVisibilityOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const lensButtonRef = useRef<HTMLButtonElement>(null);
+  const visibilityButtonRef = useRef<HTMLButtonElement>(null);
+  const viewButtonRef = useRef<HTMLButtonElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const lensMenuRef = useRef<HTMLDivElement>(null);
+  const visibilityMenuRef = useRef<HTMLDivElement>(null);
+  const viewMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   const [connectionsOpen, setConnectionsOpen] = useState(false);
   const connectionError = connections.find((c) => c.status === "error");
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -51,6 +65,77 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
       api.listTemplates().then(setTemplates).catch(() => setTemplates([]));
     }
   }, [menuOpen]);
+
+  const menuRef = (name: ToolbarMenu) => ({ lens: lensMenuRef, visibility: visibilityMenuRef, view: viewMenuRef, more: moreMenuRef })[name];
+  const triggerRef = (name: ToolbarMenu) => ({ lens: lensButtonRef, visibility: visibilityButtonRef, view: viewButtonRef, more: moreButtonRef })[name];
+
+  const enabledMenuItems = (name: ToolbarMenu) => Array.from(menuRef(name).current?.querySelectorAll<HTMLElement>("[role^='menuitem']") ?? [])
+    .filter((item) => !item.hasAttribute("disabled") && item.getAttribute("aria-disabled") !== "true");
+
+  const focusMenuItem = (name: ToolbarMenu, target: "first" | "last" = "first") => {
+    const items = enabledMenuItems(name);
+    items[target === "first" ? 0 : items.length - 1]?.focus();
+  };
+
+  const closeMenu = (name: ToolbarMenu, restoreFocus = true) => {
+    ({ lens: setLensOpen, visibility: setVisibilityOpen, view: setViewOpen, more: setMenuOpen })[name](false);
+    if (restoreFocus) triggerRef(name).current?.focus();
+  };
+
+  const openMenu = (name: ToolbarMenu) => {
+    setLensOpen(name === "lens");
+    setVisibilityOpen(name === "visibility");
+    setViewOpen(name === "view");
+    setMenuOpen(name === "more");
+  };
+
+  const onMenuTriggerKeyDown = (name: ToolbarMenu) => (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (!["Enter", " ", "ArrowDown"].includes(event.key)) return;
+    event.preventDefault();
+    openMenu(name);
+  };
+
+  const onMenuKeyDown = (name: ToolbarMenu) => (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const items = enabledMenuItems(name);
+    const index = items.indexOf(document.activeElement as HTMLElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMenu(name);
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      items[0]?.focus();
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      items[items.length - 1]?.focus();
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const next = event.key === "ArrowDown" ? (index + 1) % items.length : (index - 1 + items.length) % items.length;
+      items[next]?.focus();
+    }
+  };
+
+  useEffect(() => {
+    const openMenuName: ToolbarMenu | undefined = lensOpen ? "lens" : visibilityOpen ? "visibility" : viewOpen ? "view" : menuOpen ? "more" : undefined;
+    if (openMenuName) requestAnimationFrame(() => focusMenuItem(openMenuName));
+  }, [lensOpen, visibilityOpen, viewOpen, menuOpen]);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (lensOpen) closeMenu("lens");
+      else if (visibilityOpen) closeMenu("visibility");
+      else if (viewOpen) closeMenu("view");
+      else if (menuOpen) closeMenu("more");
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [lensOpen, visibilityOpen, viewOpen, menuOpen]);
 
   const canvas = canvases.find((c) => c.id === canvasId);
   const canvasName = canvas?.name ?? "canvas";
@@ -157,147 +242,70 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
   };
 
   const activeCount = tasks.filter((t) => !t.archivedAt && !t.done && !t.inbox).length;
-  const doneCount = tasks.filter((t) => !t.archivedAt && t.done && !t.inbox).length;
-  const archivedCount = tasks.filter((t) => t.archivedAt).length;
+
+  const currentLens = lens === "off" ? t("a.toolbar.lens.off") : t(LENSES.find((item) => item.mode === lens)!.labelKey);
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 rounded-xl bg-[#1a1d24]/90 backdrop-blur-md border border-white/10 px-3 py-2 shadow-xl max-w-[95%] flex-wrap justify-center">
-      <button
-        onClick={onAddTask}
-        className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-purple-600/70 hover:bg-purple-600 transition-colors text-white text-xs font-medium shrink-0"
-        title={t("a.toolbar.addTitle")}
-      >
-        <span className="text-base leading-none">+</span> {t("a.toolbar.add")}
-      </button>
-
-      <div className="w-px h-6 bg-white/10" />
-
-      <input
-        type="search"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.stopPropagation();
-            setSearchQuery("");
-            (e.target as HTMLInputElement).blur();
-          }
-        }}
-        placeholder={t("a.toolbar.searchPlaceholder")}
-        className="w-36 h-8 px-2.5 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-xs transition-colors outline-none"
-      />
-
-      <div className="w-px h-6 bg-white/10" />
-
-      <span className="text-xs text-gray-400 px-1 whitespace-nowrap">
-        {t("a.toolbar.active")} <span className="text-gray-200">{activeCount}</span>
-      </span>
-
-      <button
-        onClick={toggleShowDone}
-        className={`px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap ${
-          showDone ? "bg-white/10 text-white" : "text-gray-400 hover:text-gray-200"
-        }`}
-        title={showDone ? t("a.toolbar.hideDone") : t("a.toolbar.showDone")}
-      >
-        {t("a.toolbar.done")} {doneCount}
-      </button>
-
-      <button
-        onClick={toggleShowArchived}
-        className={`px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap ${
-          showArchived ? "bg-white/10 text-white" : "text-gray-400 hover:text-gray-200"
-        }`}
-        title={showArchived ? t("a.toolbar.hideArchived") : t("a.toolbar.showArchived")}
-      >
-        {t("a.toolbar.arch")} {archivedCount}
-      </button>
-
-      <OrbitPopover />
-
-      <div className="w-px h-6 bg-white/10" />
-
-      {/* Lenses */}
-      {LENSES.map(({ mode, labelKey, titleKey }) => (
-        <button
-          key={mode}
-          onClick={() => setLens(lens === mode ? "off" : mode)}
-          className={`px-2 py-1 rounded-md text-xs transition-colors whitespace-nowrap ${
-            lens === mode ? "bg-cyan-500/20 text-cyan-300" : "text-gray-400 hover:text-gray-200"
-          }`}
-          title={t(titleKey)}
-        >
-          {t(labelKey)}
+    <div role="toolbar" aria-label={t("a.toolbar.label")} className="canvas-toolbar absolute top-4 left-1/2 -translate-x-1/2 z-50">
+      <div className="canvas-toolbar__primary">
+        <button data-toolbar-primary="new-task" onClick={onAddTask} className="canvas-toolbar__primary-action canvas-toolbar__new-task" title={t("a.toolbar.addTitle")}>
+          <span aria-hidden="true">+</span> {t("a.toolbar.add")}
         </button>
-      ))}
-
-      <div className="w-px h-6 bg-white/10" />
-
-      <button
-        onClick={() => void useStore.getState().undo()}
-        className="w-7 h-7 rounded-md text-gray-400 hover:text-white transition-colors"
-        title={t("a.toolbar.undo")}
-      >
-        ↶
-      </button>
-      <button
-        onClick={() => void useStore.getState().redo()}
-        className="w-7 h-7 rounded-md text-gray-400 hover:text-white transition-colors"
-        title={t("a.toolbar.redo")}
-      >
-        ↷
-      </button>
-
-      <div className="w-px h-6 bg-white/10" />
-
-      <button
-        onClick={() => useStore.getState().fitView()}
-        className="px-2 py-1 rounded-md text-xs text-gray-400 hover:text-white transition-colors"
-        title={t("a.toolbar.fitTitle")}
-      >
-        {t("a.toolbar.fit")}
-      </button>
-      <button
-        onClick={() => useStore.getState().setView(1, 0, 0)}
-        className="px-2 py-1 rounded-md text-xs text-gray-400 hover:text-white transition-colors whitespace-nowrap"
-        title={t("a.toolbar.resetTitle")}
-      >
-        {t("a.toolbar.reset")}
-      </button>
-
-      {/* Live-sync state */}
-      <span
-        className={`w-2 h-2 rounded-full shrink-0 ${liveConnected ? "bg-emerald-400 bubble-pulse" : "bg-gray-600"}`}
-        role="status"
-        aria-live="polite"
-        aria-label={liveConnected ? t("a.toolbar.liveOn") : t("a.toolbar.liveOff")}
-      />
-      <span className="sr-only">{liveConnected ? t("a.toolbar.liveOn") : t("a.toolbar.liveOff")}</span>
-      {connectionError && (
-        <button
-          onClick={() => setConnectionsOpen(true)}
-          className="w-4 h-4 rounded-full bg-red-500/20 border border-red-500/60 text-red-400 text-[10px] leading-none shrink-0"
-          aria-label={t("a.toolbar.syncError", { msg: connectionError.statusMessage ?? t("a.toolbar.unknown") })}
-        >
-          !
-        </button>
-      )}
-
-      <button
-        onClick={() => setLocale(locale === "de" ? "en" : "de")}
-        className="px-1.5 h-7 rounded-md text-[10px] text-gray-400 hover:text-white transition-colors"
-        title={t("lang.toggle")}
-      >
-        {locale.toUpperCase()}
-      </button>
-
-      <AutopilotPopover canvasId={canvasId} />
+        <label data-toolbar-primary="search" className="canvas-toolbar__search">
+          <span className="sr-only">{t("a.toolbar.search")}</span>
+          <input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={(e) => {
+            if (e.key === "Escape") { e.stopPropagation(); setSearchQuery(""); (e.target as HTMLInputElement).blur(); }
+          }} placeholder={t("a.toolbar.searchPlaceholder")} />
+        </label>
+        <div className="relative">
+          <button ref={lensButtonRef} data-toolbar-primary="lens" aria-haspopup="menu" aria-expanded={lensOpen} onClick={() => openMenu("lens")} onKeyDown={onMenuTriggerKeyDown("lens")} className="canvas-toolbar__primary-action">
+            {t("a.toolbar.lens")}: {currentLens}
+          </button>
+          {lensOpen && <div ref={lensMenuRef} role="menu" aria-label={t("a.toolbar.lens")} onKeyDown={onMenuKeyDown("lens")} className="canvas-toolbar__menu">
+            <MenuLabel>{t("a.toolbar.lens")}</MenuLabel>
+            {LENSES.map(({ mode, labelKey, titleKey }) => <MenuItem key={mode} kind="radio" checked={lens === mode} onClick={() => { setLens(lens === mode ? "off" : mode); closeMenu("lens"); }} title={t(titleKey)}>{t(labelKey)}</MenuItem>)}
+          </div>}
+        </div>
+        <div className="relative">
+          <button ref={visibilityButtonRef} data-toolbar-primary="visibility" aria-label={`${t("a.toolbar.visibility")}: ${t("a.toolbar.showDone")}, ${t("a.toolbar.showArchived")}`} aria-haspopup="menu" aria-expanded={visibilityOpen} onClick={() => openMenu("visibility")} onKeyDown={onMenuTriggerKeyDown("visibility")} className="canvas-toolbar__primary-action">
+            {t("a.toolbar.visibility")}
+          </button>
+          {visibilityOpen && <div ref={visibilityMenuRef} role="menu" aria-label={t("a.toolbar.visibility")} onKeyDown={onMenuKeyDown("visibility")} className="canvas-toolbar__menu">
+            <MenuLabel>{t("a.toolbar.visibility")}</MenuLabel>
+            <MenuItem checked={showDone} onClick={() => { toggleShowDone(); closeMenu("visibility"); }}>{t("a.toolbar.showDone")}</MenuItem>
+            <MenuItem checked={showArchived} onClick={() => { toggleShowArchived(); closeMenu("visibility"); }}>{t("a.toolbar.showArchived")}</MenuItem>
+          </div>}
+        </div>
+        <button data-toolbar-primary="undo" onClick={() => void useStore.getState().undo()} className="canvas-toolbar__primary-action" title={t("a.toolbar.undo")}>↶ {t("a.toolbar.undoShort")}</button>
+        <div className="relative">
+          <button ref={viewButtonRef} data-toolbar-primary="view" aria-haspopup="menu" aria-expanded={viewOpen} onClick={() => openMenu("view")} onKeyDown={onMenuTriggerKeyDown("view")} className="canvas-toolbar__primary-action">{t("a.toolbar.view")}</button>
+          {viewOpen && <div ref={viewMenuRef} role="menu" aria-label={t("a.toolbar.view")} onKeyDown={onMenuKeyDown("view")} className="canvas-toolbar__menu canvas-toolbar__menu--right">
+            <MenuLabel>{t("a.toolbar.view")}</MenuLabel>
+            <OrbitPopover />
+            <MenuItem onClick={() => { useStore.getState().fitView(); closeMenu("view"); }}>{t("a.toolbar.fit")}</MenuItem>
+            <MenuItem onClick={() => { useStore.getState().setView(1, 0, 0); closeMenu("view"); }}>{t("a.toolbar.reset")}</MenuItem>
+            <AutopilotPopover canvasId={canvasId} />
+          </div>}
+        </div>
+      </div>
+      <div className="canvas-toolbar__utilities">
+        <span className="text-xs text-gray-400 whitespace-nowrap">{t("a.toolbar.active")} <span className="text-gray-200">{activeCount}</span></span>
+        <span className={`w-2 h-2 rounded-full shrink-0 ${liveConnected ? "bg-emerald-400 bubble-pulse" : "bg-gray-600"}`} role="status" aria-live="polite" aria-label={liveConnected ? t("a.toolbar.liveOn") : t("a.toolbar.liveOff")} />
+        {connectionError && <button onClick={() => setConnectionsOpen(true)} className="w-7 h-7 rounded-full bg-red-500/20 border border-red-500/60 text-red-400" aria-label={t("a.toolbar.syncError", { msg: connectionError.statusMessage ?? t("a.toolbar.unknown") })}>!</button>}
+        <button data-toolbar-secondary="language" onClick={() => setLocale(locale === "de" ? "en" : "de")} className="canvas-toolbar__utility-button" title={t("lang.toggle")}>{locale.toUpperCase()}</button>
 
       {/* Overflow menu */}
       <div className="relative">
         <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className={`w-7 h-7 rounded-md text-sm transition-colors ${
+          ref={moreButtonRef}
+          data-toolbar-secondary="more"
+          data-redo-available={history.canRedo}
+          aria-label={t("a.toolbar.more")}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          onClick={() => openMenu("more")}
+          onKeyDown={onMenuTriggerKeyDown("more")}
+          className={`canvas-toolbar__utility-button ${
             menuOpen ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"
           }`}
           title={t("a.toolbar.more")}
@@ -307,7 +315,12 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
         {menuOpen && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-            <div className="absolute right-0 top-9 z-50 w-60 rounded-xl bg-[#1a1d24]/98 border border-white/15 shadow-2xl py-1.5 max-h-[70vh] overflow-y-auto">
+            <div ref={moreMenuRef} role="menu" aria-label={t("a.toolbar.more")} onKeyDown={onMenuKeyDown("more")} className="canvas-toolbar__menu canvas-toolbar__menu--right canvas-toolbar__menu--more">
+              {history.canRedo && <>
+                <MenuLabel>{t("a.toolbar.history")}</MenuLabel>
+                <MenuItem onClick={() => { void useStore.getState().redo(); setMenuOpen(false); moreButtonRef.current?.focus(); }}>{t("a.toolbar.redo")}</MenuItem>
+                <MenuDivider />
+              </>}
               <MenuLabel>{t("a.toolbar.export")}</MenuLabel>
               <MenuItem
                 onClick={() => {
@@ -449,12 +462,13 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
 
               <MenuDivider />
               <MenuItem
+                checked={cardDensity === "mini"}
                 onClick={() => {
                   setMenuOpen(false);
                   useStore.getState().setCardDensity(cardDensity === "mini" ? "full" : "mini", canvasId);
                 }}
               >
-                {cardDensity === "mini" ? "✓ " : ""}{t("a.toolbar.miniCards")}
+                {t("a.toolbar.miniCards")}
               </MenuItem>
               <MenuItem
                 onClick={() => {
@@ -528,6 +542,7 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
           </>
         )}
       </div>
+      </div>
 
       {connectionsOpen && (
         <ConnectionsModal canvasId={canvasId} onClose={() => setConnectionsOpen(false)} />
@@ -536,20 +551,24 @@ export function Toolbar({ canvasId, onAddTask, onOpenTimelapse, onOpenPulse }: T
   );
 }
 
-function MenuItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+function MenuItem({ onClick, children, checked, title, kind = checked === undefined ? "item" : "checkbox" }: { onClick: () => void; children: React.ReactNode; checked?: boolean; title?: string; kind?: "item" | "checkbox" | "radio" }) {
+  const role = kind === "radio" ? "menuitemradio" : kind === "checkbox" ? "menuitemcheckbox" : "menuitem";
   return (
     <button
+      role={role}
+      aria-checked={kind === "item" ? undefined : checked}
+      title={title}
       onClick={onClick}
-      className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-colors truncate"
+      className="w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-white/10 hover:text-white transition-colors whitespace-normal"
     >
-      {children}
+      {checked ? "✓ " : ""}{children}
     </button>
   );
 }
 
 function MenuLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="px-3 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-gray-600">{children}</div>
+    <div className="px-3 pt-1.5 pb-0.5 text-[9px] uppercase tracking-wider text-gray-300">{children}</div>
   );
 }
 
