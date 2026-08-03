@@ -81,6 +81,7 @@ export function CanvasRouter() {
   const [pulseOpen, setPulseOpen] = useState(false);
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialReplay, setTutorialReplay] = useState(false);
+  const [tutorialOfferRevision, setTutorialOfferRevision] = useState(0);
   const [spatialCommandCenterShell] = useState(readSpatialCommandCenterShellFlag);
   const narrowViewport = useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
   const mobileCommandCenterEligible = isMobileCommandCenterEnabled({
@@ -167,6 +168,9 @@ export function CanvasRouter() {
         setError(e instanceof Error ? e.message : String(e));
         setLoading(false);
       });
+  }, []);
+  const refreshTutorialOffer = useCallback(() => {
+    setTutorialOfferRevision((revision) => revision + 1);
   }, []);
 
   useEffect(() => {
@@ -811,14 +815,14 @@ export function CanvasRouter() {
           }}
         />
       )}
-      {spatialCommandCenterShell && <CommandCenterTutorialOffer onStart={() => {
+      {spatialCommandCenterShell && <CommandCenterTutorialOffer key={tutorialOfferRevision} onStart={() => {
         setTutorialReplay(false);
         setTutorialOpen(true);
       }} />}
       {spatialCommandCenterShell && <CommandCenterTutorial open={tutorialOpen} replay={tutorialReplay} onClose={() => {
         setTutorialOpen(false);
         setTutorialReplay(false);
-      }} />}
+      }} onStatusChange={refreshTutorialOffer} />}
       <Toast />
     </>
   );

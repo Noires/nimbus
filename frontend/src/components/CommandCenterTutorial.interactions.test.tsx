@@ -52,7 +52,8 @@ describe("CommandCenterTutorial interactions", () => {
   });
 
   it("resets the deterministic sample state and records a skipped tutorial", async () => {
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+    const statuses: string[] = [];
+    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} onStatusChange={(status) => statuses.push(status)} />));
     await act(async () => button(container, "Next")?.click());
     await act(async () => button(container, "Capture sample task")?.click());
     await act(async () => button(container, "Reset sample")?.click());
@@ -63,6 +64,7 @@ describe("CommandCenterTutorial interactions", () => {
     });
     await act(async () => button(container, "Skip tutorial")?.click());
     expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({ status: "skipped" });
+    expect(statuses).toEqual(["in-progress", "skipped"]);
   });
 
   it("keeps the exact sample checkpoint while switching language in the dialog", async () => {

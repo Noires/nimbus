@@ -50,7 +50,7 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
           <section key={group.id} aria-label={group.name} className="rounded border border-white/10 bg-black/10 p-2">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
               <h3 className="text-xs font-medium text-cyan-100">{group.name}</h3>
-              {health && <span data-workstream-open-count={health.openCount} className="text-[10px] text-gray-400">{health.openCount} open</span>}
+              {health && <span data-workstream-open-count={health.openCount} className="text-[10px] text-gray-400">{t("operations.openCount", { count: health.openCount })}</span>}
             </div>
             {health && (
               <p data-workstream-health={health.status} data-workstream-health-reason={health.primaryReason} className="mt-1 text-[10px] text-gray-400">
@@ -63,7 +63,7 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
                 const dueToday = task.dueDate !== null && localDayKey(task.dueDate) === today;
                 return (
                   <li key={task.id} className="flex items-center justify-between gap-2 text-xs text-gray-200">
-                    <span className="min-w-0 truncate">{task.title}</span>
+                    <span className="min-w-0 truncate" title={task.title}>{task.title}</span>
                     <span className="flex shrink-0 items-center gap-1">
                       <span data-task-priority={task.priority} className="rounded bg-white/5 px-1 text-[10px] text-gray-300">{t(`inspector.priority.${task.priority}`)}</span>
                       {dueToday && <span data-task-today="true" className="rounded bg-cyan-400/10 px-1 text-[10px] text-cyan-100">{t("today.today")}</span>}

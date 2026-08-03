@@ -5,7 +5,7 @@ export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v3";
 const TUTORIAL_VERSION = 3;
 const STEPS = ["welcome", "capture", "triage", "today", "workstream", "complete", "review"] as const;
 type TutorialStep = typeof STEPS[number];
-type TutorialStatus = "in-progress" | "completed" | "skipped";
+export type TutorialStatus = "in-progress" | "completed" | "skipped";
 type SampleState = { captured: boolean; triaged: boolean; assigned: boolean; today: boolean; completed: boolean };
 type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: SampleState };
 const INITIAL_SAMPLE: SampleState = { captured: false, triaged: false, assigned: false, today: false, completed: false };
@@ -48,7 +48,12 @@ function actionComplete(step: TutorialStep, sample: SampleState): boolean {
  * component's tutorial-local state and optional localStorage checkpoint: no
  * productive task, workstream, canvas, zone, setting, or history can be read or mutated.
  */
-export function CommandCenterTutorial({ open, onClose, replay = false }: { open: boolean; onClose: () => void; replay?: boolean }) {
+export function CommandCenterTutorial({ open, onClose, replay = false, onStatusChange }: {
+  open: boolean;
+  onClose: () => void;
+  replay?: boolean;
+  onStatusChange?: (status: TutorialStatus) => void;
+}) {
   const t = useT();
   const locale = useLocale((state) => state.locale);
   const setLocale = useLocale((state) => state.setLocale);
@@ -64,18 +69,25 @@ export function CommandCenterTutorial({ open, onClose, replay = false }: { open:
     const saved = readCommandCenterTutorial();
     const next = replay || saved?.status !== "in-progress" ? newProgress() : saved;
     setProgress(next);
-    if (replay) writeProgress(next);
+    if (replay) {
+      writeProgress(next);
+      onStatusChange?.(next.status);
+    }
     queueMicrotask(() => closeButton.current?.focus());
     return () => {
       const opener = openerRef.current;
       if (opener?.isConnected) opener.focus();
       else document.getElementById("command-center-tutorial-return")?.focus();
     };
-  }, [open, replay]);
+  }, [open, replay, onStatusChange]);
 
   if (!open) return null;
   const save = (next: TutorialProgress) => { setProgress(next); writeProgress(next); };
-  const close = (status: TutorialStatus) => { writeProgress({ ...progress, status }); onClose(); };
+  const close = (status: TutorialStatus) => {
+    writeProgress({ ...progress, status });
+    onStatusChange?.(status);
+    onClose();
+  };
   const go = (step: number) => save({ ...progress, status: "in-progress", step: normalizedStep(step) });
   const performSampleAction = () => {
     const sample = current === "capture" ? { ...progress.sample, captured: true }
@@ -109,7 +121,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false }: { open:
       <header className="command-center-tutorial__header">
         <div><p className="command-center-tutorial__eyebrow">{t("tutorial.sampleLabel")}</p><h2 id="command-center-tutorial-title">{t(`tutorial.${current}.title`)}</h2></div>
         <div className="command-center-tutorial__utilities">
-          <button type="button" onClick={() => setLocale(locale === "en" ? "de" : "en")} aria-label={t("tutorial.languageAria")}>{locale === "en" ? "Deutsch" : "English"}</button>
+          <button type="button" onClick={() => setLocale(locale === "en" ? "de" : "en")} aria-label={t("tutorial.languageAria")}>{t(locale === "en" ? "tutorial.languageGerman" : "tutorial.languageEnglish")}</button>
           <button ref={closeButton} type="button" onClick={() => close("in-progress")} aria-label={t("tutorial.exitAria")}>{t("tutorial.exit")}</button>
         </div>
       </header>
@@ -131,7 +143,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false }: { open:
         <span aria-live="polite">{t("tutorial.progress", { current: progress.step + 1, total: STEPS.length })}</span>
         <div>
           {progress.step > 0 && <button type="button" onClick={() => go(progress.step - 1)}>{t("tutorial.back")}</button>}
-          <button type="button" onClick={() => save(newProgress())}>{t("tutorial.reset")}</button>
+          <button type="button" onClick={() => { save(newProgress()); onStatusChange?.("in-progress"); }}>{t("tutorial.reset")}</button>
           <button type="button" onClick={() => close("skipped")}>{t("tutorial.skip")}</button>
           <button type="button" className="command-center-tutorial__primary" disabled={!complete} onClick={() => progress.step === STEPS.length - 1 ? close("completed") : go(progress.step + 1)}>{progress.step === STEPS.length - 1 ? t("tutorial.finish") : t("tutorial.next")}</button>
         </div>
