@@ -901,11 +901,11 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
           onFocus={(task) => {
             useStore.getState().startFocus([task.id]);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
         />
       );
@@ -924,11 +924,11 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
           onFocus={(task) => {
             useStore.getState().startFocus([task.id]);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
           onOpenToday={() => setMobileDestination("today")}
           onOpenInbox={() => setMobileDestination("inbox")}
@@ -948,7 +948,7 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
         />
       );
@@ -964,7 +964,7 @@ export function CanvasRouter() {
             store.setSelected([task.id]);
             store.flashTask(task.id);
             store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
-            setMobileCommandCenterOpen(false);
+            closeMobileCommandCenter();
           }}
         />
       );
@@ -995,7 +995,7 @@ export function CanvasRouter() {
           setMobileInspectorTask(null);
           setMobileDestination(destination);
         }}
-        onClose={() => setMobileCommandCenterOpen(false)}
+        onClose={closeMobileCommandCenter}
       >
         {mobileContent}
       </MobileCommandCenter>
@@ -1020,7 +1020,7 @@ export function CanvasRouter() {
         {mainContent}
       </CanvasRouterLayout>
       {mobileCommandCenterEligible && (
-        <button type="button" className="mobile-command-center-launcher" onClick={() => setMobileCommandCenterOpen(true)}>
+        <button ref={mobileCommandCenterTriggerRef} type="button" className="mobile-command-center-launcher" onClick={() => setMobileCommandCenterOpen(true)}>
           {tr("mobile.command.label")}
         </button>
       )}

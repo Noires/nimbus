@@ -252,6 +252,38 @@ describe("CanvasRouter mobile command center", () => {
     expect(document.activeElement).toBe(restoredInspectorButton);
   });
 
+  it("returns focus to the mobile launcher when Close or Escape leaves the companion", async () => {
+    vi.stubGlobal("ResizeObserver", class {
+      observe() {}
+      disconnect() {}
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+    const optionalLoad = vi.fn(async () => {});
+    useStore.setState({
+      canvases: [canvas], tasks: [todayTask], workstreams: [], dependencies: [], readOnly: false,
+      loadCanvases: vi.fn(async () => [canvas]), refreshTasks: vi.fn(async () => {}), loadWorkstreams: vi.fn(async () => {}),
+      loadBubbles: optionalLoad, loadDependencies: optionalLoad, loadPortals: optionalLoad, loadZones: optionalLoad, loadConnections: optionalLoad,
+      setCardDensity: vi.fn(), setLiveConnected: vi.fn(),
+    });
+
+    await act(async () => {
+      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
+    });
+    const close = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Close mobile command center");
+    await act(async () => close?.click());
+    await act(async () => { await Promise.resolve(); });
+
+    const launcher = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Mobile command center");
+    expect(launcher).toBeDefined();
+    expect(document.activeElement).toBe(launcher);
+
+    await act(async () => launcher?.click());
+    await act(async () => container.querySelector<HTMLElement>(".mobile-command-center")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    await act(async () => { await Promise.resolve(); });
+    const restoredLauncher = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Mobile command center");
+    expect(document.activeElement).toBe(restoredLauncher);
+  });
+
   it("opens one Review queue at a time and Escape returns its Inspector action before closing focus mode", async () => {
     const optionalLoad = vi.fn(async () => {});
     useStore.setState({

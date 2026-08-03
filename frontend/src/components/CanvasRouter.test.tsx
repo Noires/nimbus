@@ -29,7 +29,7 @@ describe("resolveRailLabel", () => {
     useLocale.setState({ locale: "de" });
 
     try {
-      expect(resolveRailLabel({ reviewRailOpen: true, todayFocusOpen: true, inboxTriageOpen: true })).toBe("Überprüfung");
+      expect(resolveRailLabel({ reviewRailOpen: true, todayFocusOpen: true, inboxTriageOpen: true })).toBe("Review");
     } finally {
       useLocale.setState({ locale: previousLocale });
     }
