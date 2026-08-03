@@ -60,6 +60,7 @@ html, body, #root {
   z-index: 50;
   min-width: 0;
   min-height: 10rem;
+  height: 10.5rem;
   padding: 1rem 0;
   border-bottom: 1px solid rgb(255 255 255 / 10%);
   background: rgb(26 29 36 / 90%);
@@ -129,7 +130,9 @@ html, body, #root {
   border-radius: .75rem;
   background: #161b25;
   box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
+  pointer-events: none;
 }
+.command-center-tutorial-offer button { pointer-events: auto; }
 .command-center-tutorial-offer p { margin: .4rem 0 .8rem; color: #cbd5e1; font-size: .875rem; }
 .command-center-tutorial-offer button, .command-center-tutorial__actions button, .command-center-tutorial__header button, .command-center-tutorial__sample > button {
   min-height: 2.75rem; padding: .5rem .75rem; margin: .125rem; border: 1px solid rgb(255 255 255 / 20%); border-radius: .4rem; color: #f8fafc; background: transparent;
