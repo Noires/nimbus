@@ -80,7 +80,7 @@ export function HelpPanel({
 
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center px-4 py-8">
-      <div className="absolute inset-0 bg-black/60" aria-hidden="true" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
       <motion.div
         ref={dialogRef}
         initial={{ opacity: 0, y: 20, scale: 0.98 }}

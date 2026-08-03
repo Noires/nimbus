@@ -124,6 +124,14 @@ export function CanvasRouter() {
   const mobileCommandCenterTriggerRef = useRef<HTMLButtonElement | null>(null);
   const mobileRestoreCommandCenterFocusRef = useRef(false);
 
+  const closeCommandCenterRail = () => {
+    setInboxTriageOpen(false);
+    setTodayFocusOpen(false);
+    setReviewRailOpen(false);
+    setOperationsOpen(false);
+    setLedgerOpen(false);
+  };
+
   const openMobileInspector = (task: Task, returnDestination: MobileInspectorReturnDestination) => {
     mobileInspectorTriggerRef.current = typeof document !== "undefined" && document.activeElement instanceof HTMLElement
       ? document.activeElement
@@ -256,6 +264,10 @@ export function CanvasRouter() {
           setTodayFocusOpen(false);
         } else if (spatialCommandCenterShell && reviewRailOpen) {
           setReviewRailOpen(false);
+        } else if (spatialCommandCenterShell && operationsOpen) {
+          setOperationsOpen(false);
+        } else if (spatialCommandCenterShell && ledgerOpen) {
+          setLedgerOpen(false);
         } else if (spatialCommandCenterShell && (store.selectedIds.length || selectedWorkstreamId)) {
           store.clearSelection();
           setSelectedWorkstreamId(null);
@@ -466,7 +478,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, mobileCommandCenter, mobileDestination, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
+  }, [canvasId, inboxTriageOpen, ledgerOpen, mobileCommandCenter, mobileDestination, operationsOpen, reviewRailOpen, selectedWorkstreamId, spatialCommandCenterShell, todayFocusOpen]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -1080,6 +1092,8 @@ export function CanvasRouter() {
         navigationLabel={tr("d.shell.navigation")}
         commandLabel={tr("d.shell.globalCommands")}
         railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen, operationsOpen })}
+        closeRailLabel={tr("d.shell.closeRail")}
+        onCloseRail={closeCommandCenterRail}
         navigation={navigation}
         commands={commands}
         rail={rail}

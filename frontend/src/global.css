@@ -87,6 +87,8 @@ html, body, #root {
   border-left: 1px solid rgb(255 255 255 / 10%);
   background: rgb(26 29 36 / 90%);
 }
+.command-center-shell__rail-close { display: none; min-height: 2.75rem; margin: .5rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
+.command-center-shell__rail-close:focus-visible, .task-retrieval__input:focus-visible, .task-retrieval__task:focus-visible, .task-retrieval__reveal:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 
 .command-center-state {
   display: flex; align-items: flex-start; gap: 1rem;
@@ -117,6 +119,7 @@ html, body, #root {
     z-index: 60;
     box-shadow: -12px 0 28px rgb(0 0 0 / 35%);
   }
+  .command-center-shell__rail-close { display: inline-flex; align-items: center; }
 }
 
 .command-center-tutorial-offer {

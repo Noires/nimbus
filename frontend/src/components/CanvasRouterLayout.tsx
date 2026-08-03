@@ -6,6 +6,8 @@ interface CanvasRouterLayoutProps {
   navigationLabel: string;
   commandLabel: string;
   railLabel?: string;
+  closeRailLabel?: string;
+  onCloseRail?: () => void;
   navigation: ReactNode;
   commands: ReactNode;
   rail?: ReactNode;
@@ -19,6 +21,8 @@ export function CanvasRouterLayout({
   navigationLabel,
   commandLabel,
   railLabel,
+  closeRailLabel,
+  onCloseRail,
   navigation,
   commands,
   rail,
@@ -33,6 +37,8 @@ export function CanvasRouterLayout({
           navigationLabel={navigationLabel}
           commandLabel={commandLabel}
           railLabel={railLabel}
+          closeRailLabel={closeRailLabel}
+          onCloseRail={onCloseRail}
           navigation={navigation}
           commands={commands}
           rail={rail}
