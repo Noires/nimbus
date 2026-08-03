@@ -131,7 +131,7 @@ html, body, #root {
   box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
 }
 .command-center-tutorial-offer p { margin: .4rem 0 .8rem; color: #cbd5e1; font-size: .875rem; }
-.command-center-tutorial-offer button, .command-center-tutorial__actions button, .command-center-tutorial__header button {
+.command-center-tutorial-offer button, .command-center-tutorial__actions button, .command-center-tutorial__header button, .command-center-tutorial__sample > button {
   min-height: 2.75rem; padding: .5rem .75rem; margin: .125rem; border: 1px solid rgb(255 255 255 / 20%); border-radius: .4rem; color: #f8fafc; background: transparent;
 }
 .command-center-tutorial__primary { background: #0e7490 !important; border-color: #67e8f9 !important; }

@@ -30,7 +30,9 @@ describe("CommandCenterTutorial interactions", () => {
 
   it("persists resume progress and performs only local sample actions", async () => {
     const fetchSpy = vi.fn();
+    const liveCanvasEscape = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
+    window.addEventListener("keydown", liveCanvasEscape);
     await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
 
     await act(async () => button(container, "Next")?.click());
@@ -43,8 +45,10 @@ describe("CommandCenterTutorial interactions", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
 
     await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    window.removeEventListener("keydown", liveCanvasEscape);
     const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
     expect(saved).toMatchObject({ version: 3, status: "in-progress", step: 2, sample: { captured: true } });
+    expect(liveCanvasEscape).not.toHaveBeenCalled();
   });
 
   it("resets the deterministic sample state and records a skipped tutorial", async () => {

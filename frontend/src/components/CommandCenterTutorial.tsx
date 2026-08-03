@@ -86,7 +86,14 @@ export function CommandCenterTutorial({ open, onClose, replay = false }: { open:
     save({ ...progress, status: "in-progress", sample });
   };
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if (event.key === "Escape") { close("in-progress"); return; }
+    if (event.key === "Escape") {
+      // CanvasRouter owns global Escape shortcuts. The tutorial is a local,
+      // isolated lab, so closing it must not also alter the productive Canvas.
+      event.preventDefault();
+      event.stopPropagation();
+      close("in-progress");
+      return;
+    }
     if (event.key !== "Tab") return;
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
     if (!focusable?.length) return;
