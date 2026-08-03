@@ -34,4 +34,8 @@ describe("resolveRailLabel", () => {
       useLocale.setState({ locale: previousLocale });
     }
   });
+
+  it("names Operations when that explicit Command Center destination is active", () => {
+    expect(resolveRailLabel({ reviewRailOpen: false, todayFocusOpen: false, inboxTriageOpen: false, operationsOpen: true })).toBe("Operations");
+  });
 });

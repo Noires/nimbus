@@ -58,14 +58,17 @@ export function resolveRailLabel({
   reviewRailOpen,
   todayFocusOpen,
   inboxTriageOpen,
+  operationsOpen = false,
 }: {
   reviewRailOpen: boolean;
   todayFocusOpen: boolean;
   inboxTriageOpen: boolean;
+  operationsOpen?: boolean;
 }): string {
   if (reviewRailOpen) return tr("review.title");
   if (todayFocusOpen) return tr("today.label");
   if (inboxTriageOpen) return tr("inbox.triage.label");
+  if (operationsOpen) return tr("operations.label");
   return tr("workstreams.title");
 }
 
@@ -106,6 +109,7 @@ export function CanvasRouter() {
   const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
   const [todayFocusOpen, setTodayFocusOpen] = useState(false);
   const [reviewRailOpen, setReviewRailOpen] = useState(false);
+  const [operationsOpen, setOperationsOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
   const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
@@ -518,10 +522,32 @@ export function CanvasRouter() {
         <div className="mt-4 space-y-2">
           <button
             type="button"
+            aria-pressed={!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen}
+            onClick={() => {
+              setTodayFocusOpen(false);
+              setInboxTriageOpen(false);
+              setReviewRailOpen(false);
+              setLedgerOpen(false);
+              setOperationsOpen(false);
+            }}
+            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
+          >
+            <span>{tr("d.shell.canvas")}</span><span aria-hidden="true" className="text-cyan-300">⌘</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setModal({ mode: "create" })}
+            className="flex w-full items-center justify-between rounded-lg border border-cyan-300 bg-cyan-300 px-3 py-2 text-left text-xs font-semibold text-slate-950 transition-colors hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+          >
+            <span>{tr("mobile.command.capture")}</span><span aria-hidden="true">+</span>
+          </button>
+          <button
+            type="button"
             aria-pressed={todayFocusOpen}
             onClick={() => {
               if (!todayFocusOpen) setInboxTriageOpen(false);
               if (!todayFocusOpen) setReviewRailOpen(false);
+              if (!todayFocusOpen) setOperationsOpen(false);
               setTodayFocusOpen(!todayFocusOpen);
             }}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
@@ -539,6 +565,7 @@ export function CanvasRouter() {
             onClick={() => {
               setTodayFocusOpen(false);
               setReviewRailOpen(false);
+              setOperationsOpen(false);
               setInboxTriageOpen(true);
               setInboxTriageFocusNonce((nonce) => nonce + 1);
             }}
@@ -558,6 +585,7 @@ export function CanvasRouter() {
               if (!reviewRailOpen) {
                 setTodayFocusOpen(false);
                 setInboxTriageOpen(false);
+                setOperationsOpen(false);
               }
               setReviewRailOpen(!reviewRailOpen);
             }}
@@ -572,11 +600,28 @@ export function CanvasRouter() {
           </button>
           <button
             type="button"
+            aria-pressed={operationsOpen}
+            onClick={() => {
+              if (!operationsOpen) {
+                setTodayFocusOpen(false);
+                setInboxTriageOpen(false);
+                setReviewRailOpen(false);
+                setLedgerOpen(false);
+              }
+              setOperationsOpen(!operationsOpen);
+            }}
+            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
+          >
+            <span>{tr("operations.label")}</span><span aria-hidden="true" className="text-cyan-300">↗</span>
+          </button>
+          <button
+            type="button"
             aria-pressed={ledgerOpen}
             onClick={() => {
               setTodayFocusOpen(false);
               setInboxTriageOpen(false);
               setReviewRailOpen(false);
+              setOperationsOpen(false);
               setLedgerOpen(!ledgerOpen);
             }}
             className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${ledgerOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
@@ -632,6 +677,24 @@ export function CanvasRouter() {
         setLedgerOpen(false);
         useStore.getState().setSelected([task.id]);
       }} />
+    ) : operationsOpen ? (
+      <OperationsView
+        tasks={tasks}
+        workstreams={workstreams}
+        dependencies={dependencies}
+        onOpenInspector={(task) => {
+          setOperationsOpen(false);
+          setSelectedWorkstreamId(null);
+          useStore.getState().setSelected([task.id]);
+        }}
+        onReveal={(task) => {
+          const store = useStore.getState();
+          store.setSelected([task.id]);
+          store.flashTask(task.id);
+          store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
+          setOperationsOpen(false);
+        }}
+      />
     ) : reviewRailOpen ? (
       <ReviewRail
         tasks={tasks}
@@ -1010,7 +1073,7 @@ export function CanvasRouter() {
         spatialCommandCenterShell={spatialCommandCenterShell}
         navigationLabel={tr("d.shell.navigation")}
         commandLabel={tr("d.shell.globalCommands")}
-        railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen })}
+        railLabel={resolveRailLabel({ reviewRailOpen, todayFocusOpen, inboxTriageOpen, operationsOpen })}
         navigation={navigation}
         commands={commands}
         rail={rail}
