@@ -2,7 +2,7 @@
 
 ## Scope and rollout
 
-This contract applies only when localStorage key `nimbus:spatial-command-center-shell` is exactly `"true"`. Missing or any other value retains the legacy Canvas layout and behavior. It does not change trusted Arrange/Tidy previews, blocker links, zones, ledger, or their explicit confirmation paths.
+This contract applies to the universal Command Center on desktop and mobile. It does not change trusted Arrange/Tidy previews, blocker links, zones, ledger, or their explicit confirmation paths. Retired rollout-flag values are ignored.
 
 ## Information hierarchy and destinations
 

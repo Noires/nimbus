@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Canvas, Task, Workstream } from "../store";
 import { CARD_H, CARD_W, useStore } from "../store";
 import { CanvasRouter } from "./CanvasRouter";
-import { SPATIAL_COMMAND_CENTER_SHELL_FLAG } from "./spatialCommandCenterFlag";
 
 const canvas: Canvas = {
   id: "canvas-operations",
@@ -132,17 +131,19 @@ describe("CanvasRouter desktop Operations rail", () => {
     useStore.setState(initialState, true);
   });
 
-  it("omits Operations while the desktop shell flag is off", async () => {
-    localStorage.setItem(SPATIAL_COMMAND_CENTER_SHELL_FLAG, "false");
+  it.each([
+    ["absent", null],
+    ["malformed", "enabled"],
+    ["true", "true"],
+  ])("renders desktop Operations with a %s retired legacy value", async (_description, legacyValue) => {
+    if (legacyValue !== null) localStorage.setItem("nimbus:spatial-command-center-shell", legacyValue);
 
     await act(async () => renderRouter(root));
 
-    expect(container.querySelector("[data-operations-view]")).toBeNull();
+    expect(container.querySelector('[data-operations-view="desktop-contextual-rail"]')).not.toBeNull();
   });
 
   it("opens the shared Inspector and reveals the task from the desktop Operations rail", async () => {
-    localStorage.setItem(SPATIAL_COMMAND_CENTER_SHELL_FLAG, "true");
-
     await act(async () => renderRouter(root));
 
     expect(container.querySelector('[data-operations-view="desktop-contextual-rail"]')).not.toBeNull();

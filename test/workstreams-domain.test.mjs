@@ -44,7 +44,7 @@ test('command-center keeps compact desktop context out of the primary grid and p
   assert.match(css, /\.command-center-shell__commands \{[\s\S]*?min-height: 10rem;[\s\S]*?padding: 1rem 0;/);
   assert.doesNotMatch(css, /@media \(max-width: 768px\) \{\s*\.command-center-shell \{/);
   assert.match(mobileRules, /MOBILE_COMMAND_CENTER_QUERY = "\(max-width: 768px\)"/);
-  assert.match(mobileRules, /return commandCenterEnabled && viewport === "narrow";/);
+  assert.match(mobileRules, /return viewport === "narrow";/);
   assert.match(mobileRoute, /if \(mobileCommandCenter\) \{[\s\S]*?<MobileCommandCenter/);
 });
 

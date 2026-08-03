@@ -67,9 +67,9 @@ cd frontend && npm run dev     # UI  on http://localhost:5173
 
 Open **http://localhost:5173**. The frontend proxies `/api/*` to the backend, so you only browse the one URL.
 
-### Experimental spatial command center shell
+### Command Center
 
-The spatial command center shell is client-only and disabled by default. To opt in for the current browser profile, run `localStorage.setItem('nimbus:spatial-command-center-shell', 'true')` in the browser developer console and reload. To restore the exact legacy layout, remove the key with `localStorage.removeItem('nimbus:spatial-command-center-shell')` and reload.
+Command Center is the default Nimbus workspace on desktop and mobile. It does not require browser-local configuration; stale values from the retired rollout flag are ignored.
 
 **Optional — GitHub sync:** put a fine-grained personal access token in `server/.env` as `GITHUB_TOKEN=…`, then add a connection from the toolbar's **⋯ → Connections** menu.
 

@@ -13,14 +13,8 @@ const MOBILE_DESTINATIONS: ReadonlySet<MobileCommandDestination> = new Set<Mobil
   "inspector",
 ]);
 
-export function isMobileCommandCenterEnabled({
-  commandCenterEnabled,
-  viewport,
-}: {
-  commandCenterEnabled: boolean;
-  viewport: MobileCommandViewport;
-}): boolean {
-  return commandCenterEnabled && viewport === "narrow";
+export function isMobileCommandCenterEnabled(viewport: MobileCommandViewport): boolean {
+  return viewport === "narrow";
 }
 
 export function resolveMobileCommandDestination(destination: string | undefined): MobileCommandDestination {

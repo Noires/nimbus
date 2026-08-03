@@ -8,7 +8,6 @@ describe("resolveRailLabel", () => {
   it("uses the localized Review label for the outer rail while review is open", () => {
     const html = renderToStaticMarkup(
       <CanvasRouterLayout
-        spatialCommandCenterShell
         navigationLabel="Navigation"
         commandLabel="Commands"
         railLabel={resolveRailLabel({ reviewRailOpen: true, todayFocusOpen: false, inboxTriageOpen: false })}
@@ -42,7 +41,6 @@ describe("resolveRailLabel", () => {
   it("renders an explicit localized rail close action when a compact rail is open", () => {
     const html = renderToStaticMarkup(
       <CanvasRouterLayout
-        spatialCommandCenterShell
         navigationLabel="Navigation"
         commandLabel="Commands"
         railLabel="Operations"

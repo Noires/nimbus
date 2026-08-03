@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Canvas, Task, Workstream } from "../store";
 import { CARD_H, CARD_W, useStore } from "../store";
-import { SPATIAL_COMMAND_CENTER_SHELL_FLAG } from "./spatialCommandCenterFlag";
+
 import { CanvasRouter } from "./CanvasRouter";
 
 const canvas: Canvas = {
@@ -99,7 +99,7 @@ describe("CanvasRouter mobile command center", () => {
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
-    localStorage.setItem(SPATIAL_COMMAND_CENTER_SHELL_FLAG, "true");
+
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       value: vi.fn().mockReturnValue({
@@ -371,14 +371,7 @@ describe("CanvasRouter mobile command center", () => {
     expect(patchTask).not.toHaveBeenCalled();
     expect(setWorkstreamMembership).not.toHaveBeenCalled();
 
-    localStorage.setItem(SPATIAL_COMMAND_CENTER_SHELL_FLAG, "false");
-    await act(async () => {
-      root.unmount();
-      root = createRoot(container);
-      root.render(<MemoryRouter initialEntries={[`/canvas/${canvas.id}`]}><Routes><Route path="/canvas/:id" element={<CanvasRouter />} /></Routes></MemoryRouter>);
-    });
 
-    expect(container.querySelector(".mobile-command-center")).toBeNull();
   });
 
   it("renders Operations in the desktop command-center rail and uses its shared callbacks", async () => {
