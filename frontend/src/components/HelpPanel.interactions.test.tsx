@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useLocale } from "../i18n";
 import { HelpPanel } from "./HelpPanel";
+import { CommandCenterTutorial } from "./CommandCenterTutorial";
 
 describe("HelpPanel dialog behavior", () => {
   let container: HTMLDivElement;
@@ -44,5 +45,38 @@ describe("HelpPanel dialog behavior", () => {
     await act(async () => root.unmount());
     expect(document.activeElement).toBe(trigger);
     trigger.remove();
+  });
+
+  it("hands replay focus to the tutorial and returns it to the command-center shell", async () => {
+    const shell = document.createElement("main");
+    shell.id = "command-center-tutorial-return";
+    shell.tabIndex = -1;
+    document.body.append(shell);
+    const onClose = vi.fn();
+    function Handoff() {
+      const [helpOpen, setHelpOpen] = useState(true);
+      const [tutorialOpen, setTutorialOpen] = useState(false);
+      return <>
+        {helpOpen && <HelpPanel spatialCommandCenterShell onClose={() => setHelpOpen(false)} onStartTutorial={() => {
+          setHelpOpen(false);
+          setTutorialOpen(true);
+        }} />}
+        <CommandCenterTutorial open={tutorialOpen} replay onClose={() => {
+          onClose();
+          setTutorialOpen(false);
+        }} />
+      </>;
+    }
+    await act(async () => root.render(<Handoff />));
+    const replay = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Replay safe sample tutorial");
+    await act(async () => replay?.click());
+    await act(async () => { await Promise.resolve(); });
+
+    expect(document.activeElement).toBe(container.querySelector("#command-center-tutorial-title"));
+    const dialog = container.querySelector<HTMLElement>("[role=dialog]");
+    await act(async () => dialog?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(shell);
+    shell.remove();
   });
 });

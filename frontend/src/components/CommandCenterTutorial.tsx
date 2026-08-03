@@ -70,6 +70,11 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
   const titleRef = useRef<HTMLHeadingElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const current = STEPS[progress.step];
+  const restoreFocus = () => {
+    const opener = openerRef.current;
+    if (opener?.isConnected && opener !== document.body) opener.focus();
+    else document.getElementById("command-center-tutorial-return")?.focus();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -84,9 +89,7 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
     }
     queueMicrotask(() => closeButton.current?.focus());
     return () => {
-      const opener = openerRef.current;
-      if (opener?.isConnected) opener.focus();
-      else document.getElementById("command-center-tutorial-return")?.focus();
+      restoreFocus();
     };
   }, [open, replay, onStatusChange, applicationLocale]);
 
@@ -99,6 +102,10 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
   const close = (status: TutorialStatus) => {
     writeProgress({ ...progress, status });
     onStatusChange?.(status);
+    // Restore focus before requesting the parent to unmount the dialog. This
+    // also covers Help → replay transitions where Help's trigger no longer
+    // exists by the time the tutorial closes.
+    restoreFocus();
     onClose();
   };
   const go = (step: number) => save({ ...progress, status: "in-progress", step: normalizedStep(step) });
