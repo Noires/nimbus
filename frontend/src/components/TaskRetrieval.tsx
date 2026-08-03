@@ -7,9 +7,11 @@ interface TaskRetrievalProps {
   tasks: Task[];
   onOpenInspector: (task: Task) => void;
   onReveal: (task: Task) => void;
+  /** The mobile companion guarantees 44px action targets. */
+  mobile?: boolean;
 }
 
-export function TaskRetrieval({ tasks, onOpenInspector, onReveal }: TaskRetrievalProps) {
+export function TaskRetrieval({ tasks, onOpenInspector, onReveal, mobile = false }: TaskRetrievalProps) {
   const t = useT();
   const [query, setQuery] = useState("");
   const results = useMemo(
@@ -20,7 +22,7 @@ export function TaskRetrieval({ tasks, onOpenInspector, onReveal }: TaskRetrieva
   const close = () => setQuery("");
 
   return (
-    <section className="task-retrieval" aria-label={t("taskRetrieval.label")}>
+    <section className={`task-retrieval${mobile ? " mobile-task-retrieval" : ""}`} aria-label={t("taskRetrieval.label")}>
       <input
         type="search"
         value={query}

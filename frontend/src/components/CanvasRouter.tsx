@@ -50,6 +50,7 @@ import {
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
+  | { mode: "capture" }
   | { mode: "edit"; task: Task };
 
 type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "operations" | "more";
@@ -473,7 +474,7 @@ export function CanvasRouter() {
       if (modal.mode === "edit") {
         await useStore.getState().patchTask(modal.task.id, data);
       } else {
-        let { x, y } = modal;
+        let { x, y } = modal.mode === "create" ? modal : {};
         if (x === undefined || y === undefined) {
           // Spawn at the center of the visible viewport, in world coordinates.
           const { zoom, panX, panY, viewportW, viewportH } = useStore.getState();
@@ -481,7 +482,10 @@ export function CanvasRouter() {
           x = (viewportW / 2 - panX) / zoom - 128 + jitter();
           y = (viewportH / 2 - panY) / zoom - 80 + jitter();
         }
-        await useStore.getState().addTask({ ...data, canvasId, x, y });
+        // The Command Center's visible Capture action is intentionally
+        // different from generic canvas creation: captured work begins in
+        // Inbox/Triage, where the user explicitly decides what happens next.
+        await useStore.getState().addTask({ ...data, canvasId, x, y, inbox: modal.mode === "capture" });
       }
     } catch (e) {
       console.error(e);
@@ -536,7 +540,7 @@ export function CanvasRouter() {
           </button>
           <button
             type="button"
-            onClick={() => setModal({ mode: "create" })}
+            onClick={() => setModal({ mode: "capture" })}
             className="flex w-full items-center justify-between rounded-lg border border-cyan-300 bg-cyan-300 px-3 py-2 text-left text-xs font-semibold text-slate-950 transition-colors hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
           >
             <span>{tr("mobile.command.capture")}</span><span aria-hidden="true">+</span>
@@ -868,7 +872,7 @@ export function CanvasRouter() {
       {timelapse && <TimelapseBar canvasId={canvasId} onClose={() => setTimelapse(false)} />}
       {modal && (
         <CreateModal
-          key={modal.mode === "edit" ? modal.task.id : "create"}
+          key={modal.mode === "edit" ? modal.task.id : modal.mode}
           initial={modal.mode === "edit" ? modal.task : null}
           variant={modal.mode === "edit" ? "panel" : "modal"}
           onClose={() => setModal(null)}
@@ -1002,6 +1006,7 @@ export function CanvasRouter() {
     if (mobileDestination === "operations") {
       return (
         <OperationsView
+          mobile
           tasks={tasks}
           workstreams={workstreams}
           dependencies={dependencies}
@@ -1020,6 +1025,7 @@ export function CanvasRouter() {
     if (mobileDestination === "more") {
       return (
         <TaskRetrieval
+          mobile
           tasks={tasks}
           onOpenInspector={(task) => openMobileInspector(task, "more")}
           onReveal={(task) => {

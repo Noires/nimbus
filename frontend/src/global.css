@@ -249,6 +249,13 @@ html, body, #root {
 .mobile-capture__hint, .mobile-capture__status { margin: 0.5rem 0 0; color: #cbd5e1; font-size: .875rem; line-height: 1.4; }
 .mobile-capture__status { min-height: 1.4em; color: #a5f3fc; }
 
+/* Operations and search are companion destinations too: retain 44px targets
+   without changing the compact desktop rail. */
+.mobile-operations button,
+.mobile-task-retrieval button,
+.mobile-task-retrieval input { min-height: 44px; }
+.mobile-operations button { padding-inline: .75rem; }
+
 .mobile-command-center-launcher {
   position: fixed;
   right: 1rem;

@@ -21,10 +21,12 @@ export type TutorialSampleAction = "capture" | "triage" | "today" | "workstream"
 
 export const TUTORIAL_SAMPLE_CANVAS = {
   id: "tutorial-sample-canvas",
-  name: "Launch plan",
-  task: { id: "tutorial-sample-task", title: "Prepare launch notes" },
-  inbox: { id: "tutorial-sample-inbox", name: "Sample Inbox" },
-  workstream: { id: "tutorial-sample-workstream", name: "Launch preparation" },
+  // Display labels are derived exclusively from tutorial.* i18n keys by the
+  // dialog; keeping this boundary locale-neutral prevents stale English
+  // sample records from leaking into a German tutorial.
+  task: { id: "tutorial-sample-task" },
+  inbox: { id: "tutorial-sample-inbox" },
+  workstream: { id: "tutorial-sample-workstream" },
 } as const;
 
 export function createTutorialSample(): TutorialSampleState {

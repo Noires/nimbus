@@ -11,6 +11,8 @@ interface OperationsViewProps {
   now?: Date;
   onOpenInspector: (task: Task) => void;
   onReveal: (task: Task) => void;
+  /** The mobile companion guarantees 44px action targets. */
+  mobile?: boolean;
 }
 
 function healthReason(health: WorkstreamHealth, t: ReturnType<typeof useT>): string {
@@ -32,14 +34,14 @@ function healthReason(health: WorkstreamHealth, t: ReturnType<typeof useT>): str
 }
 
 /** Read-only local projection of active tasks, grouped by canonical workstream. */
-export function OperationsView({ tasks, workstreams, dependencies, now = new Date(), onOpenInspector, onReveal }: OperationsViewProps) {
+export function OperationsView({ tasks, workstreams, dependencies, now = new Date(), onOpenInspector, onReveal, mobile = false }: OperationsViewProps) {
   const t = useT();
   const groups = selectOperationsWorkstreams({ tasks, workstreams });
   const workstreamById = new Map(workstreams.map((workstream) => [workstream.id, workstream]));
   const today = localDayKey(now);
 
   return (
-    <section data-operations-view="local-derived" aria-label={t("operations.label")} className="space-y-3">
+    <section data-operations-view="local-derived" aria-label={t("operations.label")} className={`space-y-3${mobile ? " mobile-operations" : ""}`}>
       <h2 className="text-xs font-semibold uppercase tracking-wider text-cyan-200">{t("operations.title")}</h2>
       {groups.length === 0 ? (
         <p className="text-xs text-gray-400">{t("operations.empty")}</p>
