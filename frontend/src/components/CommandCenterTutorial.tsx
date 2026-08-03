@@ -56,7 +56,11 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
   replay?: boolean;
   onStatusChange?: (status: TutorialStatus) => void;
 }) {
-  const applicationLocale = useLocale((state) => state.locale);
+  // Subscribe for a later application language change, but use the store's
+  // current value for SSR too (Zustand's SSR hook otherwise returns its initial
+  // snapshot rather than the test/runtime-selected locale).
+  useLocale((state) => state.locale);
+  const applicationLocale = useLocale.getState().locale;
   // The sample may demonstrate EN/DE without changing the productive
   // application's persisted language preference.
   const [locale, setLocale] = useState(applicationLocale);
