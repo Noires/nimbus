@@ -10,7 +10,7 @@ describe("resolveRailLabel", () => {
       <CanvasRouterLayout
         navigationLabel="Navigation"
         commandLabel="Commands"
-        railLabel={resolveRailLabel({ reviewRailOpen: true, todayFocusOpen: false, inboxTriageOpen: false })}
+        railLabel={resolveRailLabel("review")}
         navigation={null}
         commands={null}
         rail={<div />}
@@ -28,14 +28,14 @@ describe("resolveRailLabel", () => {
     useLocale.setState({ locale: "de" });
 
     try {
-      expect(resolveRailLabel({ reviewRailOpen: true, todayFocusOpen: true, inboxTriageOpen: true })).toBe("Review");
+      expect(resolveRailLabel("review")).toBe("Review");
     } finally {
       useLocale.setState({ locale: previousLocale });
     }
   });
 
   it("names Operations when that explicit Command Center destination is active", () => {
-    expect(resolveRailLabel({ reviewRailOpen: false, todayFocusOpen: false, inboxTriageOpen: false, operationsOpen: true })).toBe("Operations");
+    expect(resolveRailLabel("operations")).toBe("Operations");
   });
 
   it("renders an explicit localized rail close action when a compact rail is open", () => {

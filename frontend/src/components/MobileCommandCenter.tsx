@@ -1,6 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { useT } from "../i18n";
-import type { MobileCommandDestination } from "./mobileCommandCenter";
+import type { MobileCommandDestination } from "./mobileCommandDestination";
 
 interface MobileCommandCenterProps {
   destination: MobileCommandDestination;
@@ -44,7 +44,7 @@ export function MobileCommandCenter({
 
   return (
     <section id="command-center-tutorial-return" className="mobile-command-center" tabIndex={-1} onKeyDown={handleKeyDown}>
-      <header className="mobile-command-center__header">
+      <header className="mobile-command-center__header nc-chart-wash">
         <h1 ref={titleRef} tabIndex={-1} className="mobile-command-center__title">{contentLabel}</h1>
         <div className="mobile-command-center__header-actions">
           <button type="button" onClick={onCapture} aria-label={t("mobile.command.capture")} className="mobile-command-center__capture">

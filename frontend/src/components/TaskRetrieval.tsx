@@ -23,6 +23,7 @@ export function TaskRetrieval({ tasks, onOpenInspector, onReveal, mobile = false
 
   return (
     <section className={`task-retrieval${mobile ? " mobile-task-retrieval" : ""}`} aria-label={t("taskRetrieval.label")}>
+      {!mobile && <h3 className="rail-section__label">{t("taskRetrieval.label")}</h3>}
       <input
         type="search"
         value={query}

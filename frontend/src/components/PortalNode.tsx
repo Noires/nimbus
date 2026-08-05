@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { api } from "../data/api";
 import { useStore, type Portal } from "../store";
 import { clusterHue } from "../utils/colors";
+import { contentPop } from "../utils/motion";
 import { PortalPeek } from "./PortalPeek";
 import { useT } from "../i18n";
 
@@ -55,7 +56,7 @@ export function PortalNode({ portal }: { portal: Portal }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: draggingTaskId ? 1.15 : 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      transition={contentPop}
       className="absolute group cursor-grab active:cursor-grabbing"
       style={{ left: portal.x - 44, top: portal.y - 44, width: 88, height: 88 }}
       onPointerDown={handlePointerDown}
@@ -86,7 +87,7 @@ export function PortalNode({ portal }: { portal: Portal }) {
           background: `radial-gradient(circle, hsla(${hue}, 85%, 55%, 0.25), hsla(${hue}, 85%, 55%, 0.02) 70%)`,
         }}
       />
-      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-gray-400 whitespace-nowrap px-1.5 py-0.5 rounded bg-[#0f0f13]/70">
+      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-2xs text-nc-muted whitespace-nowrap px-1.5 py-0.5 rounded-nc-sm bg-nc-well/70">
         ◍ {portal.target?.name ?? "?"}
       </div>
       <button
@@ -95,7 +96,7 @@ export function PortalNode({ portal }: { portal: Portal }) {
             useStore.getState().removePortal(portal.id).catch((err) => console.error(err));
           }
         }}
-        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#1a1d24] border border-white/20 text-gray-500 hover:text-red-400 text-xs opacity-0 group-hover:opacity-100 transition-all"
+        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-nc-raised border border-nc-line text-nc-faint hover:text-nc-danger text-xs opacity-0 group-hover:opacity-100 transition-all"
       >
         ×
       </button>

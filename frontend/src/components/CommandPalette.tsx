@@ -1,6 +1,7 @@
+import { dialogSpring, quickFade } from "../utils/motion";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useStore, CARD_W, CARD_H, type Task } from "../store";
 import { quickParse } from "../utils/quickParse";
 import { quickCreate } from "../utils/quickCreate";
@@ -46,6 +47,7 @@ export function CommandPalette({ canvasId, onNewTask, fallbackFocusRef }: Palett
   const wasOpenRef = useRef(false);
   const navigate = useNavigate();
   const t = useT();
+  const reducedMotion = useReducedMotion();
   const locale = useLocale((s) => s.locale);
 
   useEffect(() => {
@@ -254,17 +256,17 @@ export function CommandPalette({ canvasId, onNewTask, fallbackFocusRef }: Palett
   const kindIcon = { task: "◈", canvas: "▦", bubble: "◯", action: "⌘" } as const;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-start justify-center pt-[15vh] px-4">
-      <div className="absolute inset-0 bg-black/50" aria-hidden="true" onClick={close} />
+    <div className="fixed inset-0 z-[145] flex items-start justify-center pt-[15vh] px-4">
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={quickFade} className="absolute inset-0 bg-nc-scrim" aria-hidden="true" onClick={close} />
       <motion.div
-        initial={{ opacity: 0, y: -12, scale: 0.98 }}
+        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+        transition={reducedMotion ? quickFade : dialogSpring}
         role="dialog"
         aria-modal="true"
         aria-label={t("a.palette.dialogLabel")}
         onKeyDown={handleDialogKeyDown}
-        className="relative w-full max-w-lg rounded-xl bg-[#1a1d24]/95 backdrop-blur-xl border border-white/15 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-lg rounded-nc-xl bg-nc-raised/95 backdrop-blur-xl border border-nc-line shadow-nc-lg overflow-hidden"
       >
         <input
           ref={inputRef}
@@ -285,11 +287,11 @@ export function CommandPalette({ canvasId, onNewTask, fallbackFocusRef }: Palett
             }
           }}
           placeholder={t("a.palette.placeholder")}
-          className="w-full px-4 py-3 bg-transparent text-sm text-gray-100 outline-none border-b border-white/10 placeholder:text-gray-500"
+          className="command-palette__input w-full px-4 py-3 bg-transparent text-sm text-nc-text border-b border-nc-line-faint placeholder:text-nc-faint"
         />
         <div className="max-h-80 overflow-y-auto py-1">
           {results.length === 0 && (
-            <div className="px-4 py-3 text-xs text-gray-500">{t("a.palette.noMatches")}</div>
+            <div className="px-4 py-3 text-xs text-nc-faint">{t("a.palette.noMatches")}</div>
           )}
           {results.map((r, i) => (
             <button
@@ -297,15 +299,15 @@ export function CommandPalette({ canvasId, onNewTask, fallbackFocusRef }: Palett
               onClick={() => pick(r)}
               onMouseEnter={() => setSelected(i)}
               className={`w-full flex items-center gap-2.5 px-4 py-2 text-left text-sm transition-colors ${
-                i === selected ? "bg-white/10 text-white" : "text-gray-300"
+                i === selected ? "bg-nc-fill text-nc-text" : "text-nc-soft"
               }`}
             >
-              <span className="text-xs text-gray-500 w-4 shrink-0">{kindIcon[r.kind]}</span>
+              <span className="text-xs text-nc-faint w-4 shrink-0">{kindIcon[r.kind]}</span>
               {r.color && (
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ background: r.color }} />
               )}
               <span className="truncate flex-1">{r.label}</span>
-              {r.hint && <span className="text-[10px] text-gray-500 shrink-0">{r.hint}</span>}
+              {r.hint && <span className="text-2xs text-nc-faint shrink-0">{r.hint}</span>}
             </button>
           ))}
         </div>

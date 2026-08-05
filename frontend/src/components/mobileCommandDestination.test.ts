@@ -4,7 +4,7 @@ import {
   isMobileCommandCenterEnabled,
   openMobileInboxInspector,
   resolveMobileCommandDestination,
-} from "./mobileCommandCenter";
+} from "./mobileCommandDestination";
 
 describe("mobileCommandCenter", () => {
   it("enables the companion at the narrow breakpoint", () => {

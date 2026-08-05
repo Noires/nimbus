@@ -1,5 +1,6 @@
+import { dialogSpring, quickFade } from "../utils/motion";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useStore, CARD_W, CARD_H, type Task } from "../store";
 import { api, type TaskEvent } from "../data/api";
 import { ESTIMATE_CHOICES, formatMinutes } from "../utils/capacity";
@@ -45,7 +46,7 @@ function SyncedHeader({ task }: { task: Task }) {
         href={task.externalUrl ?? undefined}
         target="_blank"
         rel="noreferrer"
-        className="text-[11px] text-gray-400 hover:text-white transition-colors"
+        className="text-2xs text-nc-muted hover:text-nc-text transition-colors"
       >
         ⑂ {externalRef ? `${externalRef[1]}#${externalRef[2]}` : t("b.modal.synced.linkedIssue")} · {t("b.modal.synced.openGithub")} ↗
       </a>
@@ -55,7 +56,7 @@ function SyncedHeader({ task }: { task: Task }) {
           onChange={(e) =>
             useStore.getState().patchTask(task.id, { status: e.target.value }).catch((err) => console.error(err))
           }
-          className="text-[11px] bg-[#0f0f13]/70 border border-cyan-500/30 rounded-full px-2 py-0.5 text-cyan-300 outline-none cursor-pointer"
+          className="text-xs bg-nc-well/70 border border-nc-accent-border rounded-full px-2 py-0.5 text-nc-accent cursor-pointer"
           title={t("b.modal.synced.statusColumn")}
         >
           {live.status && !columns.some((c) => c.name === live.status) && (
@@ -67,7 +68,7 @@ function SyncedHeader({ task }: { task: Task }) {
         </select>
       )}
       {connection?.status === "error" && (
-        <span className="text-[10px] text-red-400" title={connection.statusMessage ?? undefined}>
+        <span className="text-2xs text-nc-danger" title={connection.statusMessage ?? undefined}>
           ⚠ {t("b.modal.synced.syncError")}
         </span>
       )}
@@ -107,7 +108,7 @@ function ChecklistSection({ taskId }: { taskId: string }) {
 
   return (
     <div>
-      <span className="block text-xs text-gray-500 mb-1.5">
+      <span className="block text-xs text-nc-faint mb-1.5">
         {t("b.modal.checklist.label")}{" "}
         {task.checklist.length > 0 &&
           `(${task.checklist.filter((c) => c.done).length}/${task.checklist.length})`}
@@ -119,15 +120,15 @@ function ChecklistSection({ taskId }: { taskId: string }) {
               type="checkbox"
               checked={item.done}
               onChange={(e) => void toggle(item.id, e.target.checked)}
-              className="accent-purple-500"
+              className="accent-nc-select"
             />
-            <span className={`text-xs flex-1 ${item.done ? "line-through text-gray-500" : "text-gray-300"}`}>
+            <span className={`text-xs flex-1 ${item.done ? "line-through text-nc-faint" : "text-nc-soft"}`}>
               {item.text}
             </span>
             <button
               type="button"
               onClick={() => void useStore.getState().removeChecklistItem(taskId, item.id).catch((e) => console.error(e))}
-              className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 text-xs transition-all"
+              className="opacity-0 group-hover:opacity-100 text-nc-faint hover:text-nc-danger text-xs transition-all"
             >
               ×
             </button>
@@ -144,7 +145,7 @@ function ChecklistSection({ taskId }: { taskId: string }) {
           }
         }}
         placeholder={t("b.modal.checklist.addStep")}
-        className="w-full px-3 py-1.5 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-xs transition-colors outline-none"
+        className="w-full px-3 py-1.5 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-xs transition-colors"
       />
     </div>
   );
@@ -180,18 +181,18 @@ function HistorySection({ taskId }: { taskId: string }) {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+        className="text-xs text-nc-faint hover:text-nc-soft transition-colors"
       >
         {open ? "▾" : "▸"} {t("b.modal.history.label")}
       </button>
       {open && (
         <div className="mt-1.5 max-h-32 overflow-y-auto flex flex-col gap-1 pr-1">
-          {events === null && <span className="text-[10px] text-gray-600">{t("b.modal.history.loading")}</span>}
-          {events?.length === 0 && <span className="text-[10px] text-gray-600">{t("b.modal.history.none")}</span>}
+          {events === null && <span className="text-2xs text-nc-faint">{t("b.modal.history.loading")}</span>}
+          {events?.length === 0 && <span className="text-2xs text-nc-faint">{t("b.modal.history.none")}</span>}
           {events?.map((e) => (
-            <div key={e.id} className="flex items-center justify-between text-[10px]">
-              <span className="text-gray-400">{describe(e)}</span>
-              <span className="text-gray-600">{new Date(e.createdAt).toLocaleString(dateLocale())}</span>
+            <div key={e.id} className="flex items-center justify-between text-2xs">
+              <span className="text-nc-muted">{describe(e)}</span>
+              <span className="text-nc-faint">{new Date(e.createdAt).toLocaleString(dateLocale(), { dateStyle: "medium", timeStyle: "short" })}</span>
             </div>
           ))}
         </div>
@@ -217,6 +218,7 @@ const SWATCHES = [
 
 export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: CreateModalProps) {
   const t = useT();
+  const reducedMotion = useReducedMotion();
   const isEdit = !!initial;
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -261,37 +263,43 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
   };
 
   const CHIP_COLORS: Record<string, string> = {
-    date: "text-cyan-300 border-cyan-500/40",
-    duration: "text-violet-300 border-violet-500/40",
-    tag: "text-gray-300 border-white/25",
-    priority: "text-red-300 border-red-500/40",
+    date: "text-nc-accent border-nc-accent-border",
+    duration: "text-nc-select border-nc-select-border",
+    tag: "text-nc-soft border-nc-line-strong",
+    priority: "text-nc-danger border-nc-danger-border",
   };
 
   const isPanel = variant === "panel";
   return (
     <div className={`fixed inset-0 z-[100] flex ${isPanel ? "justify-end" : "items-center justify-center px-4"}`}>
       {/* Backdrop — lighter for the panel so the canvas stays visible */}
-      <div
-        className={`absolute inset-0 ${isPanel ? "bg-black/20" : "bg-black/40"}`}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={quickFade}
+        className={`absolute inset-0 ${isPanel ? "bg-nc-canvas/50" : "bg-nc-scrim"}`}
         onClick={onClose}
       />
 
       {/* Modal content */}
       <motion.div
-        initial={isPanel ? { opacity: 0, x: 40 } : { opacity: 0, y: 24, scale: 0.97 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEdit ? t("b.modal.editTask") : t("b.modal.newTask")}
+        initial={reducedMotion ? { opacity: 0 } : isPanel ? { opacity: 0, x: 40 } : { opacity: 0, y: 24, scale: 0.97 }}
         animate={isPanel ? { opacity: 1, x: 0 } : { opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+        transition={reducedMotion ? quickFade : dialogSpring}
         className={
           isPanel
-            ? "relative h-full w-[440px] max-w-[95vw] overflow-y-auto shadow-2xl bg-[#1a1d24]/97 backdrop-blur-xl border-l border-white/10 p-6"
-            : "relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-xl shadow-2xl bg-[#1a1d24]/95 backdrop-blur-xl border border-white/10 p-6"
+            ? "relative h-full w-[440px] max-w-[95vw] overflow-y-auto shadow-nc-lg bg-nc-raised/95 backdrop-blur-xl border-l border-nc-line p-6"
+            : "relative w-full max-w-md max-h-[85vh] overflow-y-auto rounded-nc-xl shadow-nc-lg bg-nc-raised/95 backdrop-blur-xl border border-nc-line p-6"
         }>
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-gray-100">{isEdit ? t("b.modal.editTask") : t("b.modal.newTask")}</h2>
+          <h2 className="font-nc-display text-lg font-semibold text-nc-text">{isEdit ? t("b.modal.editTask") : t("b.modal.newTask")}</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-200 transition-colors"
+            className="text-nc-faint hover:text-nc-text transition-colors"
           >
             ×
           </button>
@@ -303,7 +311,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title (required) */}
           <div>
-            <label htmlFor="title" className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="title" className="block text-xs text-nc-faint mb-1">
               {t("b.modal.field.title")} *
             </label>
             <input
@@ -312,17 +320,17 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
               placeholder={t("b.modal.title.placeholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-sm transition-colors"
+              className="w-full px-3 py-2 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-sm transition-colors"
               autoFocus
             />
             {grammarTokens.length > 0 && (
               <div className="flex gap-1 flex-wrap mt-1.5">
                 {grammarTokens.map((t, i) => (
-                  <span key={i} className={`px-1.5 py-0.5 rounded-full border text-[9px] ${CHIP_COLORS[t.kind] ?? ""}`}>
+                  <span key={i} className={`px-1.5 py-0.5 rounded-full border text-2xs ${CHIP_COLORS[t.kind] ?? ""}`}>
                     {t.text}
                   </span>
                 ))}
-                <span className="text-[9px] text-gray-600 self-center">{t("b.modal.parsedOnSave")}</span>
+                <span className="text-2xs text-nc-faint self-center">{t("b.modal.parsedOnSave")}</span>
               </div>
             )}
             {similar && (
@@ -335,7 +343,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
                   store.flashTask(similar.id);
                 }}
                 onMouseEnter={() => useStore.getState().flashTask(similar.id)}
-                className="mt-1.5 text-left text-[10px] text-amber-300/90 hover:text-amber-200 transition-colors"
+                className="mt-1.5 text-left text-2xs text-nc-warning hover:text-nc-warning transition-colors"
                 title={t("b.modal.similar.tooltip")}
               >
                 ≈ {t("b.modal.similar.label")}: {similar.title}
@@ -350,7 +358,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
 
           {/* Description */}
           <div>
-            <label htmlFor="desc" className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="desc" className="block text-xs text-nc-faint mb-1">
               {t("b.modal.field.description")}
             </label>
             <textarea
@@ -359,13 +367,13 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-sm transition-colors resize-none"
+              className="w-full px-3 py-2 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-sm transition-colors resize-none"
             />
           </div>
 
           {/* Tags */}
           <div>
-            <label htmlFor="tags" className="block text-xs text-gray-500 mb-1">
+            <label htmlFor="tags" className="block text-xs text-nc-faint mb-1">
               {t("b.modal.field.tags")}
             </label>
             <input
@@ -374,21 +382,21 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
               placeholder={t("b.modal.tags.placeholder")}
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-sm transition-colors"
+              className="w-full px-3 py-2 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-sm transition-colors"
             />
           </div>
 
           {/* Priority + Due Date (row) */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="priority" className="block text-xs text-gray-500 mb-1">
+              <label htmlFor="priority" className="block text-xs text-nc-faint mb-1">
                 {t("b.modal.field.priority")}
               </label>
               <select
                 id="priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#0f0f13]/60 border border-white/10 text-sm transition-colors focus:border-purple-500"
+                className="w-full px-3 py-2 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-sm transition-colors"
               >
                 <option value="high">{t("b.modal.priority.high")}</option>
                 <option value="medium">{t("b.modal.priority.medium")}</option>
@@ -397,7 +405,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
             </div>
 
             <div>
-              <label htmlFor="dueDate" className="block text-xs text-gray-500 mb-1">
+              <label htmlFor="dueDate" className="block text-xs text-nc-faint mb-1">
                 {t("b.modal.field.dueDate")}
               </label>
               <input
@@ -405,7 +413,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-[#0f0f13]/60 border border-white/10 text-sm transition-colors focus:border-purple-500"
+                className="w-full px-3 py-2 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-sm transition-colors"
               />
             </div>
           </div>
@@ -413,17 +421,17 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
           {/* Estimate + Recurrence (row) */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <span className="block text-xs text-gray-500 mb-1.5">{t("b.modal.field.estimate")}</span>
+              <span className="block text-xs text-nc-faint mb-1.5">{t("b.modal.field.estimate")}</span>
               <div className="flex items-center gap-1 flex-wrap">
                 {ESTIMATE_CHOICES.map((min) => (
                   <button
                     key={min}
                     type="button"
                     onClick={() => setEstimate(estimate === min ? null : min)}
-                    className={`h-6 px-2 rounded-full text-[10px] border transition-all ${
+                    className={`h-6 px-2 rounded-full text-2xs border transition-all ${
                       estimate === min
-                        ? "border-purple-400/70 text-purple-300 bg-purple-500/10"
-                        : "border-white/15 text-gray-400 hover:border-white/40"
+                        ? "border-nc-select text-nc-select bg-nc-select-muted"
+                        : "border-nc-line text-nc-muted hover:border-nc-line-strong"
                     }`}
                   >
                     {formatMinutes(min)}
@@ -432,14 +440,14 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
               </div>
             </div>
             <div>
-              <label htmlFor="recurrence" className="block text-xs text-gray-500 mb-1.5">
+              <label htmlFor="recurrence" className="block text-xs text-nc-faint mb-1.5">
                 {t("b.modal.field.repeats")}
               </label>
               <select
                 id="recurrence"
                 value={recurrence ?? ""}
                 onChange={(e) => setRecurrence(e.target.value || null)}
-                className="w-full px-3 py-2 rounded-lg bg-[#0f0f13]/60 border border-white/10 text-sm transition-colors focus:border-purple-500"
+                className="w-full px-3 py-2 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-sm transition-colors"
               >
                 {RECURRENCE_CHOICES.map((c) => (
                   <option key={c.labelKey} value={c.value ?? ""}>
@@ -452,16 +460,16 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
 
           {/* Color */}
           <div>
-            <span className="block text-xs text-gray-500 mb-1.5">{t("b.modal.field.color")}</span>
+            <span className="block text-xs text-nc-faint mb-1.5">{t("b.modal.field.color")}</span>
             <div className="flex items-center gap-1.5 flex-wrap">
               {!isEdit && (
                 <button
                   type="button"
                   onClick={() => setColor("")}
-                  className={`h-6 px-2 rounded-full text-[10px] border transition-all ${
+                  className={`h-6 px-2 rounded-full text-2xs border transition-all ${
                     color === ""
-                      ? "border-white/60 text-white"
-                      : "border-white/15 text-gray-400 hover:border-white/40"
+                      ? "border-white/60 text-nc-text"
+                      : "border-nc-line text-nc-muted hover:border-nc-line-strong"
                   }`}
                 >
                   {t("b.modal.color.auto")}
@@ -483,7 +491,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
                 type="color"
                 value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : "#6366f1"}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-6 h-6 rounded-full bg-transparent border border-white/15 cursor-pointer"
+                className="w-6 h-6 rounded-full bg-transparent border border-nc-line cursor-pointer"
                 title={t("b.modal.color.custom")}
               />
             </div>
@@ -499,7 +507,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
                 onClose();
                 useStore.getState().splitTaskAction(initial!.id).catch((e) => console.error(e));
               }}
-              className="w-full py-1.5 rounded-lg text-xs text-purple-300 border border-purple-500/30 hover:bg-purple-500/10 transition-colors"
+              className="w-full py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent-border hover:bg-nc-accent-muted transition-colors"
               title={t("b.modal.splitChecklist.title")}
             >
               ⚛ {t("b.modal.splitChecklist")}
@@ -512,17 +520,17 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-lg border border-white/10 text-sm transition-colors hover:bg-white/5"
+              className="flex-1 py-2.5 rounded-nc-md border border-nc-line-faint text-sm transition-colors hover:bg-nc-fill-faint"
             >
               {t("b.modal.cancel")}
             </button>
             <button
               type="submit"
               disabled={!title.trim()}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 py-2.5 rounded-nc-md text-sm font-medium transition-all ${
                 title.trim()
-                  ? 'bg-purple-600/80 hover:bg-purple-600 text-white shadow-lg shadow-purple-500/30'
-                  : 'bg-gray-600/40 text-gray-400 cursor-not-allowed'
+                  ? 'bg-nc-select-surface/80 hover:bg-nc-select-surface text-nc-text shadow-nc-md shadow-nc-select-surface/30'
+                  : 'bg-nc-fill text-nc-muted cursor-not-allowed'
               }`}
             >
               {isEdit ? t("b.modal.save") : t("b.modal.create")}

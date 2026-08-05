@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useStore } from "../store";
 import { formatMinutes } from "../utils/capacity";
+import { chromeSpring, quickFade } from "../utils/motion";
 import { useT } from "../i18n";
 
 const POMODORO_MS = 25 * 60 * 1000;
@@ -16,6 +17,7 @@ export function FocusTimer() {
   const startRef = useRef(0);
   const baseRef = useRef(0);
   const t = useT();
+  const reduced = useReducedMotion();
 
   const current = focus ? tasks.find((t) => t.id === focus.members[focus.index]) : null;
 
@@ -65,61 +67,62 @@ export function FocusTimer() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border border-cyan-500/30 px-4 py-2 shadow-2xl"
+      transition={reduced ? quickFade : chromeSpring}
+      className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent-border px-4 py-2 shadow-nc-lg"
     >
       <svg width="28" height="28" viewBox="0 0 28 28" className="-rotate-90 shrink-0">
-        <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+        <circle cx="14" cy="14" r="12" fill="none" stroke="var(--nc-border-faint)" strokeWidth="3" />
         <circle
           cx="14" cy="14" r="12" fill="none"
-          stroke={progress >= 1 ? "#f59e0b" : "#22d3ee"}
+          stroke={progress >= 1 ? "var(--nc-warning)" : "var(--nc-accent)"}
           strokeWidth="3"
           strokeDasharray={`${progress * 75.4} 75.4`}
           strokeLinecap="round"
         />
       </svg>
-      <span className={`text-sm tabular-nums ${progress >= 1 ? "text-amber-300" : "text-gray-200"}`}>
+      <span className={`text-sm tabular-nums ${progress >= 1 ? "text-nc-warning" : "text-nc-text"}`}>
         {mm}:{String(ss).padStart(2, "0")}
       </span>
       {!running ? (
-        <button onClick={start} className="text-xs text-cyan-300 hover:text-cyan-200 transition-colors">
+        <button onClick={start} className="text-xs text-nc-accent hover:text-nc-accent-strong transition-colors">
           ▶ {elapsed > 0 ? t("c.focus.resume") : t("c.focus.start")}
         </button>
       ) : (
-        <button onClick={pause} className="text-xs text-gray-300 hover:text-white transition-colors">
+        <button onClick={pause} className="text-xs text-nc-soft hover:text-nc-text transition-colors">
           ⏸ {t("c.focus.pause")}
         </button>
       )}
       {elapsed >= 60_000 && (
-        <button onClick={bank} className="text-xs text-emerald-300 hover:text-emerald-200 transition-colors">
+        <button onClick={bank} className="text-xs text-nc-success hover:text-nc-success transition-colors">
           ⏹ {t("c.focus.bank", { minutes: Math.round(elapsed / 60_000) })}
         </button>
       )}
-      <span className="text-[10px] text-gray-500 whitespace-nowrap">
+      <span className="text-2xs text-nc-faint whitespace-nowrap">
         {current.estimateMinutes != null && (
           <>
             {t("c.focus.est")} {formatMinutes(current.estimateMinutes)} · {t("c.focus.act")}{" "}
-            <span className={overEstimate ? "text-orange-400" : ""}>
+            <span className={overEstimate ? "text-nc-warning" : ""}>
               {formatMinutes(Math.round(current.actualMinutes + elapsed / 60_000))}
             </span>
           </>
         )}
       </span>
 
-      <div className="w-px h-5 bg-white/10" />
-      <span className="text-[10px] text-gray-500 whitespace-nowrap">
+      <div className="w-px h-5 bg-nc-fill" />
+      <span className="text-2xs text-nc-faint whitespace-nowrap">
         {t("c.focus.session", { index: focus.index + 1, total: focus.members.length })} ·{" "}
-        <kbd className="px-1 rounded bg-white/10 text-gray-400">J/K</kbd> {t("c.focus.nextPrev")} ·{" "}
-        <kbd className="px-1 rounded bg-white/10 text-gray-400">D</kbd> {t("c.focus.done")} ·{" "}
-        <kbd className="px-1 rounded bg-white/10 text-gray-400">E</kbd> {t("c.focus.edit")}
+        <kbd className="px-1 rounded-nc-sm bg-nc-fill text-nc-muted">J/K</kbd> {t("c.focus.nextPrev")} ·{" "}
+        <kbd className="px-1 rounded-nc-sm bg-nc-fill text-nc-muted">D</kbd> {t("c.focus.done")} ·{" "}
+        <kbd className="px-1 rounded-nc-sm bg-nc-fill text-nc-muted">E</kbd> {t("c.focus.edit")}
       </span>
       <button
         onClick={() => useStore.getState().exitFocus()}
-        className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-white transition-colors whitespace-nowrap"
+        className="flex items-center gap-1 text-2xs text-nc-muted hover:text-nc-text transition-colors whitespace-nowrap"
         title={t("c.focus.exitTooltip")}
       >
-        <kbd className="px-1 rounded bg-white/10">Esc</kbd> {t("c.focus.exit")} ×
+        <kbd className="px-1 rounded-nc-sm bg-nc-fill">Esc</kbd> {t("c.focus.exit")} ×
       </button>
     </motion.div>
   );

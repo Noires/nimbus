@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api, type SavedView, type SavedViewConfig, type Task } from "../data/api";
+import { useT } from "../i18n";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
+import { Select } from "./ui/Select";
 
 const defaults: SavedViewConfig = { group: "none", sort: "dueDate", direction: "asc" };
 const priorityRank: Record<string, number> = { high: 0, medium: 1, low: 2 };
@@ -37,7 +41,11 @@ export function selectLedgerTasks(tasks: Task[], config: SavedViewConfig): Task[
     });
 }
 
+// Controls use the shared ui/ primitives (Button, Input, Select).
+const labelCls = "flex items-center gap-1.5 text-xs text-nc-muted";
+
 export function LedgerView({ canvasId, tasks, onOpenInspector }: { canvasId: string; tasks: Task[]; onOpenInspector: (task: Task) => void }) {
+  const t = useT();
   const [views, setViews] = useState<SavedView[]>([]);
   const [active, setActive] = useState<SavedViewConfig>(defaults);
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
@@ -50,35 +58,66 @@ export function LedgerView({ canvasId, tasks, onOpenInspector }: { canvasId: str
   const deleteTriggerRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { headingRef.current?.focus(); }, []);
   useEffect(() => { if (deleteCandidate) cancelDeleteRef.current?.focus(); }, [deleteCandidate]);
-  useEffect(() => { void api.listSavedViews(canvasId).then(setViews).catch(() => setError("Saved views could not be loaded.")); }, [canvasId]);
+  useEffect(() => { void api.listSavedViews(canvasId).then(setViews).catch(() => setError(t("ledger.loadFailed"))); }, [canvasId, t]);
   const rows = useMemo(() => selectLedgerTasks(tasks, active), [tasks, active]);
   const tags = useMemo(() => [...new Set(tasks.flatMap((task) => task.tags))].sort((a, b) => a.localeCompare(b)), [tasks]);
   const change = (next: SavedViewConfig) => { setActive(next); setActiveViewId(null); };
+  // groupKey sorts on stable raw values; only the display is translated.
+  const groupLabel = (key: string) => key === "Untagged" ? t("ledger.untagged")
+    : key === "Completed" ? t("ledger.status.done")
+      : key === "Open" ? t("ledger.status.open")
+        : key === "No due date" ? t("ledger.noDueDate")
+          : ["high", "medium", "low"].includes(key) ? t(`b.priority.${key}`) : key;
   const save = async (event: React.FormEvent) => {
     event.preventDefault(); if (!name.trim()) return;
-    try { const view = await api.createSavedView({ canvasId, name, config: active }); setViews((items) => [...items, view]); setName(""); setActiveViewId(view.id); setNotice(`Saved view ${view.name}.`); }
-    catch { setError("Saved view could not be created."); }
+    try { const view = await api.createSavedView({ canvasId, name, config: active }); setViews((items) => [...items, view]); setName(""); setActiveViewId(view.id); setNotice(t("ledger.savedNotice", { name: view.name })); }
+    catch { setError(t("ledger.createFailed")); }
   };
   const remove = async (view: SavedView) => {
-    try { await api.deleteSavedView(view.id); setViews((items) => items.filter((item) => item.id !== view.id)); if (activeViewId === view.id) setActiveViewId(null); setNotice(`Deleted saved view ${view.name}.`); }
-    catch { setError("Saved view could not be deleted."); }
+    try { await api.deleteSavedView(view.id); setViews((items) => items.filter((item) => item.id !== view.id)); if (activeViewId === view.id) setActiveViewId(null); setNotice(t("ledger.deletedNotice", { name: view.name })); }
+    catch { setError(t("ledger.deleteFailed")); }
     finally { setDeleteCandidate(null); requestAnimationFrame(() => deleteTriggerRef.current?.focus()); }
   };
-  return <section aria-labelledby="ledger-heading" className="space-y-3 p-3">
-    <div><h2 id="ledger-heading" ref={headingRef} tabIndex={-1} className="text-sm font-semibold text-cyan-100">Ledger</h2><p className="text-xs text-gray-400">Structured current task data; saved views store explicit filters and order, never task copies.</p></div>
-    {error && <p role="alert" className="text-xs text-red-300">{error}</p>}<p role="status" aria-live="polite" className="sr-only">{notice}</p>
-    <fieldset className="flex flex-wrap gap-2" aria-describedby="ledger-filter-summary"><legend className="text-xs text-gray-300">Ledger filters and order</legend>
-      <label>Completion <select value={active.done === undefined ? "all" : String(active.done)} onChange={(e) => change({ ...active, done: e.target.value === "all" ? undefined : e.target.value === "true" })}><option value="all">All tasks</option><option value="false">Open</option><option value="true">Completed</option></select></label>
-      <label>Tag <select value={active.tag ?? ""} onChange={(e) => change({ ...active, tag: e.target.value || undefined })}><option value="">All tags</option>{tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}</select></label>
-      <label>Priority <select value={active.priority ?? ""} onChange={(e) => change({ ...active, priority: e.target.value || undefined })}><option value="">All priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
-      <label>Group <select value={active.group ?? "none"} onChange={(e) => change({ ...active, group: e.target.value as SavedViewConfig["group"] })}><option value="none">No grouping</option><option value="tag">Tag</option><option value="status">Status</option><option value="priority">Priority</option><option value="dueDate">Due date (local)</option></select></label>
-      <label>Sort <select value={active.sort} onChange={(e) => change({ ...active, sort: e.target.value as SavedViewConfig["sort"] })}><option value="dueDate">Due date (local)</option><option value="priority">Priority</option><option value="title">Title</option><option value="createdAt">Created</option></select></label>
-      <button type="button" onClick={() => change({ ...active, direction: active.direction === "asc" ? "desc" : "asc" })}>{active.direction === "asc" ? "Ascending" : "Descending"}</button><button type="button" onClick={() => change(defaults)}>Reset filters</button>
+  return <section aria-labelledby="ledger-heading" className="space-y-4 p-3">
+    <div>
+      <h2 id="ledger-heading" ref={headingRef} tabIndex={-1} className="sr-only">{t("ledger.title")}</h2>
+      <p className="mt-1 text-xs text-nc-muted">{t("ledger.subtitle")}</p>
+    </div>
+    {error && <p role="alert" className="text-xs text-nc-danger">{error}</p>}<p role="status" aria-live="polite" className="sr-only">{notice}</p>
+    <fieldset className="flex flex-wrap items-end gap-2" aria-describedby="ledger-filter-summary">
+      <legend className="rail-section__label">{t("ledger.filters")}</legend>
+      <label className={labelCls}>{t("ledger.completion")} <Select value={active.done === undefined ? "all" : String(active.done)} onChange={(e) => change({ ...active, done: e.target.value === "all" ? undefined : e.target.value === "true" })}><option value="all">{t("ledger.completion.all")}</option><option value="false">{t("ledger.status.open")}</option><option value="true">{t("ledger.status.done")}</option></Select></label>
+      <label className={labelCls}>{t("ledger.tag")} <Select value={active.tag ?? ""} onChange={(e) => change({ ...active, tag: e.target.value || undefined })}><option value="">{t("ledger.tag.all")}</option>{tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}</Select></label>
+      <label className={labelCls}>{t("ledger.priority")} <Select value={active.priority ?? ""} onChange={(e) => change({ ...active, priority: e.target.value || undefined })}><option value="">{t("ledger.priority.all")}</option><option value="high">{t("b.priority.high")}</option><option value="medium">{t("b.priority.medium")}</option><option value="low">{t("b.priority.low")}</option></Select></label>
+      <label className={labelCls}>{t("ledger.group")} <Select value={active.group ?? "none"} onChange={(e) => change({ ...active, group: e.target.value as SavedViewConfig["group"] })}><option value="none">{t("ledger.group.none")}</option><option value="tag">{t("ledger.tag")}</option><option value="status">{t("ledger.column.status")}</option><option value="priority">{t("ledger.priority")}</option><option value="dueDate">{t("ledger.sort.dueDate")}</option></Select></label>
+      <label className={labelCls}>{t("ledger.sort")} <Select value={active.sort} onChange={(e) => change({ ...active, sort: e.target.value as SavedViewConfig["sort"] })}><option value="dueDate">{t("ledger.sort.dueDate")}</option><option value="priority">{t("ledger.sort.priority")}</option><option value="title">{t("ledger.sort.title")}</option><option value="createdAt">{t("ledger.sort.createdAt")}</option></Select></label>
+      <Button size="sm" onClick={() => change({ ...active, direction: active.direction === "asc" ? "desc" : "asc" })}>{active.direction === "asc" ? t("ledger.ascending") : t("ledger.descending")}</Button>
+      <Button size="sm" onClick={() => change(defaults)}>{t("ledger.reset")}</Button>
     </fieldset>
-    <p id="ledger-filter-summary" className="text-xs text-gray-400">{rows.length} tasks shown; ordered by {active.sort ?? "due date"} {active.direction ?? "asc"}, with ID as the final tie-breaker. Due dates use your local calendar day.</p>
-    <form onSubmit={(event) => void save(event)} className="flex gap-2"><label htmlFor="ledger-name">Saved view name</label><input id="ledger-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Save this view" maxLength={120}/><button type="submit" disabled={!name.trim()}>Save view</button></form>
-    <div aria-label="Saved ledger views">{views.length === 0 ? <p className="text-xs text-gray-400">No saved views yet.</p> : <ul>{views.map((view) => <li key={view.id} className="mr-1 inline-flex"><button type="button" aria-current={activeViewId === view.id ? "page" : undefined} onClick={() => { setActive(view.config); setActiveViewId(view.id); setNotice(`Loaded ${view.name}; ${selectLedgerTasks(tasks, view.config).length} tasks shown.`); }}>{view.name}</button><button ref={activeViewId === view.id ? deleteTriggerRef : undefined} type="button" aria-label={`Delete saved view ${view.name}`} onClick={(event) => { deleteTriggerRef.current = event.currentTarget; setDeleteCandidate(view); }}>×</button></li>)}</ul>}</div>
-    <div tabIndex={0} aria-label="Ledger results" className="overflow-auto"><table className="w-full text-left text-xs"><caption>Ledger task results</caption><thead><tr>{active.group && active.group !== "none" && <th scope="col">Group</th>}<th scope="col">Task</th><th scope="col">Status</th><th scope="col">Priority</th><th scope="col">Due (local)</th></tr></thead><tbody>{rows.map((task) => <tr key={task.id}>{active.group && active.group !== "none" && <td>{groupKey(task, active.group)}</td>}<td><button type="button" aria-label={`Open task ${task.title || "Untitled task"}, ${task.priority} priority`} onClick={() => onOpenInspector(task)} className="text-cyan-100 underline">{task.title || "Untitled task"}</button></td><td>{task.done ? "Completed" : "Open"}</td><td>{task.priority}</td><td>{localDateKey(task.dueDate) ?? "No due date"}</td></tr>)}</tbody></table>{rows.length === 0 && <p role="status">No tasks match these filters. Use Reset filters to show all current tasks.</p>}</div>
-    {deleteCandidate && <div role="alertdialog" aria-modal="true" aria-labelledby="delete-view-heading" aria-describedby="delete-view-description" onKeyDown={(event) => { if (event.key === "Escape") setDeleteCandidate(null); }} className="rounded border border-red-400/50 bg-[#1a1d24] p-3"><h3 id="delete-view-heading">Delete saved view?</h3><p id="delete-view-description">Delete “{deleteCandidate.name}”? This cannot be undone.</p><div className="mt-2 flex gap-2"><button ref={cancelDeleteRef} type="button" onClick={() => { setDeleteCandidate(null); requestAnimationFrame(() => deleteTriggerRef.current?.focus()); }}>Cancel</button><button type="button" onClick={() => void remove(deleteCandidate)}>Delete saved view</button></div></div>}
+    <p id="ledger-filter-summary" className="text-xs text-nc-muted">{t("ledger.summary", { count: rows.length, sort: t(`ledger.sort.${active.sort ?? "dueDate"}`), direction: active.direction === "desc" ? t("ledger.descending") : t("ledger.ascending") })}</p>
+    <form onSubmit={(event) => void save(event)} className="flex flex-wrap items-center gap-2">
+      <label htmlFor="ledger-name" className={labelCls}>{t("ledger.savedViewName")}</label>
+      <Input id="ledger-name" className="min-w-48" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("ledger.savePlaceholder")} maxLength={120}/>
+      <Button type="submit" size="sm" disabled={!name.trim()}>{t("ledger.saveView")}</Button>
+    </form>
+    <div aria-label={t("ledger.savedViews")}>{views.length === 0 ? <p className="text-xs text-nc-muted">{t("ledger.noSavedViews")}</p> : <ul className="flex flex-wrap gap-1.5 m-0 p-0 list-none">{views.map((view) => <li key={view.id} className="inline-flex overflow-hidden rounded-nc-md border border-nc-line-faint"><button type="button" className={`px-2.5 py-1.5 text-xs transition-colors ${activeViewId === view.id ? "bg-nc-accent-muted text-nc-accent-strong" : "text-nc-soft hover:bg-nc-fill-faint hover:text-nc-text"}`} aria-current={activeViewId === view.id ? "page" : undefined} onClick={() => { setActive(view.config); setActiveViewId(view.id); setNotice(t("ledger.loadedNotice", { name: view.name, count: selectLedgerTasks(tasks, view.config).length })); }}>{view.name}</button><button ref={activeViewId === view.id ? deleteTriggerRef : undefined} type="button" className="border-l border-nc-line-faint px-2 text-xs text-nc-muted transition-colors hover:bg-nc-danger-muted hover:text-nc-danger" aria-label={t("ledger.deleteAria", { name: view.name })} onClick={(event) => { deleteTriggerRef.current = event.currentTarget; setDeleteCandidate(view); }}>×</button></li>)}</ul>}</div>
+    <div tabIndex={0} aria-label={t("ledger.results")} className="overflow-auto rounded-nc-md border border-nc-line-faint">
+      <table className="w-full text-left text-xs">
+        <caption className="sr-only">{t("ledger.resultsCaption")}</caption>
+        <thead className="border-b border-nc-line-faint text-2xs uppercase tracking-wider text-nc-muted">
+          <tr>{active.group && active.group !== "none" && <th scope="col" className="px-3 py-2 font-medium">{t("ledger.column.group")}</th>}<th scope="col" className="px-3 py-2 font-medium">{t("ledger.column.task")}</th><th scope="col" className="px-3 py-2 font-medium">{t("ledger.column.status")}</th><th scope="col" className="px-3 py-2 font-medium">{t("ledger.column.priority")}</th><th scope="col" className="px-3 py-2 font-medium">{t("ledger.column.due")}</th></tr>
+        </thead>
+        <tbody>{rows.map((task) => <tr key={task.id} className="border-b border-nc-line-faint last:border-b-0 hover:bg-nc-fill-faint transition-colors">{active.group && active.group !== "none" && <td className="px-3 py-2 text-nc-muted">{groupLabel(groupKey(task, active.group))}</td>}<td className="px-3 py-2"><button type="button" aria-label={t("ledger.openTaskAria", { title: task.title || t("ledger.untitled"), priority: t(`b.priority.${task.priority}`) })} onClick={() => onOpenInspector(task)} className="text-left text-nc-text underline decoration-nc-line underline-offset-2 transition-colors hover:text-nc-accent hover:decoration-nc-accent">{task.title || t("ledger.untitled")}</button></td><td className="px-3 py-2 text-nc-muted">{task.done ? t("ledger.status.done") : t("ledger.status.open")}</td><td className="px-3 py-2 text-nc-muted">{t(`b.priority.${task.priority}`)}</td><td className="px-3 py-2 text-nc-muted">{localDateKey(task.dueDate) ?? t("ledger.noDueDate")}</td></tr>)}</tbody>
+      </table>
+      {rows.length === 0 && <p role="status" className="px-3 py-3 text-xs text-nc-muted">{t("ledger.empty")}</p>}
+    </div>
+    {deleteCandidate && <div role="alertdialog" aria-modal="true" aria-labelledby="delete-view-heading" aria-describedby="delete-view-description" onKeyDown={(event) => { if (event.key === "Escape") setDeleteCandidate(null); }} className="rounded-nc-md border border-nc-danger-border bg-nc-raised p-3">
+      <h3 id="delete-view-heading" className="text-sm font-semibold text-nc-text">{t("ledger.deleteHeading")}</h3>
+      <p id="delete-view-description" className="mt-1 text-xs text-nc-soft">{t("ledger.deleteDescription", { name: deleteCandidate.name })}</p>
+      <div className="mt-3 flex gap-2">
+        <Button ref={cancelDeleteRef} size="sm" onClick={() => { setDeleteCandidate(null); requestAnimationFrame(() => deleteTriggerRef.current?.focus()); }}>{t("ledger.cancel")}</Button>
+        <Button variant="danger" size="sm" onClick={() => void remove(deleteCandidate)}>{t("ledger.deleteConfirm")}</Button>
+      </div>
+    </div>}
   </section>;
 }

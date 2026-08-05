@@ -54,6 +54,7 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
   const zoneDraw = useStore((s) => s.zoneDraw);
   const readOnly = useStore((s) => s.readOnly);
   const zoom = useStore((s) => s.zoom);
+  const lens = useStore((s) => s.lens);
   const panX = useStore((s) => s.panX);
   const panY = useStore((s) => s.panY);
   const viewportW = useStore((s) => s.viewportW);
@@ -246,11 +247,15 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
       onPointerCancel={handlePointerUp}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Grid background synced to the view transform */}
+      {/* Graticule synced to the view transform — the chart's substrate.
+          One background layer (a pair of hairline gradients), per the canvas
+          perf rail. An active lens re-inks the graticule in accent so the
+          mode is visible on the field itself, not just in the toolbar. */}
       <div
-        className="absolute inset-0 opacity-[0.15] pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle, #fff 1px, transparent 1px)`,
+          opacity: lens === "off" ? 0.08 : 0.14,
+          backgroundImage: `linear-gradient(${lens === "off" ? "var(--nc-text)" : "var(--nc-accent)"} 1px, transparent 1px), linear-gradient(90deg, ${lens === "off" ? "var(--nc-text)" : "var(--nc-accent)"} 1px, transparent 1px)`,
           backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
           backgroundPosition: `${panX}px ${panY}px`,
         }}
@@ -274,11 +279,11 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
           ? replay.map((ghost) => (
               <div
                 key={ghost.id}
-                className="absolute w-64 rounded-xl bg-[#1a1d24]/80 border border-white/10 shadow-lg"
+                className="absolute w-64 rounded-nc-lg bg-nc-raised/80 border border-nc-line-faint shadow-nc-md"
                 style={{ left: ghost.x, top: ghost.y, opacity: ghost.done ? 0.4 : 0.85 }}
               >
-                <div className="h-2 rounded-t-xl" style={{ background: ghost.color }} />
-                <div className="px-3 py-2 text-xs text-gray-300 truncate">
+                <div className="h-2 rounded-t-nc-lg" style={{ background: ghost.color }} />
+                <div className="px-3 py-2 text-xs text-nc-soft truncate">
                   {ghost.done ? "✓ " : ""}
                   {ghost.title}
                 </div>
@@ -304,14 +309,14 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
         {/* Marquee / zone-draw rectangle */}
         {marqueeRect && (
           <div
-            className="absolute rounded-lg pointer-events-none"
+            className="absolute rounded-nc-md pointer-events-none"
             style={{
               left: marqueeRect.x,
               top: marqueeRect.y,
               width: marqueeRect.w,
               height: marqueeRect.h,
-              border: zoneRect ? "2px dashed rgba(52,211,153,0.7)" : "1.5px solid rgba(168,85,247,0.8)",
-              background: zoneRect ? "rgba(52,211,153,0.06)" : "rgba(168,85,247,0.08)",
+              border: zoneRect ? "2px dashed color-mix(in srgb, var(--nc-success) 70%, transparent)" : "1.5px solid color-mix(in srgb, var(--nc-select) 80%, transparent)",
+              background: zoneRect ? "color-mix(in srgb, var(--nc-success) 6%, transparent)" : "color-mix(in srgb, var(--nc-select) 8%, transparent)",
             }}
           />
         )}
@@ -319,13 +324,21 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
 
       <Minimap canvasId={canvasId} tasks={shown} clusters={clusters} />
 
-      {/* Zoom indicator */}
-      <div className="absolute bottom-4 right-4 bg-[#1a1d24]/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-gray-400 pointer-events-none">
-        {Math.round(zoom * 100)}%
+      {/* Zoom indicator + lens badge — the corner instruments. The badge
+          seconds the graticule re-ink so a lens is never a silent mode. */}
+      <div className="absolute bottom-4 right-4 flex items-center gap-2 pointer-events-none">
+        {lens !== "off" && (
+          <div className="bg-nc-raised/80 backdrop-blur-sm rounded-nc-md border border-nc-accent-border px-3 py-1.5 text-xs text-nc-accent">
+            {t("a.toolbar.lens")}: {t(`a.toolbar.lens.${lens}`)}
+          </div>
+        )}
+        <div className="bg-nc-raised/80 backdrop-blur-sm rounded-nc-md px-3 py-1.5 text-xs text-nc-muted">
+          {Math.round(zoom * 100)}%
+        </div>
       </div>
 
       {/* Shortcut hint */}
-      <div className="absolute bottom-4 left-4 bg-[#1a1d24]/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-[10px] text-gray-500 pointer-events-none">
+      <div className="absolute bottom-4 left-4 bg-nc-raised/80 backdrop-blur-sm rounded-nc-md px-3 py-1.5 text-2xs text-nc-faint pointer-events-none">
         {zoneDraw ? t("c.canvas.zoneHint") : t("c.canvas.shortcutHint")}
       </div>
     </div>

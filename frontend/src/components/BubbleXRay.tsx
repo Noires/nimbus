@@ -1,3 +1,4 @@
+import { chromeSpring } from "../utils/motion";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { api } from "../data/api";
@@ -78,59 +79,59 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
     <motion.div
       initial={{ opacity: 0, y: 8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="absolute top-8 left-0 z-50 w-72 rounded-xl bg-[#0f0f13]/95 backdrop-blur-xl p-4 shadow-2xl"
+      transition={chromeSpring}
+      className="absolute top-8 left-0 z-50 w-72 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-line p-4 shadow-nc-lg"
       style={{ border: `1.5px solid hsla(${hue}, 85%, 65%, 0.4)` }}
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-gray-200">{t("b.xray.title")}</span>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-200 text-sm leading-none">×</button>
+        <span className="text-xs font-semibold text-nc-text">{t("b.xray.title")}</span>
+        <button onClick={onClose} className="text-nc-faint hover:text-nc-text text-sm leading-none">×</button>
       </div>
 
       {/* Progress + momentum */}
       <div className="flex items-center gap-4 mb-3">
         <div>
-          <div className="text-lg font-semibold text-gray-100">{donePct}%</div>
-          <div className="text-[10px] text-gray-500">{doneCount}/{members.length} {t("b.xray.done")}</div>
+          <div className="text-lg font-semibold text-nc-text">{donePct}%</div>
+          <div className="text-2xs text-nc-faint">{doneCount}/{members.length} {t("b.xray.done")}</div>
         </div>
         <div>
-          <div className="text-lg font-semibold text-gray-100">
+          <div className="text-lg font-semibold text-nc-text">
             {momentum === null ? "–" : momentum}
           </div>
-          <div className="text-[10px] text-gray-500">{t("b.xray.doneLast7d")}</div>
+          <div className="text-2xs text-nc-faint">{t("b.xray.doneLast7d")}</div>
         </div>
         {remaining > 0 && (
           <div>
-            <div className="text-lg font-semibold text-gray-100">{formatMinutes(remaining)}</div>
-            <div className="text-[10px] text-gray-500">{t("b.xray.remaining")}</div>
+            <div className="text-lg font-semibold text-nc-text">{formatMinutes(remaining)}</div>
+            <div className="text-2xs text-nc-faint">{t("b.xray.remaining")}</div>
           </div>
         )}
         {members.some((m) => m.actualMinutes > 0) && (
           <div>
-            <div className="text-lg font-semibold text-gray-100">
+            <div className="text-lg font-semibold text-nc-text">
               {formatMinutes(members.reduce((s, m) => s + m.actualMinutes, 0))}
             </div>
-            <div className="text-[10px] text-gray-500">{t("b.xray.actualLogged")}</div>
+            <div className="text-2xs text-nc-faint">{t("b.xray.actualLogged")}</div>
           </div>
         )}
       </div>
 
       {/* Priority mix */}
       <div className="mb-3">
-        <div className="text-[10px] text-gray-500 mb-1">{t("b.xray.priorityMix")}</div>
-        <div className="flex h-2 rounded-full overflow-hidden bg-white/5">
+        <div className="text-2xs text-nc-faint mb-1">{t("b.xray.priorityMix")}</div>
+        <div className="flex h-2 rounded-full overflow-hidden bg-nc-fill-faint">
           {prio.high > 0 && (
-            <div className="bg-red-500/70" style={{ width: `${(prio.high / members.length) * 100}%` }} />
+            <div className="bg-nc-danger" style={{ width: `${(prio.high / members.length) * 100}%` }} />
           )}
           {prio.medium > 0 && (
-            <div className="bg-yellow-500/70" style={{ width: `${(prio.medium / members.length) * 100}%` }} />
+            <div className="bg-nc-warning" style={{ width: `${(prio.medium / members.length) * 100}%` }} />
           )}
           {prio.low > 0 && (
-            <div className="bg-green-500/70" style={{ width: `${(prio.low / members.length) * 100}%` }} />
+            <div className="bg-nc-success" style={{ width: `${(prio.low / members.length) * 100}%` }} />
           )}
         </div>
-        <div className="flex gap-3 mt-1 text-[10px] text-gray-500">
+        <div className="flex gap-3 mt-1 text-2xs text-nc-faint">
           <span>● {prio.high} {t("b.xray.high")}</span>
           <span>● {prio.medium} {t("b.xray.med")}</span>
           <span>● {prio.low} {t("b.xray.low")}</span>
@@ -139,9 +140,9 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
 
       {/* 4-week due strip */}
       <div className="mb-3">
-        <div className="text-[10px] text-gray-500 mb-1">
+        <div className="text-2xs text-nc-faint mb-1">
           {t("b.xray.dueNext4Weeks")}
-          {overdueCount > 0 && <span className="text-red-400"> · {t("b.xray.overdue", { n: overdueCount })}</span>}
+          {overdueCount > 0 && <span className="text-nc-danger"> · {t("b.xray.overdue", { n: overdueCount })}</span>}
           {undatedCount > 0 && <span> · {t("b.xray.undated", { n: undatedCount })}</span>}
         </div>
         <div className="flex gap-[2px]">
@@ -149,11 +150,11 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
             <div
               key={i}
               title={t("b.xray.dayCell", { n: i, count })}
-              className="h-4 flex-1 rounded-sm"
+              className="h-4 flex-1 rounded-nc-sm"
               style={{
                 background:
                   count === 0
-                    ? "rgba(255,255,255,0.05)"
+                    ? "var(--nc-fill-faint)"
                     : `hsla(${hue}, 85%, 60%, ${Math.min(0.25 + count * 0.25, 1)})`,
               }}
             />
@@ -163,7 +164,7 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
 
       <button
         onClick={fitToBubble}
-        className="w-full py-1.5 rounded-lg text-xs text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/10 transition-colors"
+        className="w-full py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent-border hover:bg-nc-accent-muted transition-colors"
       >
         {t("b.xray.fitView")}
       </button>
@@ -174,7 +175,7 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
             useStore.getState().autoScheduleTasks(ids).catch((e) => console.error(e));
             onClose();
           }}
-          className="w-full mt-1.5 py-1.5 rounded-lg text-xs text-purple-300 border border-purple-500/30 hover:bg-purple-500/10 transition-colors"
+          className="w-full mt-1.5 py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent-border hover:bg-nc-accent-muted transition-colors"
           title={t("b.xray.flowFillTitle")}
         >
           ⇶ {t("b.xray.flowFill", { n: undatedCount })}
@@ -187,7 +188,7 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
             useStore.getState().mergeTasksAction(ids).catch((e) => console.error(e));
             onClose();
           }}
-          className="w-full mt-1.5 py-1.5 rounded-lg text-xs text-gray-400 border border-white/10 hover:bg-white/5 transition-colors"
+          className="w-full mt-1.5 py-1.5 rounded-nc-md text-xs text-nc-muted border border-nc-line-faint hover:bg-nc-fill-faint transition-colors"
           title={t("b.xray.mergeTitle")}
         >
           ⇢ {t("b.xray.merge")}

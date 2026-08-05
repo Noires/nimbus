@@ -68,7 +68,7 @@ describe("HelpPanel dialog behavior", () => {
       </>;
     }
     await act(async () => root.render(<Handoff />));
-    const replay = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Replay safe sample tutorial");
+    const replay = [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === "Replay the guided tour");
     await act(async () => replay?.click());
     await act(async () => { await Promise.resolve(); });
 

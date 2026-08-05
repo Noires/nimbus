@@ -241,7 +241,7 @@ async function main() {
       createdAt: daysAgo(11), lastActivityAt: daysAgo(2),
     },
     {
-      id: T.blockedByTwo, canvasId: DEMO, title: "Blocked by two tasks: launch announcement",
+      id: T.blockedByTwo, canvasId: DEMO, title: "Blocked: launch announcement",
       description: "Has two blockers — root and mid.",
       x: 420, y: 1120, priority: "low", color: "#0ea5e9",
       createdAt: daysAgo(11), lastActivityAt: daysAgo(2),
@@ -386,7 +386,6 @@ async function main() {
       { blockerId: T.blockerRoot, blockedId: T.blockedMid },
       { blockerId: T.blockedMid, blockedId: T.blockedLeaf },
       { blockerId: T.blockerRoot, blockedId: T.blockedByTwo },
-      { blockerId: T.blockedMid, blockedId: T.blockedByTwo },
     ],
   });
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Dependency, Task, Workstream } from "../store";
 import { dateLocale, useT } from "../i18n";
+import { Chip } from "./ui/Chip";
 import { workstreamsForTask } from "../data/workstreamSelectors";
 import { selectWorkstreamHealth } from "../data/workstreamHealthSelectors";
 
@@ -14,13 +15,13 @@ interface InspectorFrameProps {
 function InspectorFrame({ title, onBack, backLabel, children }: InspectorFrameProps) {
   const t = useT();
   return (
-    <section className="border-t border-white/10 pt-4 mt-4" aria-label={t("inspector.label")}>
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-cyan-200">{title}</h2>
+    <section aria-label={t("inspector.label")}>
+      <div className="flex items-center justify-between gap-2 pr-9">
+        <h2 className="rail-section__label rail-section__label--inline">{title}</h2>
         <button
           type="button"
           onClick={onBack}
-          className="rounded px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          className="rounded-nc-sm px-2 py-1 text-xs text-nc-muted transition-colors hover:bg-nc-fill-faint hover:text-nc-text"
         >
           {backLabel ?? t("inspector.back")}
         </button>
@@ -33,8 +34,8 @@ function InspectorFrame({ title, onBack, backLabel, children }: InspectorFramePr
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-xs leading-5 text-gray-200">{children}</dd>
+      <dt className="rail-section__label rail-section__label--inline">{label}</dt>
+      <dd className="mt-0.5 text-xs leading-5 text-nc-text">{children}</dd>
     </div>
   );
 }
@@ -127,8 +128,8 @@ export function TaskInspector({
     <InspectorFrame title={t("inspector.task")} onBack={onBack} backLabel={backLabel}>
       <div className="mt-3 space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-white">{task.title}</h3>
-          <p className="mt-1 text-xs text-cyan-100">{status}</p>
+          <h3 className="text-base font-semibold leading-snug text-nc-text [overflow-wrap:anywhere]">{task.title}</h3>
+          <p className="mt-1.5"><Chip tone="accent">{status}</Chip></p>
         </div>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-3">
           <Detail label={t("inspector.nextAction")}>{task.description || t("inspector.none")}</Detail>
@@ -143,7 +144,7 @@ export function TaskInspector({
           <Detail label={t("inspector.checklist")}>{t("inspector.checklistProgress", { done: checklistDone, total: task.checklist.length })}</Detail>
         </dl>
         {((blockerV1Enabled ? Boolean(activeCurrentBlocker) : blockers.length > 0) || blocking.length > 0) && (
-          <dl className="space-y-2 border-t border-white/10 pt-3">
+          <dl className="space-y-2 border-t border-nc-line-faint pt-3">
             {(blockerV1Enabled ? activeCurrentBlocker : blockers.length > 0) && (
               <Detail label={t("inspector.blockedBy")}>
                 {blockerV1Enabled
@@ -159,32 +160,32 @@ export function TaskInspector({
           </dl>
         )}
         {blockerV1Enabled && (
-          <section className="space-y-2 border-t border-white/10 pt-3" aria-label={t("inspector.blockerControls")}>
-            <label className="block text-xs font-medium uppercase tracking-wide text-gray-400" htmlFor={`blocker-${task.id}`}>{t("inspector.blocker")}</label>
+          <section className="space-y-2 border-t border-nc-line-faint pt-3" aria-label={t("inspector.blockerControls")}>
+            <label className="rail-section__label" htmlFor={`blocker-${task.id}`}>{t("inspector.blocker")}</label>
             <div className="flex flex-wrap gap-2">
-              <select id={`blocker-${task.id}`} value={selectedBlockerId} disabled={savingBlocker} onChange={(event) => setSelectedBlockerId(event.target.value)} className="min-w-0 flex-1 rounded border border-white/15 bg-[#15171d] px-2 py-1 text-xs text-gray-100 disabled:opacity-50">
+              <select id={`blocker-${task.id}`} value={selectedBlockerId} disabled={savingBlocker} onChange={(event) => setSelectedBlockerId(event.target.value)} className="min-w-0 flex-1 rounded-nc-sm border border-nc-line bg-nc-surface px-2 py-1 text-xs text-nc-text disabled:opacity-60 disabled:cursor-not-allowed">
                 <option value="">{t("inspector.selectBlocker")}</option>
                 {candidates.map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}
               </select>
-              <button type="button" disabled={savingBlocker || !selectedBlockerId} onClick={() => void saveBlocker(selectedBlockerId)} className="rounded border border-white/15 px-2 py-1 text-xs text-cyan-100 disabled:opacity-50">
+              <button type="button" disabled={savingBlocker || !selectedBlockerId} onClick={() => void saveBlocker(selectedBlockerId)} className="rounded-nc-sm border border-nc-line px-2 py-1 text-xs text-nc-accent-strong disabled:opacity-60 disabled:cursor-not-allowed">
                 {currentBlocker ? t("inspector.replaceBlocker") : t("inspector.setBlocker")}
               </button>
-              {currentBlocker && <button type="button" disabled={savingBlocker} onClick={() => void saveBlocker(null)} className="rounded border border-white/15 px-2 py-1 text-xs text-gray-200 disabled:opacity-50">{t("inspector.clearBlocker")}</button>}
+              {currentBlocker && <button type="button" disabled={savingBlocker} onClick={() => void saveBlocker(null)} className="rounded-nc-sm border border-nc-line px-2 py-1 text-xs text-nc-text disabled:opacity-60 disabled:cursor-not-allowed">{t("inspector.clearBlocker")}</button>}
             </div>
-            {savingBlocker && <p role="status" aria-live="polite" className="text-xs text-cyan-100">{t("inspector.savingBlocker")}</p>}
-            {blockerNotice && <p role="status" aria-live="polite" className="text-xs text-cyan-100">{blockerNotice}</p>}
-            {blockerError && <p role="alert" className="text-xs text-red-300">{blockerError}</p>}
+            {savingBlocker && <p role="status" aria-live="polite" className="text-xs text-nc-accent-strong">{t("inspector.savingBlocker")}</p>}
+            {blockerNotice && <p role="status" aria-live="polite" className="text-xs text-nc-accent-strong">{blockerNotice}</p>}
+            {blockerError && <p role="alert" className="text-xs text-nc-danger">{blockerError}</p>}
           </section>
         )}
         {(task.provider || task.lastActivityAt) && (
-          <dl className="space-y-2 border-t border-white/10 pt-3">
+          <dl className="space-y-2 border-t border-nc-line-faint pt-3">
             {task.provider && (
               <Detail label={t("inspector.source")}>
-                {task.externalUrl ? <a className="text-cyan-200 underline" href={task.externalUrl}>{source}</a> : source}
+                {task.externalUrl ? <a className="text-nc-accent-strong underline" href={task.externalUrl}>{source}</a> : source}
               </Detail>
             )}
-            {task.syncedAt && <Detail label={t("inspector.synced")}>{new Date(task.syncedAt).toLocaleString(dateLocale())}</Detail>}
-            {task.lastActivityAt && <Detail label={t("inspector.activity")}>{new Date(task.lastActivityAt).toLocaleString(dateLocale())}</Detail>}
+            {task.syncedAt && <Detail label={t("inspector.synced")}>{new Date(task.syncedAt).toLocaleString(dateLocale(), { dateStyle: "medium", timeStyle: "short" })}</Detail>}
+            {task.lastActivityAt && <Detail label={t("inspector.activity")}>{new Date(task.lastActivityAt).toLocaleString(dateLocale(), { dateStyle: "medium", timeStyle: "short" })}</Detail>}
           </dl>
         )}
       </div>
@@ -225,11 +226,11 @@ export function WorkstreamInspector({
     <InspectorFrame title={t("inspector.workstream")} onBack={onBack}>
       <div className="mt-3 space-y-4">
         <div>
-          <h3 className="text-sm font-semibold text-white">{workstream.name}</h3>
-          {workstream.description && <p className="mt-1 text-xs leading-5 text-gray-300">{workstream.description}</p>}
-          <div className="mt-2 flex flex-wrap gap-1 text-[11px]">
-            {workstream.pinned && <span className="rounded bg-amber-300/10 px-1 text-amber-200">{t("workstreams.pinned")}</span>}
-            {workstream.protected && <span className="rounded bg-violet-300/10 px-1 text-violet-200">{t("workstreams.protected")}</span>}
+          <h3 className="text-sm font-semibold text-nc-text">{workstream.name}</h3>
+          {workstream.description && <p className="mt-1 text-xs leading-5 text-nc-soft">{workstream.description}</p>}
+          <div className="mt-2 flex flex-wrap gap-1 text-2xs">
+            {workstream.pinned && <span className="rounded-nc-sm bg-nc-fill-faint px-1 text-nc-soft">{t("workstreams.pinned")}</span>}
+            {workstream.protected && <span className="rounded-nc-sm bg-nc-fill-faint px-1 text-nc-soft">{t("workstreams.protected")}</span>}
           </div>
         </div>
         <dl className="grid grid-cols-2 gap-x-3 gap-y-3">
@@ -237,23 +238,23 @@ export function WorkstreamInspector({
           <Detail label={t("inspector.progress")}>{t("inspector.checklistProgress", { done: health.completedCount, total: health.memberCount })}</Detail>
           <Detail label={t("inspector.health")}>
             <span data-workstream-health={health.status}>{t(`workstreams.health.${health.status}`)}</span>
-            <span className="block text-gray-400">{healthReason(health, t)}</span>
+            <span className="block text-nc-muted">{healthReason(health, t)}</span>
           </Detail>
         </dl>
-        <div className="border-t border-white/10 pt-3">
-          <h4 className="text-[10px] font-medium uppercase tracking-wide text-gray-500">{t("workstreams.members")}</h4>
+        <div className="border-t border-nc-line-faint pt-3">
+          <h4 className="rail-section__label rail-section__label--inline">{t("workstreams.members")}</h4>
           <ul className="mt-1 space-y-1" aria-label={t("workstreams.members")}>
             {members.map((task) => (
-              <li key={task.id} className="flex items-center justify-between gap-2 text-xs text-gray-200">
+              <li key={task.id} className="flex items-center justify-between gap-2 text-xs text-nc-text">
                 <span className="truncate">{task.title}</span>
-                <button type="button" onClick={() => onOpenTask(task)} className="shrink-0 rounded px-1 text-cyan-100 hover:bg-cyan-400/15">{t("inspector.openTask")}</button>
+                <button type="button" onClick={() => onOpenTask(task)} className="shrink-0 rounded-nc-sm px-1 text-nc-accent-strong hover:bg-nc-accent-muted">{t("inspector.openTask")}</button>
               </li>
             ))}
           </ul>
         </div>
-        <div className="flex flex-wrap gap-2 border-t border-white/10 pt-3">
-          <button type="button" onClick={onOpenToday} className="rounded px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/15">{t("inspector.openToday")}</button>
-          <button type="button" onClick={onOpenReview} className="rounded px-2 py-1 text-xs text-cyan-100 hover:bg-cyan-400/15">{t("inspector.openReview")}</button>
+        <div className="flex flex-wrap gap-2 border-t border-nc-line-faint pt-3">
+          <button type="button" onClick={onOpenToday} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">{t("inspector.openToday")}</button>
+          <button type="button" onClick={onOpenReview} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">{t("inspector.openReview")}</button>
         </div>
       </div>
     </InspectorFrame>

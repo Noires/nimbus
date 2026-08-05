@@ -1,75 +1,100 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { t as translate, useLocale, useT } from "../i18n";
-import { applyTutorialSampleAction, createTutorialSample, type TutorialSampleAction, type TutorialSampleState } from "./tutorialSample";
+import { motion, useReducedMotion } from "framer-motion";
+import { useT } from "../i18n";
+import { menuPop, quickFade } from "../utils/motion";
+import { useAnchorRect, type AnchorRect } from "../hooks/useAnchorRect";
+import { GUIDED_TOUR_STEPS } from "./guidedTourSteps";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { ContourMark } from "./ui/icons";
+import { MOBILE_COMMAND_CENTER_QUERY } from "./mobileCommandDestination";
 
-export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:command-center-tutorial-v6";
-const TUTORIAL_VERSION = 6;
-const STEPS = ["welcome", "capture", "triage", "workstream", "today", "complete", "review"] as const;
-type TutorialStep = typeof STEPS[number];
+/* The guided tour points at the REAL interface, one element at a time: a
+ * spotlight ring over the live anchor plus a positioned tooltip card. It is
+ * strictly read-only — the full-viewport interceptor keeps the app inert
+ * while the tour is open, so nothing can be read, clicked, or changed. */
+
+export const COMMAND_CENTER_TUTORIAL_KEY = "nimbus:guided-tour-v1";
+const LEGACY_TUTORIAL_KEY = "nimbus:command-center-tutorial-v6";
+const TOUR_VERSION = 1;
 export type TutorialStatus = "in-progress" | "completed" | "skipped";
-type TutorialProgress = { version: number; status: TutorialStatus; step: number; sample: TutorialSampleState };
+type TourProgress = { version: number; status: TutorialStatus; step: number };
 
 function normalizedStep(step: unknown): number {
-  return typeof step === "number" ? Math.max(0, Math.min(STEPS.length - 1, Math.floor(step))) : 0;
+  return typeof step === "number" ? Math.max(0, Math.min(GUIDED_TOUR_STEPS.length - 1, Math.floor(step))) : 0;
 }
 
-/** Reads only tutorial-owned local data. It never consults the Nimbus store or API. */
-export function readCommandCenterTutorial(): TutorialProgress | null {
+/** Reads only tour-owned local data; also clears the retired sample-modal
+ * checkpoint so previous users see the new tour offer once. */
+export function readCommandCenterTutorial(): TourProgress | null {
   try {
+    window.localStorage.removeItem(LEGACY_TUTORIAL_KEY);
     const raw = window.localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY);
     if (!raw) return null;
-    const value = JSON.parse(raw) as Partial<TutorialProgress>;
-    if (value.version !== TUTORIAL_VERSION || !["in-progress", "completed", "skipped"].includes(value.status ?? "")) return null;
-    const sample = value.sample;
-    if (!sample || typeof sample.captured !== "boolean" || typeof sample.triaged !== "boolean" || typeof sample.assigned !== "boolean" || typeof sample.today !== "boolean" || typeof sample.completed !== "boolean" || typeof sample.workstreamInspected !== "boolean" || typeof sample.reviewInspected !== "boolean") return null;
-    return { version: TUTORIAL_VERSION, status: value.status as TutorialStatus, step: normalizedStep(value.step), sample };
+    const value = JSON.parse(raw) as Partial<TourProgress>;
+    if (value.version !== TOUR_VERSION || !["in-progress", "completed", "skipped"].includes(value.status ?? "")) return null;
+    return { version: TOUR_VERSION, status: value.status as TutorialStatus, step: normalizedStep(value.step) };
   } catch { return null; }
 }
 
-function writeProgress(progress: TutorialProgress) {
+function writeProgress(progress: TourProgress) {
   try { window.localStorage.setItem(COMMAND_CENTER_TUTORIAL_KEY, JSON.stringify(progress)); } catch { /* Local storage is optional. */ }
 }
 
-function newProgress(): TutorialProgress {
-  return { version: TUTORIAL_VERSION, status: "in-progress", step: 0, sample: createTutorialSample() };
+function newProgress(): TourProgress {
+  return { version: TOUR_VERSION, status: "in-progress", step: 0 };
 }
 
-function actionComplete(step: TutorialStep, sample: TutorialSampleState): boolean {
-  if (step === "capture") return sample.captured;
-  if (step === "triage") return sample.triaged && sample.assigned;
-  if (step === "workstream") return sample.triaged && sample.assigned && sample.workstreamInspected;
-  if (step === "today") return sample.workstreamInspected && sample.today;
-  if (step === "complete") return sample.today && sample.completed;
-  if (step === "review") return sample.completed && sample.reviewInspected;
-  return true;
+const CARD_WIDTH = 352; // px — matches min(22rem, …) for placement math
+const CARD_MARGIN = 12;
+
+function placeCard(rect: AnchorRect | null): { top: number; left: number } | null {
+  if (!rect || typeof window === "undefined") return null;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const estimatedHeight = 220;
+  const spaceRight = vw - (rect.left + rect.width);
+  const spaceLeft = rect.left;
+  const spaceBottom = vh - (rect.top + rect.height);
+  let top: number;
+  let left: number;
+  if (spaceRight >= CARD_WIDTH + CARD_MARGIN * 2) {
+    left = rect.left + rect.width + CARD_MARGIN;
+    top = rect.top;
+  } else if (spaceLeft >= CARD_WIDTH + CARD_MARGIN * 2) {
+    left = rect.left - CARD_WIDTH - CARD_MARGIN;
+    top = rect.top;
+  } else if (spaceBottom >= estimatedHeight + CARD_MARGIN * 2) {
+    left = rect.left;
+    top = rect.top + rect.height + CARD_MARGIN;
+  } else {
+    left = rect.left;
+    top = rect.top - estimatedHeight - CARD_MARGIN;
+  }
+  return {
+    top: Math.max(CARD_MARGIN, Math.min(top, vh - estimatedHeight - CARD_MARGIN)),
+    left: Math.max(CARD_MARGIN, Math.min(left, vw - CARD_WIDTH - CARD_MARGIN)),
+  };
 }
 
-/**
- * A client-only, deterministic sample Canvas. Every record is contained in this
- * component's tutorial-local state and optional localStorage checkpoint: no
- * productive task, workstream, canvas, zone, setting, or history can be read or mutated.
- */
 export function CommandCenterTutorial({ open, onClose, replay = false, onStatusChange }: {
   open: boolean;
   onClose: () => void;
   replay?: boolean;
   onStatusChange?: (status: TutorialStatus) => void;
 }) {
-  // Subscribe for a later application language change, but use the store's
-  // current value for SSR too (Zustand's SSR hook otherwise returns its initial
-  // snapshot rather than the test/runtime-selected locale).
-  useLocale((state) => state.locale);
-  const applicationLocale = useLocale.getState().locale;
-  // The sample may demonstrate EN/DE without changing the productive
-  // application's persisted language preference.
-  const [locale, setLocale] = useState(applicationLocale);
-  const t = (key: string, vars?: Record<string, string | number>) => translate(key, vars, locale);
-  const [progress, setProgress] = useState<TutorialProgress>(newProgress);
-  const closeButton = useRef<HTMLButtonElement>(null);
+  const t = useT();
+  const reduced = useReducedMotion();
+  // Desktop-only: none of the anchors exist in the mobile companion. Uses the
+  // router's mobile query (false fallback) so SSR/static renders show the tour.
+  const desktop = !useMediaQuery(MOBILE_COMMAND_CENTER_QUERY, false);
+  const [progress, setProgress] = useState<TourProgress>(newProgress);
+  const directionRef = useRef<1 | -1>(1);
   const dialogRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
-  const current = STEPS[progress.step];
+  const step = GUIDED_TOUR_STEPS[normalizedStep(progress.step)];
+  const { rect } = useAnchorRect(open && desktop ? step.selectors : null);
+
   const restoreFocus = () => {
     const opener = openerRef.current;
     if (opener?.isConnected && opener !== document.body) opener.focus();
@@ -80,107 +105,141 @@ export function CommandCenterTutorial({ open, onClose, replay = false, onStatusC
     if (!open) return;
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const saved = readCommandCenterTutorial();
-    const next = replay || saved?.status !== "in-progress" ? newProgress() : saved;
+    const next = replay || saved?.status !== "in-progress" ? newProgress() : { ...saved, status: "in-progress" as const };
+    directionRef.current = 1;
     setProgress(next);
-    setLocale(applicationLocale);
     if (replay) {
       writeProgress(next);
       onStatusChange?.(next.status);
     }
-    queueMicrotask(() => closeButton.current?.focus());
-    return () => {
-      restoreFocus();
-    };
-  }, [open, replay, onStatusChange, applicationLocale]);
+    return () => { restoreFocus(); };
+  }, [open, replay, onStatusChange]);
 
   useEffect(() => {
     if (open) queueMicrotask(() => titleRef.current?.focus());
-  }, [open, current, locale]);
+  }, [open, progress.step]);
 
-  if (!open) return null;
-  const save = (next: TutorialProgress) => { setProgress(next); writeProgress(next); };
+  // Auto-skip optional steps whose anchor is missing, in the direction of
+  // travel. The check queries the DOM directly inside a per-step timeout —
+  // no state pairing, so a reopen can never see stale measurement state. The
+  // delay outlasts entrance animations (rail slides in over .22s).
+  useEffect(() => {
+    if (!open || !desktop || step.selectors.length === 0 || !step.optional) return;
+    const timer = setTimeout(() => {
+      const anchored = step.selectors.some((selector) => {
+        const element = document.querySelector(selector);
+        if (!element) return false;
+        const box = element.getBoundingClientRect();
+        return box.width > 0 && box.height > 0;
+      });
+      if (anchored) return;
+      const next = progress.step + directionRef.current;
+      if (next < 0 || next >= GUIDED_TOUR_STEPS.length) return;
+      setProgress((current) => ({ ...current, step: normalizedStep(next) }));
+    }, 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, desktop, progress.step, step]);
+
+  if (!open || !desktop) return null;
+
+  const save = (next: TourProgress) => { setProgress(next); writeProgress(next); };
   const close = (status: TutorialStatus) => {
     writeProgress({ ...progress, status });
     onStatusChange?.(status);
-    // Restore focus before requesting the parent to unmount the dialog. This
-    // also covers Help → replay transitions where Help's trigger no longer
-    // exists by the time the tutorial closes.
     restoreFocus();
     onClose();
   };
-  const go = (step: number) => save({ ...progress, status: "in-progress", step: normalizedStep(step) });
-  const performSampleAction = () => {
-    if (current === "welcome") return;
-    const sample = applyTutorialSampleAction(progress.sample, current as TutorialSampleAction);
-    save({ ...progress, status: "in-progress", sample });
+  const go = (target: number, direction: 1 | -1) => {
+    directionRef.current = direction;
+    save({ ...progress, status: "in-progress", step: normalizedStep(target) });
   };
+  const next = () => (progress.step === GUIDED_TOUR_STEPS.length - 1 ? close("completed") : go(progress.step + 1, 1));
+  const back = () => go(progress.step - 1, -1);
+
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    // The dialog is a self-contained sample environment. Do not let any key
-    // reach CanvasRouter's productive global shortcuts (Space, N, undo, etc.).
-    // Tab and Escape retain the explicit tutorial behavior below.
+    // Keep every key local: CanvasRouter owns global shortcuts (N, Z, Space…).
     event.stopPropagation();
     if (event.key === "Escape") {
-      // CanvasRouter owns global Escape shortcuts. The tutorial is a local,
-      // isolated lab, so closing it must not also alter the productive Canvas.
       event.preventDefault();
       close("in-progress");
       return;
     }
+    if (event.key === "ArrowRight") { event.preventDefault(); next(); return; }
+    if (event.key === "ArrowLeft" && progress.step > 0) { event.preventDefault(); back(); return; }
     if (event.key !== "Tab") return;
-    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>('button:not([disabled])');
     if (!focusable?.length) return;
-    const first = focusable[0]; const last = focusable[focusable.length - 1];
-    // The programmatic heading target is intentionally not part of the normal
-    // tab sequence. Treat Shift+Tab from it as wrapping to the final dialog
-    // control, rather than allowing focus to escape behind the modal.
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
     if (event.shiftKey && (document.activeElement === first || document.activeElement === titleRef.current)) { event.preventDefault(); last.focus(); }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   };
-  const needsAction = ["capture", "triage", "workstream", "today", "complete", "review"].includes(current);
-  const complete = actionComplete(current, progress.sample);
 
-  return <div className="command-center-tutorial-backdrop" role="presentation">
-    <section ref={dialogRef} className="command-center-tutorial" role="dialog" aria-modal="true" aria-labelledby="command-center-tutorial-title" aria-describedby="command-center-tutorial-description" onKeyDown={handleKeyDown}>
-      <header className="command-center-tutorial__header">
-        <div><p className="command-center-tutorial__eyebrow">{t("tutorial.sampleLabel")}</p><h2 ref={titleRef} tabIndex={-1} id="command-center-tutorial-title">{t(`tutorial.${current}.title`)}</h2></div>
-        <div className="command-center-tutorial__utilities">
-          <button type="button" onClick={() => setLocale(locale === "en" ? "de" : "en")} aria-label={t("tutorial.languageAria")}>{t(locale === "en" ? "tutorial.languageGerman" : "tutorial.languageEnglish")}</button>
-          <button ref={closeButton} type="button" onClick={() => close("in-progress")} aria-label={t("tutorial.exitAria")}>{t("tutorial.exit")}</button>
-        </div>
-      </header>
-      <div className="command-center-tutorial__sample" aria-label={t("tutorial.sampleCanvasAria")}>
-        <span className="command-center-tutorial__sample-badge">{t("tutorial.sampleLabel")}</span>
-        <div className="command-center-tutorial__sample-workflow" aria-live="polite">
-          <div className={`command-center-tutorial__sample-card${progress.sample.captured ? " is-complete" : ""}`}><strong>{t("tutorial.sampleTask")}</strong><span>{progress.sample.captured ? t("tutorial.status.inbox") : t("tutorial.status.draft")}</span></div>
-          <div className={`command-center-tutorial__sample-card${progress.sample.triaged ? " is-complete" : ""}`}><strong>{t("tutorial.sampleInbox")}</strong><span>{progress.sample.triaged ? t("tutorial.status.triaged") : t("tutorial.status.waiting")}</span></div>
-          <div className={`command-center-tutorial__sample-card${progress.sample.assigned ? " is-complete" : ""}`}><strong>{t("tutorial.sampleWorkstream")}</strong><span>{progress.sample.assigned ? t("tutorial.status.assigned") : t("tutorial.status.waiting")}</span></div>
-          <div className={`command-center-tutorial__sample-card${progress.sample.today ? " is-complete" : ""}`}><strong>{t("tutorial.sampleToday")}</strong><span>{progress.sample.today ? t("tutorial.status.focus") : t("tutorial.status.waiting")}</span></div>
-          <div className={`command-center-tutorial__sample-card${progress.sample.completed ? " is-complete" : ""}`}><strong>{t("tutorial.sampleReview")}</strong><span>{progress.sample.completed ? t("tutorial.status.complete") : t("tutorial.status.waiting")}</span></div>
-        </div>
-        <p className="command-center-tutorial__sample-caption">{t(`tutorial.${current}.sample`)}</p>
-        <p className="command-center-tutorial__privacy" aria-live="polite">{t("tutorial.isolation")}</p>
-        {needsAction && <button type="button" className="command-center-tutorial__primary" onClick={performSampleAction}>{complete ? t("tutorial.actionDone") : t(`tutorial.${current}.action`)}</button>}
-      </div>
-      <p id="command-center-tutorial-description">{t(`tutorial.${current}.body`)}</p>
-      <footer className="command-center-tutorial__actions">
-        <span aria-live="polite">{t("tutorial.progress", { current: progress.step + 1, total: STEPS.length })}</span>
-        <div>
-          {progress.step > 0 && <button type="button" onClick={() => go(progress.step - 1)}>{t("tutorial.back")}</button>}
-          <button type="button" onClick={() => { save(newProgress()); onStatusChange?.("in-progress"); }}>{t("tutorial.reset")}</button>
-          <button type="button" onClick={() => close("skipped")}>{t("tutorial.skip")}</button>
-          <button type="button" className="command-center-tutorial__primary" disabled={!complete} onClick={() => progress.step === STEPS.length - 1 ? close("completed") : go(progress.step + 1)}>{progress.step === STEPS.length - 1 ? t("tutorial.openWorkspace") : t("tutorial.next")}</button>
-        </div>
-      </footer>
-    </section>
-  </div>;
+  const centered = step.selectors.length === 0 || rect === null;
+  const spotlight = centered ? null : {
+    top: rect!.top - step.padding,
+    left: rect!.left - step.padding,
+    width: rect!.width + step.padding * 2,
+    height: rect!.height + step.padding * 2,
+  };
+  const cardPosition = centered ? null : placeCard(spotlight);
+  const isLast = progress.step === GUIDED_TOUR_STEPS.length - 1;
+  const showPromise = step.id === "welcome" || step.id === "finish";
+
+  return (
+    <div className="guided-tour" role="presentation" onKeyDown={handleKeyDown}>
+      {centered ? (
+        <motion.div className="guided-tour__backdrop" aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={reduced ? { duration: 0 } : quickFade} />
+      ) : (
+        <motion.div
+          key={progress.step}
+          className="guided-tour__spotlight"
+          aria-label={t("tutorial.spotlightAria")}
+          role="presentation"
+          style={spotlight!}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={reduced ? { duration: 0 } : quickFade}
+        />
+      )}
+      <motion.section
+        key={`card-${progress.step}`}
+        ref={dialogRef}
+        className={`guided-tour__card${centered ? " guided-tour__card--centered" : ""}`}
+        style={cardPosition ?? undefined}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="command-center-tutorial-title"
+        aria-describedby="command-center-tutorial-description"
+        initial={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={reduced ? quickFade : menuPop}
+      >
+        <p className="guided-tour__eyebrow">{t("tutorial.tourLabel")}</p>
+        <h2 ref={titleRef} tabIndex={-1} id="command-center-tutorial-title">{t(`tutorial.${step.id}.title`)}</h2>
+        <p id="command-center-tutorial-description">{t(`tutorial.${step.id}.body`)}</p>
+        {showPromise && <p className="guided-tour__promise" aria-live="polite">{t("tutorial.isolation")}</p>}
+        <footer className="guided-tour__actions">
+          <span aria-live="polite">{t("tutorial.progress", { current: progress.step + 1, total: GUIDED_TOUR_STEPS.length })}</span>
+          <div>
+            {progress.step > 0 && <button type="button" onClick={back}>{t("tutorial.back")}</button>}
+            <button type="button" aria-label={t("tutorial.exitAria")} onClick={() => close("skipped")}>{t("tutorial.skip")}</button>
+            <button type="button" className="command-center-tutorial__primary" onClick={next}>{isLast ? t("tutorial.finish") : t("tutorial.next")}</button>
+          </div>
+        </footer>
+      </motion.section>
+    </div>
+  );
 }
 
 export function CommandCenterTutorialOffer({ onStart }: { onStart: () => void }) {
   const t = useT();
-  const [progress, setProgress] = useState<TutorialProgress | null>(() => readCommandCenterTutorial());
+  const [progress, setProgress] = useState<TourProgress | null>(() => readCommandCenterTutorial());
   if (progress?.status === "completed" || progress?.status === "skipped") return null;
   const resume = progress?.status === "in-progress";
-  return <aside className="command-center-tutorial-offer" aria-label={t("tutorial.offerAria")}>
+  return <aside className="command-center-tutorial-offer nc-chart-wash" aria-label={t("tutorial.offerAria")}>
+    <span className="night-cartography__ornament" aria-hidden="true"><ContourMark size={128} /></span>
     <strong>{t(resume ? "tutorial.resumeTitle" : "tutorial.offerTitle")}</strong><p>{t("tutorial.offerBody")}</p>
     <button type="button" className="command-center-tutorial__primary" onClick={() => { const next = progress ?? newProgress(); writeProgress(next); setProgress(next); onStart(); }}>{t(resume ? "tutorial.resume" : "tutorial.start")}</button>
     <button type="button" onClick={() => { const next = { ...(progress ?? newProgress()), status: "skipped" as const }; writeProgress(next); setProgress(next); }}>{t("tutorial.notNow")}</button>
@@ -188,5 +247,8 @@ export function CommandCenterTutorialOffer({ onStart }: { onStart: () => void })
 }
 
 export function resetCommandCenterTutorial() {
-  try { window.localStorage.removeItem(COMMAND_CENTER_TUTORIAL_KEY); } catch { /* no-op */ }
+  try {
+    window.localStorage.removeItem(COMMAND_CENTER_TUTORIAL_KEY);
+    window.localStorage.removeItem(LEGACY_TUTORIAL_KEY);
+  } catch { /* no-op */ }
 }

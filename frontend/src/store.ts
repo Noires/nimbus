@@ -1189,20 +1189,33 @@ export const useStore = create<State>((set, get) => {
     },
     flyTo: (worldX, worldY, targetZoom = 1) => {
       const { viewportW, viewportH, zoom, panX, panY } = get();
-      const targetPanX = viewportW / 2 - worldX * targetZoom;
-      const targetPanY = viewportH / 2 - worldY * targetZoom;
       cancelAnimationFrame(flyRaf);
+      // Reduced motion: a sweeping camera flight is exactly the movement the
+      // preference asks us to skip — jump straight to the destination.
+      if (typeof window !== "undefined" && typeof window.matchMedia === "function"
+        && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        set({ zoom: targetZoom, panX: viewportW / 2 - worldX * targetZoom, panY: viewportH / 2 - worldY * targetZoom });
+        return;
+      }
+      // Chart flight: interpolate the WORLD center (not raw pan) so the camera
+      // tracks a straight line over the field, and let the zoom dip mid-flight
+      // on long hops — a low arc that shows the terrain between here and there.
+      // Short hops (dip ≈ 0) behave like the plain tween they always were.
+      const z0 = zoom;
+      const cx0 = (viewportW / 2 - panX) / zoom;
+      const cy0 = (viewportH / 2 - panY) / zoom;
+      const screenDist = Math.hypot((worldX - cx0) * zoom, (worldY - cy0) * zoom);
+      const vw = Math.max(viewportW, 1);
+      const dip = Math.min(0.45, screenDist / (3 * vw));
+      const duration = 500 + 300 * Math.min(1, screenDist / (2 * vw));
       const start = performance.now();
-      const [z0, px0, py0] = [zoom, panX, panY];
-      const DURATION = 500;
       const step = (t: number) => {
-        const p = Math.min((t - start) / DURATION, 1);
+        const p = Math.min((t - start) / duration, 1);
         const e = easeInOutCubic(p);
-        set({
-          zoom: z0 + (targetZoom - z0) * e,
-          panX: px0 + (targetPanX - px0) * e,
-          panY: py0 + (targetPanY - py0) * e,
-        });
+        const z = (z0 + (targetZoom - z0) * e) * (1 - dip * Math.sin(Math.PI * e));
+        const cx = cx0 + (worldX - cx0) * e;
+        const cy = cy0 + (worldY - cy0) * e;
+        set({ zoom: z, panX: viewportW / 2 - cx * z, panY: viewportH / 2 - cy * z });
         if (p < 1) flyRaf = requestAnimationFrame(step);
       };
       flyRaf = requestAnimationFrame(step);

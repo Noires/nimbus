@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Task, Workstream } from "../store";
 import type { TaskPatch } from "../data/api";
 import { dateLocale, useT } from "../i18n";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
+import { Select } from "./ui/Select";
 
 export type InboxTriageState = "loading" | "error" | "ready";
 
@@ -68,10 +71,10 @@ export function InboxTriage({
     <section className="p-4" aria-label={t("inbox.triage.label")}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-cyan-200">{t("inbox.triage.title")}</h2>
-          <p className="mt-1 text-xs leading-5 text-gray-400">{t("inbox.triage.subtitle")}</p>
+          <h2 className="sr-only">{t("inbox.triage.title")}</h2>
+          <p className="mt-1 text-xs leading-5 text-nc-muted">{t("inbox.triage.subtitle")}</p>
         </div>
-        <span className="rounded-full bg-purple-400/10 px-2 py-1 text-xs text-purple-200">{inboxTasks.length}</span>
+        <span className="rounded-full bg-nc-fill px-2 py-1 text-xs text-nc-muted">{inboxTasks.length}</span>
       </div>
 
       <form
@@ -82,30 +85,30 @@ export function InboxTriage({
         }}
       >
         <label className="sr-only" htmlFor="inbox-triage-capture">{t("inbox.triage.captureLabel")}</label>
-        <input
+        <Input
           ref={inputRef}
           id="inbox-triage-capture"
           value={captureText}
           onChange={(event) => setCaptureText(event.target.value)}
           placeholder={t("inbox.triage.capturePlaceholder")}
-          className="min-w-0 flex-1 rounded-lg border border-white/10 bg-[#0f0f13]/60 px-2.5 py-2 text-xs outline-none transition-colors focus:border-purple-400 focus-visible:ring-2 focus-visible:ring-purple-300"
+          className="min-w-0 flex-1"
         />
-        <button type="submit" className="rounded-lg bg-purple-500/20 px-3 py-2 text-xs text-purple-100 hover:bg-purple-500/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300">
+        <button type="submit" className="rounded-nc-md bg-nc-select-muted px-3 py-2 text-xs text-nc-select hover:bg-nc-select-surface/30">
           {t("inbox.triage.capture")}
         </button>
       </form>
-      {actionError && <p role="alert" className="mt-2 text-xs text-red-300">{actionError}</p>}
+      {actionError && <p role="alert" className="mt-2 text-xs text-nc-danger">{actionError}</p>}
 
       <div className="mt-4 overflow-x-auto">
         {state === "loading" ? (
-          <p className="text-xs text-gray-500">{t("inbox.triage.loading")}</p>
+          <p className="text-xs text-nc-faint">{t("inbox.triage.loading")}</p>
         ) : state === "error" ? (
-          <p role="alert" className="text-xs text-red-300">{t("inbox.triage.error")}</p>
+          <p role="alert" className="text-xs text-nc-danger">{t("inbox.triage.error")}</p>
         ) : inboxTasks.length === 0 ? (
-          <p className="text-xs leading-5 text-gray-500">{t("inbox.triage.empty")}</p>
+          <p className="text-xs leading-5 text-nc-faint">{t("inbox.triage.empty")}</p>
         ) : (
-          <table className="w-full min-w-[34rem] text-left text-xs" aria-label={t("inbox.triage.tableLabel")}>
-            <thead className="border-b border-white/10 text-[10px] uppercase tracking-wide text-gray-500">
+          <table className="w-full min-w-[38rem] text-left text-xs" aria-label={t("inbox.triage.tableLabel")}>
+            <thead className="border-b border-nc-line-faint text-2xs uppercase tracking-wider text-nc-muted">
               <tr>
                 <th className="px-2 py-2 font-medium">{t("inbox.triage.task")}</th>
                 <th className="px-2 py-2 font-medium">{t("inbox.triage.priority")}</th>
@@ -116,57 +119,56 @@ export function InboxTriage({
             </thead>
             <tbody>
               {inboxTasks.map((task) => (
-                <tr key={task.id} className="night-cartography__task-row border-b border-white/5 align-top">
-                  <td className="max-w-48 px-2 py-3 text-gray-100">
-                    <div className="truncate font-medium">{task.title}</div>
-                    <div className="mt-1 truncate text-[10px] text-gray-500">{task.tags.map((tag) => `#${tag}`).join(" ") || t("inbox.triage.noTags")}</div>
+                <tr key={task.id} className="night-cartography__task-row border-b border-nc-line-faint align-top">
+                  <td className="w-full min-w-48 px-2 py-3 text-nc-text">
+                    <div className="text-sm font-medium [overflow-wrap:anywhere]">{task.title}</div>
+                    <div className="mt-1 text-xs text-nc-faint [overflow-wrap:anywhere]">{task.tags.map((tag) => `#${tag}`).join(" ") || t("inbox.triage.noTags")}</div>
                   </td>
                   <td className="px-2 py-3">
                     <label className="sr-only" htmlFor={`inbox-priority-${task.id}`}>{t("inbox.triage.priority")}</label>
-                    <select
+                    <Select
                       id={`inbox-priority-${task.id}`}
                       value={task.priority}
                       onChange={(event) => { void run(() => onPatchTask(task.id, { priority: event.target.value })); }}
-                      className="rounded border border-white/10 bg-[#0f0f13]/60 px-1.5 py-1 text-xs text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300"
                     >
                       <option value="high">{t("inspector.priority.high")}</option>
                       <option value="medium">{t("inspector.priority.medium")}</option>
                       <option value="low">{t("inspector.priority.low")}</option>
-                    </select>
+                    </Select>
                   </td>
-                  <td className="px-2 py-3 text-gray-300">
+                  <td className="px-2 py-3 text-nc-soft">
                     <span className="block pb-1">{formatDueDate(task.dueDate)}</span>
                     <label className="sr-only" htmlFor={`inbox-due-${task.id}`}>{t("inbox.triage.due")}</label>
-                    <input
+                    <Input
                       id={`inbox-due-${task.id}`}
                       type="date"
                       value={task.dueDate?.slice(0, 10) ?? ""}
                       onChange={(event) => { void run(() => onPatchTask(task.id, { dueDate: event.target.value || null })); }}
-                      className="w-28 rounded border border-white/10 bg-[#0f0f13]/60 px-1.5 py-1 text-xs text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300"
+                      className="w-32"
                     />
                   </td>
                   <td className="px-2 py-3">
                     <label className="sr-only" htmlFor={`inbox-workstream-${task.id}`}>{t("inbox.triage.workstream")}</label>
-                    <select
+                    <Select
                       id={`inbox-workstream-${task.id}`}
                       defaultValue=""
                       onChange={(event) => {
                         if (event.target.value) void run(() => onSetWorkstream(task.id, event.target.value));
                       }}
-                      className="max-w-32 rounded border border-white/10 bg-[#0f0f13]/60 px-1.5 py-1 text-xs text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300"
+                      className="min-w-44"
                     >
                       <option value="">{t("inbox.triage.chooseWorkstream")}</option>
                       {workstreams.map((workstream) => <option key={workstream.id} value={workstream.id}>{workstream.name}</option>)}
-                    </select>
+                    </Select>
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <button type="button" onClick={() => { void run(() => onClearInbox(task)); }} className="rounded border border-cyan-400/30 px-2 py-1 text-[10px] text-cyan-100 hover:bg-cyan-400/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+                      <Button size="sm" className="border-nc-accent-border text-nc-accent-strong hover:bg-nc-accent-muted" onClick={() => { void run(() => onClearInbox(task)); }}>
                         {t("inbox.triage.clearInbox")}
-                      </button>
-                      <button type="button" onClick={() => onReveal(task)} className="rounded border border-white/15 px-2 py-1 text-[10px] text-gray-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300">
+                      </Button>
+                      <Button size="sm" onClick={() => onReveal(task)}>
                         {t("inbox.triage.openInspector")}
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

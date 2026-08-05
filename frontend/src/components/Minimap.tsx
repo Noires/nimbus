@@ -88,17 +88,20 @@ export function Minimap({ canvasId, tasks, clusters }: MinimapProps) {
       ctx.fill();
     }
 
-    // Task dots
+    // Task dots. Canvas 2D can't read CSS custom properties, so these
+    // literals mirror the global.css tokens by hand: rgba(152,173,180,.5)
+    // = --nc-text-muted (#98adb4), and #8b5cf6 is the shared task-color
+    // fallback. Update them together with the token block.
     for (const t of tasks) {
       const m = toMap(t.x + CARD_W / 2, t.y + CARD_H / 2);
-      ctx.fillStyle = t.done ? "rgba(148,163,184,0.5)" : t.color || "#8b5cf6";
+      ctx.fillStyle = t.done ? "rgba(152,173,180,0.5)" : t.color || "#8b5cf6";
       ctx.fillRect(m.x - 1.5, m.y - 1, 3, 2);
     }
 
-    // Viewport rectangle
+    // Viewport rectangle — mirrors --nc-text (#edf4f5) at 60%.
     const tl = toMap(viewL, viewT);
     const br = toMap(viewR, viewB);
-    ctx.strokeStyle = "rgba(255,255,255,0.6)";
+    ctx.strokeStyle = "rgba(237,244,245,0.6)";
     ctx.lineWidth = 1;
     ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
   });
@@ -121,11 +124,11 @@ export function Minimap({ canvasId, tasks, clusters }: MinimapProps) {
   };
 
   return (
-    <div className="absolute bottom-14 right-4 z-40">
+    <div className="absolute bottom-14 right-4 z-40 max-md:hidden">
       <canvas
         ref={canvasRef}
         style={{ width: MAP_W, height: MAP_H }}
-        className="rounded-lg bg-[#0f0f13]/85 border border-white/15 shadow-xl cursor-pointer block"
+        className="rounded-nc-md bg-nc-well/85 border border-nc-line shadow-nc-md cursor-pointer block"
         onPointerDown={(e) => {
           e.stopPropagation();
           dragging.current = true;
@@ -153,7 +156,7 @@ export function Minimap({ canvasId, tasks, clusters }: MinimapProps) {
                   useStore.getState().gotoWaypoint(canvasId, wp.slot);
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="w-5 h-5 rounded-full bg-[#1a1d24] border border-cyan-500/40 text-[9px] text-cyan-300 hover:border-cyan-300 transition-colors"
+                className="w-5 h-5 rounded-full bg-nc-raised border border-nc-accent-border text-2xs text-nc-accent hover:border-nc-accent transition-colors"
                 title={t("c.minimap.waypoint", { slot: wp.slot })}
               >
                 {wp.slot}

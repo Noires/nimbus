@@ -12,6 +12,7 @@ export const enC: Record<string, string> = {
 
   // InboxDock
   "c.inbox.title": "Inbox",
+  "c.inbox.close": "Close inbox",
   "c.inbox.placeholder": "Capture… try: friday 2h #api !high @Bubble title",
   "c.inbox.empty": "Nothing captured. Type above, then drag cards onto the canvas to place them.",
   "c.inbox.looksLike": "Looks like:",
@@ -167,6 +168,7 @@ export const deC: Record<string, string> = {
 
   // InboxDock
   "c.inbox.title": "Eingang",
+  "c.inbox.close": "Eingang schließen",
   "c.inbox.placeholder": "Erfassen… z. B.: friday 2h #api !high @Blase Titel",
   "c.inbox.empty": "Nichts erfasst. Oben tippen, dann Karten auf die Fläche ziehen, um sie zu platzieren.",
   "c.inbox.looksLike": "Sieht aus wie:",

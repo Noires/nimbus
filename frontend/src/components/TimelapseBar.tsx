@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { api } from "../data/api";
 import { useStore, type Task } from "../store";
 import { useT, dateLocale } from "../i18n";
+import { chromeSpring, quickFade } from "../utils/motion";
 
 interface Frame {
   time: number;
@@ -30,6 +31,7 @@ export function TimelapseBar({ canvasId, onClose }: { canvasId: string; onClose:
   const tracks = useRef<Map<string, Track>>(new Map());
   const playRaf = useRef(0);
   const tr = useT();
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -183,13 +185,14 @@ export function TimelapseBar({ canvasId, onClose }: { canvasId: string; onClose:
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border border-purple-500/30 px-4 py-2.5 shadow-2xl w-[min(640px,90%)]"
+      transition={reduced ? quickFade : chromeSpring}
+      className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-select-border px-4 py-2.5 shadow-nc-lg w-[min(640px,90%)]"
     >
       <button
         onClick={() => setPlaying(!playing)}
-        className="w-8 h-8 rounded-lg bg-purple-600/60 hover:bg-purple-600 text-white text-sm shrink-0 transition-colors"
+        className="w-8 h-8 rounded-nc-md bg-nc-select-surface/60 hover:bg-nc-select-surface text-nc-text text-sm shrink-0 transition-colors"
         title={playing ? tr("c.timelapse.pause") : tr("c.timelapse.replay")}
       >
         {playing ? "⏸" : "▶"}
@@ -203,12 +206,12 @@ export function TimelapseBar({ canvasId, onClose }: { canvasId: string; onClose:
           setPlaying(false);
           setT(Number(e.target.value) / 1000);
         }}
-        className="flex-1 accent-purple-500"
+        className="flex-1 accent-nc-select"
       />
-      <span className="text-[10px] text-gray-400 whitespace-nowrap w-32 text-right">
-        {current ? current.toLocaleString(dateLocale()) : tr("c.timelapse.loading")}
+      <span className="text-2xs text-nc-muted whitespace-nowrap w-32 text-right">
+        {current ? current.toLocaleString(dateLocale(), { dateStyle: "medium", timeStyle: "short" }) : tr("c.timelapse.loading")}
       </span>
-      <button onClick={onClose} className="text-gray-500 hover:text-gray-200 text-sm shrink-0">
+      <button onClick={onClose} className="text-nc-faint hover:text-nc-text text-sm shrink-0">
         ×
       </button>
     </motion.div>

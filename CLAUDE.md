@@ -51,7 +51,7 @@ npx prisma generate
 
 ### Testing / verification
 
-There is **no test framework**. Verify changes by: (1) `tsc`/`npm run build`, (2) driving the running API with `curl` (the dev servers stay up as background tasks), and (3) for external integrations, a throwaway mock server (see the GitHub-sync pattern: run the real server with `GITHUB_API_URL` pointed at a local mock and `GITHUB_TOKEN=dummy`).
+The frontend has a **vitest** suite (~25 files, jsdom): `cd frontend && npm test`. Tests query by text, role, and aria-label — treat those as API. The server has no tests. Beyond the suite, verify changes by: (1) `tsc`/`npm run build`, (2) driving the running API with `curl` (the dev servers stay up as background tasks), and (3) for external integrations, a throwaway mock server (see the GitHub-sync pattern: run the real server with `GITHUB_API_URL` pointed at a local mock and `GITHUB_TOKEN=dummy`).
 
 ## Architecture — the big picture
 
