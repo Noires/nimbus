@@ -1,4 +1,5 @@
 import { dialogSpring, quickFade } from "../utils/motion";
+import { ContourMark } from "./ui/icons";
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useT, useLocale } from "../i18n";
@@ -93,12 +94,13 @@ export function HelpPanel({
         onKeyDown={handleKeyDown}
         className="relative w-full max-w-3xl max-h-full rounded-nc-xl bg-nc-raised/95 backdrop-blur-xl border border-nc-line shadow-nc-lg flex flex-col"
       >
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-nc-line-faint">
-          <div>
+        <div className="nc-chart-wash relative flex items-center justify-between overflow-hidden px-5 py-3.5 border-b border-nc-line-faint">
+          <span className="night-cartography__ornament" aria-hidden="true" style={{ width: "7rem", height: "7rem", right: "-2rem" }}><ContourMark size={112} /></span>
+          <div className="relative">
             <h2 id="help-panel-title" className="font-nc-display text-base font-semibold text-nc-text">{t("help.title")}</h2>
             <div id="help-panel-subtitle" className="text-2xs text-nc-faint">{t("help.subtitle")}</div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-2">
             {onStartTutorial && (
               <button onClick={onStartTutorial} className="px-2 py-1 rounded-nc-sm text-xs text-nc-accent-strong border border-nc-accent-border hover:bg-nc-accent-muted transition-colors">
                 {t("tutorial.help")}

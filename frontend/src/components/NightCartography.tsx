@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "./ui/Button";
+import { ContourMark } from "./ui/icons";
 
 export type WorkspaceKind = "canvas" | "inbox" | "today" | "review" | "operations" | "ledger" | "utilities";
 
@@ -13,7 +14,8 @@ export function NightCartographySurface({ kind, title, detail, children }: {
 }) {
   return (
     <section className={`night-cartography night-cartography--${kind}`} data-workspace={kind}>
-      <header className="night-cartography__header">
+      <header className="night-cartography__header nc-chart-wash">
+        <span className="night-cartography__ornament" aria-hidden="true"><ContourMark size={192} /></span>
         <div>
           <p className="night-cartography__title" data-workspace-title>{title}</p>
           <span data-workspace-label className="sr-only">{title} workspace</span>
@@ -36,6 +38,7 @@ export function NightCartographyTaskRow({
   badge,
   meta,
   actions,
+  accent,
   className = "",
   actionsClassName = "",
   children,
@@ -45,12 +48,18 @@ export function NightCartographyTaskRow({
   badge?: ReactNode;
   meta?: ReactNode;
   actions?: ReactNode;
+  /** Task hue tick (task.color or cardAccent) — the card strip's echo, tying
+   * queue rows back to their dots on the canvas. */
+  accent?: string;
   className?: string;
   actionsClassName?: string;
   children?: ReactNode;
 }) {
   return (
-    <li className={`night-cartography__task-row rounded-nc-md border border-nc-line-faint bg-nc-well/40 p-3 ${className}`.trim()}>
+    <li
+      className={`night-cartography__task-row rounded-nc-md border border-nc-line-faint bg-nc-well/40 p-3 ${className}`.trim()}
+      style={accent ? { boxShadow: `inset 2px 0 0 ${accent}` } : undefined}
+    >
       <div className="flex items-start justify-between gap-3">
         <p className={`min-w-0 flex-1 text-sm font-medium leading-snug [overflow-wrap:anywhere] ${titleTone}`}>{title}</p>
         {badge && <span className="shrink-0 text-xs">{badge}</span>}

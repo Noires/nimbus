@@ -4,6 +4,7 @@ import { selectTodayFocus } from "../data/todayFocusSelectors";
 import { dateLocale, useT } from "../i18n";
 import { localDayKey } from "../utils/capacity";
 import { NightCartographyRowAction, NightCartographyTaskRow } from "./NightCartography";
+import { cardAccent } from "../utils/colors";
 
 export type TodayFocusState = "loading" | "error" | "ready";
 
@@ -145,6 +146,7 @@ function TaskSection({
             return (
               <NightCartographyTaskRow
                 key={task.id}
+                accent={task.color || cardAccent(task.id)}
                 title={task.title}
                 titleTone={completed ? "text-nc-faint line-through" : "text-nc-text"}
                 badge={due && <span className={urgent ? "text-nc-warning" : "text-nc-muted"}>{due}</span>}

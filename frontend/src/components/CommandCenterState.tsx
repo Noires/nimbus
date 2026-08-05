@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ContourMark } from "./ui/icons";
 
 type CommandCenterStateKind = "loading" | "error" | "empty";
 
@@ -10,7 +11,10 @@ export function CommandCenterState({ kind, title, detail, action }: {
 }) {
   const isLoading = kind === "loading";
   return <section className={`command-center-state command-center-state--${kind}`} aria-busy={isLoading || undefined} aria-live={isLoading ? "polite" : undefined}>
-    <div className="command-center-state__icon" aria-hidden="true">{isLoading ? "…" : kind === "error" ? "!" : "○"}</div>
+    <div className="command-center-state__icon" aria-hidden="true">
+      <ContourMark size={64} />
+      <span>{isLoading ? "…" : kind === "error" ? "!" : "○"}</span>
+    </div>
     <div>
       <h1 className="command-center-state__title" {...(kind === "error" ? { role: "alert" } : {})}>{title}</h1>
       <p className="command-center-state__detail">{detail}</p>

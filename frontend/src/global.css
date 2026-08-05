@@ -364,11 +364,29 @@ html, body, #root {
 .command-center-shell__rail-backdrop { display: none; }
 .command-center-shell__rail-close:focus-visible, .task-retrieval__input:focus-visible, .task-retrieval__task:focus-visible, .task-retrieval__reveal:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 2px; }
 
+/* Chart wash — a static, non-synced echo of the canvas graticule for the
+   quiet chrome (sheet headers, offer card, dialog/mobile header bands).
+   Two hairline layers over a per-surface base gradient; set --nc-wash-base
+   on the surface to keep its own backdrop. Purely paint — no animation,
+   no backdrop-filter (canvas perf rail). */
+.nc-chart-wash {
+  --nc-wash-base: linear-gradient(transparent, transparent);
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--nc-text) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--nc-text) 5%, transparent) 1px, transparent 1px),
+    var(--nc-wash-base);
+  background-size: 24px 24px, 24px 24px, auto;
+}
+
 /* Night Cartography assigns visual roles rather than treating every pane as a
    card: canvas stays deep, destinations are raised zones, and task rows are
    quiet workstream markers with a single accessible focus grammar. */
 .night-cartography { display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: auto; background: var(--nc-canvas); color: var(--nc-text); }
-.night-cartography__header { flex: 0 0 auto; padding: var(--nc-space-6) clamp(var(--nc-space-4), 4vw, var(--nc-space-8)); border-bottom: 1px solid var(--nc-border); background: linear-gradient(120deg, var(--nc-surface), var(--nc-canvas)); }
+.night-cartography__header { position: relative; overflow: hidden; flex: 0 0 auto; padding: var(--nc-space-6) clamp(var(--nc-space-4), 4vw, var(--nc-space-8)); border-bottom: 1px solid var(--nc-border); --nc-wash-base: linear-gradient(120deg, var(--nc-surface), var(--nc-canvas)); }
+.night-cartography__header > div { position: relative; }
+/* Sounding-contour ornament cropped into the header's corner — the same
+   ring grammar the cluster bubbles wear on the field. */
+.night-cartography__ornament { position: absolute; top: 50%; right: -3.5rem; width: 12rem; height: 12rem; translate: 0 -50%; pointer-events: none; color: var(--nc-text); }
 .night-cartography__title { margin: 0; color: var(--nc-text); font-family: var(--nc-font-display); font-size: var(--nc-type-display); font-weight: 600; letter-spacing: .005em; }
 .night-cartography__detail { margin: var(--nc-space-2) 0 0; color: var(--nc-text-muted); }
 .night-cartography__body { flex: 1 1 auto; min-height: 0; padding: clamp(var(--nc-space-4), 3vw, var(--nc-space-8)); }
@@ -433,9 +451,11 @@ html, body, #root {
   box-shadow: var(--nc-shadow-md);
 }
 .command-center-state--error { border-color: var(--nc-danger-border); }
-.command-center-state__icon { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border-radius: var(--nc-radius-full); background: var(--nc-accent-muted); color: var(--nc-accent-strong); font-weight: 800; }
+.command-center-state__icon { display: grid; place-items: center; overflow: hidden; flex: 0 0 2.5rem; height: 2.5rem; border-radius: var(--nc-radius-full); background: var(--nc-accent-muted); color: var(--nc-accent-strong); font-weight: 800; }
+/* Glyph and contour ornament share the single grid cell — rings behind text. */
+.command-center-state__icon > * { grid-area: 1 / 1; }
 .command-center-state--error .command-center-state__icon { background: var(--nc-danger-muted); color: var(--nc-danger); }
-.command-center-state__title { margin: 0; font-size: var(--nc-type-md); color: var(--nc-text); }
+.command-center-state__title { margin: 0; font-family: var(--nc-font-display); font-size: var(--nc-type-md); font-weight: 600; color: var(--nc-text); }
 .command-center-state__detail { margin: .4rem 0 0; color: var(--nc-text-soft); line-height: 1.5; }
 .command-center-state__action { margin-top: .8rem; }
 .command-center-state__action button { min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-sm); background: var(--nc-accent-surface); color: var(--nc-accent-strong); }
@@ -477,12 +497,16 @@ html, body, #root {
   z-index: 95;
   max-width: 23rem;
   padding: 1rem;
+  overflow: hidden;
   border: 1px solid var(--nc-accent-border);
   border-radius: var(--nc-radius-lg);
-  background: var(--nc-surface);
+  background-color: var(--nc-surface);
   box-shadow: var(--nc-shadow-lg);
   pointer-events: none;
 }
+.command-center-tutorial-offer strong { font-family: var(--nc-font-display); font-weight: 600; }
+.command-center-tutorial-offer .night-cartography__ornament { width: 8rem; height: 8rem; right: -2.5rem; }
+.command-center-tutorial-offer > :not(.night-cartography__ornament) { position: relative; }
 .command-center-tutorial-offer button { pointer-events: auto; }
 @media (max-width: 1100px) { .command-center-tutorial-offer { display: none; } }
 /* While the tour itself is open, its offer card would only distract; the
@@ -543,6 +567,7 @@ body:has([role="dialog"][aria-modal="true"]) .command-center-tutorial-offer { di
   min-height: 3.5rem;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid var(--nc-border-faint);
+  --nc-wash-base: linear-gradient(120deg, var(--nc-surface), var(--nc-canvas));
 }
 
 .mobile-command-center__title { font-family: var(--nc-font-display); font-size: var(--nc-type-md); font-weight: 600; }

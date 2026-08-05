@@ -4,6 +4,7 @@ import { selectWorkstreamHealth, type WorkstreamHealth } from "../data/workstrea
 import { localDayKey } from "../utils/capacity";
 import { useT } from "../i18n";
 import { NightCartographyRowAction, NightCartographyTaskRow } from "./NightCartography";
+import { cardAccent } from "../utils/colors";
 
 interface OperationsViewProps {
   tasks: Task[];
@@ -67,6 +68,7 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
                 return (
                   <NightCartographyTaskRow
                     key={task.id}
+                    accent={task.color || cardAccent(task.id)}
                     title={task.title}
                     className={mobile ? "mobile-operations__task" : ""}
                     actionsClassName={mobile ? "mobile-operations__actions" : ""}

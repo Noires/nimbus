@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { api, type Pulse } from "../data/api";
 import { useStore, CARD_W, CARD_H } from "../store";
 import { useT } from "../i18n";
+import { clusterHue } from "../utils/colors";
 
 // Canvas Pulse: burndown, velocity, and the churn meter — an honest answer to
 // "am I finishing things or just rearranging them?", from the event log.
@@ -150,9 +151,14 @@ export function PulsePanel({ canvasId, onClose }: { canvasId: string; onClose: (
                         <span className="text-xs text-nc-soft truncate flex-1 group-hover:text-nc-text">{b.title}</span>
                         <span className="text-2xs text-nc-faint">{done}/{members.length}</span>
                         <div className="w-20 h-1.5 rounded-full bg-nc-fill-faint overflow-hidden">
+                          {/* Each bar wears its bubble's canvas hue — the same
+                              hsla formula as BubbleLayer's contour strokes. */}
                           <div
-                            className="h-full bg-nc-success"
-                            style={{ width: members.length ? `${(done / members.length) * 100}%` : 0 }}
+                            className="h-full"
+                            style={{
+                              width: members.length ? `${(done / members.length) * 100}%` : 0,
+                              background: `hsla(${b.hue ?? clusterHue(b.id)}, 70%, 60%, 0.7)`,
+                            }}
                           />
                         </div>
                       </button>

@@ -5,6 +5,7 @@ import { menuPop, quickFade } from "../utils/motion";
 import { useAnchorRect, type AnchorRect } from "../hooks/useAnchorRect";
 import { GUIDED_TOUR_STEPS } from "./guidedTourSteps";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import { ContourMark } from "./ui/icons";
 import { MOBILE_COMMAND_CENTER_QUERY } from "./mobileCommandDestination";
 
 /* The guided tour points at the REAL interface, one element at a time: a
@@ -237,7 +238,8 @@ export function CommandCenterTutorialOffer({ onStart }: { onStart: () => void })
   const [progress, setProgress] = useState<TourProgress | null>(() => readCommandCenterTutorial());
   if (progress?.status === "completed" || progress?.status === "skipped") return null;
   const resume = progress?.status === "in-progress";
-  return <aside className="command-center-tutorial-offer" aria-label={t("tutorial.offerAria")}>
+  return <aside className="command-center-tutorial-offer nc-chart-wash" aria-label={t("tutorial.offerAria")}>
+    <span className="night-cartography__ornament" aria-hidden="true"><ContourMark size={128} /></span>
     <strong>{t(resume ? "tutorial.resumeTitle" : "tutorial.offerTitle")}</strong><p>{t("tutorial.offerBody")}</p>
     <button type="button" className="command-center-tutorial__primary" onClick={() => { const next = progress ?? newProgress(); writeProgress(next); setProgress(next); onStart(); }}>{t(resume ? "tutorial.resume" : "tutorial.start")}</button>
     <button type="button" onClick={() => { const next = { ...(progress ?? newProgress()), status: "skipped" as const }; writeProgress(next); setProgress(next); }}>{t("tutorial.notNow")}</button>

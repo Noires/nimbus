@@ -4,6 +4,7 @@ import { selectReviewQueues, type ReviewQueues } from "../data/reviewSelectors";
 import { dateLocale, useT } from "../i18n";
 import { localDayKey } from "../utils/capacity";
 import { NightCartographyRowAction, NightCartographyTaskRow } from "./NightCartography";
+import { cardAccent } from "../utils/colors";
 
 export type ReviewRailState = "loading" | "error" | "ready";
 export type ReviewQueueKey = keyof ReviewQueues;
@@ -92,6 +93,7 @@ export function ReviewRail({
             return (
               <NightCartographyTaskRow
                 key={task.id}
+                accent={task.color || cardAccent(task.id)}
                 title={task.title}
                 titleTone={completedQueue ? "text-nc-faint line-through" : "text-nc-text"}
                 meta={<>

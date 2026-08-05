@@ -94,3 +94,15 @@ export const IconLock = ({ size }: { size?: 16 | 20 }) => (
 export const IconHourglass = ({ size }: { size?: 16 | 20 }) => (
   <Icon size={size}><path d="M5.5 3.5h9M5.5 16.5h9" /><path d="M6.5 3.5v2.3L10 10l3.5-4.2V3.5M6.5 16.5v-2.3L10 10l3.5 4.2v2.3" /></Icon>
 );
+
+/** Decorative sounding-contour ornament — the cluster bubbles' isobath ring
+ * grammar, reused on quiet chrome (sheet headers, state cards, the tour
+ * offer). Not a glyph: parent crops/positions it; strokes only, unanimated,
+ * color via currentColor. Same dash cadence as BubbleLayer's contours. */
+export const ContourMark = ({ size = 96 }: { size?: number }) => (
+  <svg aria-hidden="true" width={size} height={size} viewBox="0 0 96 96" fill="none" stroke="currentColor" strokeWidth="1">
+    <circle cx="48" cy="48" r="46" strokeDasharray="7 9" opacity="0.18" />
+    <circle cx="48" cy="48" r="36" strokeDasharray="3 12" opacity="0.1" />
+    <circle cx="48" cy="48" r="26" strokeDasharray="7 9" opacity="0.07" />
+  </svg>
+);
