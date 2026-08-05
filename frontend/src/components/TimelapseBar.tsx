@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { api } from "../data/api";
 import { useStore, type Task } from "../store";
 import { useT, dateLocale } from "../i18n";
+import { chromeSpring, quickFade } from "../utils/motion";
 
 interface Frame {
   time: number;
@@ -30,6 +31,7 @@ export function TimelapseBar({ canvasId, onClose }: { canvasId: string; onClose:
   const tracks = useRef<Map<string, Track>>(new Map());
   const playRaf = useRef(0);
   const tr = useT();
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     let cancelled = false;
@@ -183,8 +185,9 @@ export function TimelapseBar({ canvasId, onClose }: { canvasId: string; onClose:
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
+      transition={reduced ? quickFade : chromeSpring}
       className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-select-border px-4 py-2.5 shadow-nc-lg w-[min(640px,90%)]"
     >
       <button

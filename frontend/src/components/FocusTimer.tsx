@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useStore } from "../store";
 import { formatMinutes } from "../utils/capacity";
+import { chromeSpring, quickFade } from "../utils/motion";
 import { useT } from "../i18n";
 
 const POMODORO_MS = 25 * 60 * 1000;
@@ -16,6 +17,7 @@ export function FocusTimer() {
   const startRef = useRef(0);
   const baseRef = useRef(0);
   const t = useT();
+  const reduced = useReducedMotion();
 
   const current = focus ? tasks.find((t) => t.id === focus.members[focus.index]) : null;
 
@@ -65,8 +67,9 @@ export function FocusTimer() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
+      transition={reduced ? quickFade : chromeSpring}
       className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent-border px-4 py-2 shadow-nc-lg"
     >
       <svg width="28" height="28" viewBox="0 0 28 28" className="-rotate-90 shrink-0">

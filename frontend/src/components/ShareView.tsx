@@ -4,6 +4,7 @@ import { useStore } from "../store";
 import { Canvas } from "./Canvas";
 import { Toast } from "./Toast";
 import { useT } from "../i18n";
+import { IconEye } from "./ui/icons";
 
 // Read-only board via /share/:token — the full living canvas (pan, zoom,
 // lenses via nothing to toggle here, bubbles, threads, zones) with every
@@ -49,7 +50,7 @@ export function ShareView() {
         />
         <span className="text-xs font-semibold text-nc-text">{t("app.name")}</span>
         <span className="text-xs text-nc-faint">·</span>
-        <span className="text-xs text-nc-accent">👁 {t("c.share.viewOnly")}</span>
+        <span className="inline-flex items-center gap-1 text-xs text-nc-accent"><IconEye size={16} />{t("c.share.viewOnly")}</span>
         <span className="text-xs text-nc-soft">·</span>
         <span className="text-xs text-nc-text">{state.name}</span>
       </div>

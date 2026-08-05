@@ -86,3 +86,11 @@ export const IconGrid = ({ size }: { size?: 16 | 20 }) => (
 export const IconPlus = ({ size }: { size?: 16 | 20 }) => (
   <Icon size={size}><path d="M10 4.5v11M4.5 10h11" /></Icon>
 );
+
+export const IconLock = ({ size }: { size?: 16 | 20 }) => (
+  <Icon size={size}><rect x="4.5" y="9" width="11" height="7.5" rx="1.5" /><path d="M7 9V6.5a3 3 0 0 1 6 0V9" /></Icon>
+);
+
+export const IconHourglass = ({ size }: { size?: 16 | 20 }) => (
+  <Icon size={size}><path d="M5.5 3.5h9M5.5 16.5h9" /><path d="M6.5 3.5v2.3L10 10l3.5-4.2V3.5M6.5 16.5v-2.3L10 10l3.5 4.2v2.3" /></Icon>
+);

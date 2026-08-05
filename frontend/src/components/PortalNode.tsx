@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { api } from "../data/api";
 import { useStore, type Portal } from "../store";
 import { clusterHue } from "../utils/colors";
+import { contentPop } from "../utils/motion";
 import { PortalPeek } from "./PortalPeek";
 import { useT } from "../i18n";
 
@@ -55,7 +56,7 @@ export function PortalNode({ portal }: { portal: Portal }) {
     <motion.div
       initial={{ opacity: 0, scale: 0.6 }}
       animate={{ opacity: 1, scale: draggingTaskId ? 1.15 : 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      transition={contentPop}
       className="absolute group cursor-grab active:cursor-grabbing"
       style={{ left: portal.x - 44, top: portal.y - 44, width: 88, height: 88 }}
       onPointerDown={handlePointerDown}

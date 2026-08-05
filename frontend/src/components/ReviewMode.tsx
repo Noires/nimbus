@@ -1,4 +1,5 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { chromeSpring, quickFade } from "../utils/motion";
 import { useStore, CARD_W, CARD_H } from "../store";
 import { buildReviewQueue } from "../utils/reviewQueue";
 import { t, useT } from "../i18n";
@@ -110,15 +111,17 @@ export function ReviewHud() {
   const review = useStore((s) => s.review);
   const tasks = useStore((s) => s.tasks);
   const t = useT();
+  const reduced = useReducedMotion();
   const current = review ? tasks.find((tk) => tk.id === review.queue[review.index]) : null;
 
   return (
     <AnimatePresence>
       {review && (
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={reduced ? { opacity: 0 } : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 16 }}
+          exit={reduced ? { opacity: 0 } : { opacity: 0, y: 16 }}
+          transition={reduced ? quickFade : chromeSpring}
           className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[80] flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent-border px-4 py-2.5 shadow-nc-lg"
         >
           <span className="text-xs text-nc-accent whitespace-nowrap">

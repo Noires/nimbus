@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { railGlide } from "../utils/motion";
 import { useT } from "../i18n";
 import type { CanvasDestination } from "./destinationRoutes";
 import { Icon, IconPlus } from "./ui/icons";
@@ -56,7 +57,7 @@ export function NavigationRail({ canvasId, destination, inboxCount, onNavigate, 
             {active && (reduced ? (
               <span aria-hidden="true" className="navigation-rail__pill" />
             ) : (
-              <motion.span aria-hidden="true" layoutId="rail-active" className="navigation-rail__pill" transition={{ type: "spring", stiffness: 480, damping: 36 }} />
+              <motion.span aria-hidden="true" layoutId="rail-active" className="navigation-rail__pill" transition={railGlide} />
             ))}
             <span className="navigation-rail__glyph">{ICONS[key]}</span>
             {key === "inbox" && inboxCount > 0 && <span aria-hidden="true" className="navigation-rail__badge">{inboxCount}</span>}

@@ -8,7 +8,7 @@ import { dayDockHit } from "./DayDock";
 import { useT, dateLocale } from "../i18n";
 import { resolveSemanticDensity, type CardDensity } from "../engine/semanticDensity";
 import { MenuPanel } from "./toolbarMenu";
-import { IconArchive, IconClock, IconPencil, IconRestore, IconTrash } from "./ui/icons";
+import { IconArchive, IconClock, IconHourglass, IconLock, IconPencil, IconRestore, IconTrash } from "./ui/icons";
 import { selectZonesContainingTask } from "../data/spatialZoneSelectors";
 
 interface TaskCardProps {
@@ -384,7 +384,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
             title={t(`b.priority.${task.priority}`)}
           />
           <div className={`flex-1 min-w-0 truncate text-xs font-semibold ${task.done ? "line-through text-nc-faint" : ""}`}>
-            {blocked && !task.done && <span title={t("b.card.blocked")}>🔒 </span>}
+            {blocked && !task.done && <span title={t("b.card.blocked")} className="mr-1 inline-flex translate-y-0.5 text-nc-faint"><IconLock size={16} /></span>}
             {task.title || t("b.card.untitled")}
           </div>
           {task.externalKey && (
@@ -403,7 +403,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
       <div className="p-4" style={{ padding: 16 * density.scale }}>
         <div className="flex items-start justify-between gap-2 mb-1">
           <div className={`text-sm font-semibold ${task.done ? "line-through text-nc-faint" : ""}`}>
-            {blocked && !task.done && <span title={t("b.card.blocked")}>🔒 </span>}
+            {blocked && !task.done && <span title={t("b.card.blocked")} className="mr-1 inline-flex translate-y-0.5 text-nc-faint"><IconLock size={16} /></span>}
             {task.title || t("b.card.untitled")}
           </div>
           <span
@@ -484,7 +484,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
           <div className="flex items-center gap-2 text-xs mt-1 flex-wrap">
             {dueBadge}
             {showSummaryMetadata && task.estimateMinutes != null && (
-              <span className="text-nc-muted">⏱ {formatMinutes(task.estimateMinutes)}</span>
+              <span className="inline-flex items-center gap-1 text-nc-muted"><IconHourglass size={16} />{formatMinutes(task.estimateMinutes)}</span>
             )}
             {showSummaryMetadata && task.recurrence && <span className="text-nc-faint" title={t("b.card.recurring")}>↻</span>}
             {showSummaryMetadata && task.checklist.length > 0 && (

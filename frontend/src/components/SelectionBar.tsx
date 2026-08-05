@@ -121,7 +121,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
             }
           />
           <BarButton
-            label={`⏱ ${t("c.selection.snooze")}`}
+            label={`◷ ${t("c.selection.snooze")}`}
             ariaLabel={t("c.selection.snooze")}
             onClick={() =>
               run(() =>
@@ -187,7 +187,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
           )}
           <BarButton label={`▶ ${t("c.selection.focus")}`} ariaLabel={t("c.selection.focus")} onClick={() => useStore.getState().startFocus(selectedIds)} />
           <BarButton
-            label={`🗑 ${t("c.selection.delete")}`}
+            label={`✖ ${t("c.selection.delete")}`}
             ariaLabel={t("c.selection.delete")}
             danger
             onClick={() => {
