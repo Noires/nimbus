@@ -283,6 +283,9 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
 
       {/* Modal content */}
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={isEdit ? t("b.modal.editTask") : t("b.modal.newTask")}
         initial={reducedMotion ? { opacity: 0 } : isPanel ? { opacity: 0, x: 40 } : { opacity: 0, y: 24, scale: 0.97 }}
         animate={isPanel ? { opacity: 1, x: 0 } : { opacity: 1, y: 0, scale: 1 }}
         transition={reducedMotion ? quickFade : dialogSpring}

@@ -149,6 +149,9 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
     <div className="fixed inset-0 z-[120] flex items-center justify-center px-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={quickFade} className="absolute inset-0 bg-nc-scrim" onClick={onClose} />
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={tr("a.connections.title")}
         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={reducedMotion ? quickFade : dialogSpring}
