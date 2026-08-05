@@ -59,7 +59,7 @@ export function WorkstreamArrangementPreview({
           type="button"
           disabled={preview.isNoop}
           onClick={onApply}
-          className="rounded-nc-sm bg-nc-accent/15 px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:cursor-not-allowed"
+          className="rounded-nc-sm bg-nc-accent-muted px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted disabled:cursor-not-allowed disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {t("workstreams.applyArrangement")}
         </button>
@@ -128,7 +128,7 @@ export function WorkstreamsPanel({
             <li key={workstream.id}>
               <button
                 type="button"
-                className={`w-full rounded-nc-sm px-2 py-2 text-left text-sm transition ${selected ? "bg-nc-accent/15 text-nc-accent-strong" : "text-nc-text hover:bg-nc-fill-faint"}`}
+                className={`w-full rounded-nc-sm px-2 py-2 text-left text-sm transition ${selected ? "bg-nc-accent-muted text-nc-accent-strong" : "text-nc-text hover:bg-nc-fill-faint"}`}
                 aria-pressed={selected}
                 onClick={() => onSelect(workstream.id)}
               >
@@ -156,7 +156,7 @@ export function WorkstreamsPanel({
               onChange={(event) => setSelectedName(event.target.value)}
               className="min-w-0 flex-1 rounded-nc-sm border border-nc-line bg-nc-canvas/50 px-2 py-1 text-xs text-nc-text"
             />
-            <button type="submit" className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/15">{t("workstreams.save")}</button>
+            <button type="submit" className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">{t("workstreams.save")}</button>
           </form>
           <div className="mt-2 flex gap-2">
             <button type="button" onClick={() => onUpdate(selected.id, { pinned: !selected.pinned })} className="text-xs text-nc-soft hover:text-nc-text">
@@ -207,7 +207,7 @@ export function WorkstreamsPanel({
                     taskIds: workstream.memberships.map((membership) => membership.taskId),
                   })),
                 }))}
-                className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/15"
+                className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted"
               >
                 {t("workstreams.arrange")}
               </button>
@@ -234,7 +234,7 @@ export function WorkstreamsPanel({
           <button type="button" onClick={() => setCanvasPreview(previewArrangementOperation({
             scope: { kind: "canvas", taskIds: tasks.map((task) => task.id) }, strategy: arrangeStrategy, tasks,
             workstreams: workstreams.map((workstream) => ({ id: workstream.id, pinned: workstream.pinned, protected: workstream.protected, taskIds: workstream.memberships.map((membership) => membership.taskId) })),
-          }))} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/15">{t("workstreams.previewBoardArrangement")}</button>
+          }))} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">{t("workstreams.previewBoardArrangement")}</button>
         )}
       </div>
       <form className="mt-3 flex gap-2" onSubmit={submit}>
@@ -247,7 +247,7 @@ export function WorkstreamsPanel({
           placeholder={t("workstreams.newName")}
           className="min-w-0 flex-1 rounded-nc-sm border border-nc-line bg-nc-canvas/50 px-2 py-1.5 text-xs text-nc-text placeholder:text-nc-faint"
         />
-        <button type="submit" className="rounded-nc-sm bg-nc-accent/15 px-2 py-1.5 text-xs font-medium text-nc-accent-strong hover:bg-nc-accent/25">
+        <button type="submit" className="rounded-nc-sm bg-nc-accent-muted px-2 py-1.5 text-xs font-medium text-nc-accent-strong hover:bg-nc-accent-muted">
           {t("workstreams.create")}
         </button>
       </form>

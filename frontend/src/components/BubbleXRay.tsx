@@ -122,13 +122,13 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
         <div className="text-2xs text-nc-faint mb-1">{t("b.xray.priorityMix")}</div>
         <div className="flex h-2 rounded-full overflow-hidden bg-nc-fill-faint">
           {prio.high > 0 && (
-            <div className="bg-nc-danger/70" style={{ width: `${(prio.high / members.length) * 100}%` }} />
+            <div className="bg-nc-danger" style={{ width: `${(prio.high / members.length) * 100}%` }} />
           )}
           {prio.medium > 0 && (
-            <div className="bg-nc-warning/70" style={{ width: `${(prio.medium / members.length) * 100}%` }} />
+            <div className="bg-nc-warning" style={{ width: `${(prio.medium / members.length) * 100}%` }} />
           )}
           {prio.low > 0 && (
-            <div className="bg-nc-success/70" style={{ width: `${(prio.low / members.length) * 100}%` }} />
+            <div className="bg-nc-success" style={{ width: `${(prio.low / members.length) * 100}%` }} />
           )}
         </div>
         <div className="flex gap-3 mt-1 text-2xs text-nc-faint">
@@ -164,7 +164,7 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
 
       <button
         onClick={fitToBubble}
-        className="w-full py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent/30 hover:bg-nc-accent/10 transition-colors"
+        className="w-full py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent-border hover:bg-nc-accent-muted transition-colors"
       >
         {t("b.xray.fitView")}
       </button>
@@ -175,7 +175,7 @@ export function BubbleXRay({ canvasId, members, hue, onClose }: BubbleXRayProps)
             useStore.getState().autoScheduleTasks(ids).catch((e) => console.error(e));
             onClose();
           }}
-          className="w-full mt-1.5 py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent/30 hover:bg-nc-accent/10 transition-colors"
+          className="w-full mt-1.5 py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent-border hover:bg-nc-accent-muted transition-colors"
           title={t("b.xray.flowFillTitle")}
         >
           ⇶ {t("b.xray.flowFill", { n: undatedCount })}

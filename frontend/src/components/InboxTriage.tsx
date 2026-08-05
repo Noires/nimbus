@@ -90,7 +90,7 @@ export function InboxTriage({
           placeholder={t("inbox.triage.capturePlaceholder")}
           className="min-w-0 flex-1 rounded-nc-md border border-nc-line-faint bg-nc-well/60 px-2.5 py-2 text-xs transition-colors"
         />
-        <button type="submit" className="rounded-nc-md bg-nc-select/10 px-3 py-2 text-xs text-nc-select hover:bg-nc-select-surface/30">
+        <button type="submit" className="rounded-nc-md bg-nc-select-muted px-3 py-2 text-xs text-nc-select hover:bg-nc-select-surface/30">
           {t("inbox.triage.capture")}
         </button>
       </form>
@@ -161,7 +161,7 @@ export function InboxTriage({
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <button type="button" onClick={() => { void run(() => onClearInbox(task)); }} className="whitespace-nowrap rounded-nc-sm border border-nc-accent/30 px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/10">
+                      <button type="button" onClick={() => { void run(() => onClearInbox(task)); }} className="whitespace-nowrap rounded-nc-sm border border-nc-accent-border px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">
                         {t("inbox.triage.clearInbox")}
                       </button>
                       <button type="button" onClick={() => onReveal(task)} className="whitespace-nowrap rounded-nc-sm border border-nc-line px-2 py-1 text-xs text-nc-text hover:bg-nc-fill">

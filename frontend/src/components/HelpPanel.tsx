@@ -95,12 +95,12 @@ export function HelpPanel({
       >
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-nc-line-faint">
           <div>
-            <h2 id="help-panel-title" className="text-base font-semibold text-nc-text">{t("help.title")}</h2>
+            <h2 id="help-panel-title" className="font-nc-display text-base font-semibold text-nc-text">{t("help.title")}</h2>
             <div id="help-panel-subtitle" className="text-2xs text-nc-faint">{t("help.subtitle")}</div>
           </div>
           <div className="flex items-center gap-2">
             {onStartTutorial && (
-              <button onClick={onStartTutorial} className="px-2 py-1 rounded-nc-sm text-xs text-nc-accent-strong border border-nc-accent/30 hover:bg-nc-accent/10 transition-colors">
+              <button onClick={onStartTutorial} className="px-2 py-1 rounded-nc-sm text-xs text-nc-accent-strong border border-nc-accent-border hover:bg-nc-accent-muted transition-colors">
                 {t("tutorial.help")}
               </button>
             )}
@@ -121,7 +121,7 @@ export function HelpPanel({
         <div className="overflow-y-auto p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
           {GROUPS.map(({ group, features }) => (
             <div key={group}>
-              <div className="text-2xs uppercase tracking-wider text-nc-accent/80 mb-2">{t(group)}</div>
+              <div className="text-2xs uppercase tracking-wider text-nc-accent mb-2">{t(group)}</div>
               <div className="flex flex-col gap-2.5">
                 {features.map((key) => (
                   <div key={key}>

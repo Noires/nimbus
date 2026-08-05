@@ -106,7 +106,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
           transition={chromeSpring}
-          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[70] flex max-w-[calc(100vw-1rem)] flex-wrap justify-center items-center gap-2 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-select/40 px-4 py-2.5 shadow-nc-lg"
+          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[70] flex max-w-[calc(100vw-1rem)] flex-wrap justify-center items-center gap-2 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-select-border px-4 py-2.5 shadow-nc-lg"
         >
           <span role="status" aria-live="polite" aria-atomic="true" className="text-xs text-nc-select whitespace-nowrap">
             {t("c.selection.count", { count: selectedIds.length })}
@@ -174,7 +174,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
                 <option value="tidy-overlaps">{t("c.selection.modeTidy")}</option><option value="grid">{t("c.selection.modeGrid")}</option><option value="tag">{t("c.selection.modeTag")}</option><option value="status">{t("c.selection.modeStatus")}</option><option value="priority">{t("c.selection.modePriority")}</option><option value="due">{t("c.selection.modeDue")}</option>
               </select>
               <BarButton label={`⇄ ${arrangeStrategy === "tidy-overlaps" ? t("c.selection.tidy") : arrangeStrategy === "grid" ? t("c.selection.arrangeGrid") : t("c.selection.previewArrange")}`} ariaLabel={t("c.selection.previewSelectedArrangement")} onClick={previewSelectedTidy} />
-              <button ref={zoneTrigger} onClick={previewSelectedZones} aria-label={t("c.selection.arrangeZones")} disabled={zoneEligibleCount < 2} title={zoneEligibleCount < 2 ? t("c.selection.zoneNeedsEligible") : undefined} className="min-w-11 min-h-11 text-2xs whitespace-nowrap px-2 py-1 rounded-nc-sm text-nc-soft hover:text-nc-text hover:bg-nc-filldisabled:cursor-not-allowed disabled:text-nc-faint">⌑ {t("c.selection.arrangeZones")}</button>
+              <button ref={zoneTrigger} onClick={previewSelectedZones} aria-label={t("c.selection.arrangeZones")} disabled={zoneEligibleCount < 2} title={zoneEligibleCount < 2 ? t("c.selection.zoneNeedsEligible") : undefined} className="min-w-11 min-h-11 text-xs whitespace-nowrap px-2 py-1 rounded-nc-sm text-nc-soft hover:text-nc-text hover:bg-nc-filldisabled:cursor-not-allowed disabled:text-nc-faint">⌑ {t("c.selection.arrangeZones")}</button>
             </>
           ))}
           <BarButton label={`◯ ${t("c.selection.bubbleIt")}`} ariaLabel={t("c.selection.bubbleIt")} onClick={() => run(bubbleIt)} />
@@ -201,7 +201,7 @@ export function SelectionBar({ canvasId, tidyEnabled = false }: { canvasId: stri
           <button
             onClick={() => useStore.getState().clearSelection()}
             aria-label={t("c.selection.clearLabel")}
-            className="min-w-11 min-h-11 text-2xs text-nc-faint hover:text-nc-text transition-colors"
+            className="min-w-11 min-h-11 text-xs text-nc-faint hover:text-nc-text transition-colors"
           >
             {t("c.selection.clear")}
           </button>
@@ -304,7 +304,7 @@ export function SelectionTidyPreview({
         </span>
       ))}
       {isZonePreview && (preview.moved.length > 0 || preview.skipped.length > 0) && <div className="relative">
-        <button type="button" aria-expanded={showZoneDetails} aria-controls="zone-arrangement-details" onClick={() => setShowZoneDetails((shown) => !shown)} className="min-w-11 min-h-11 text-2xs px-2 py-1 rounded-nc-sm text-nc-soft hover:text-nc-text hover:bg-nc-fill">{t("c.selection.zoneDetails")}</button>
+        <button type="button" aria-expanded={showZoneDetails} aria-controls="zone-arrangement-details" onClick={() => setShowZoneDetails((shown) => !shown)} className="min-w-11 min-h-11 text-xs px-2 py-1 rounded-nc-sm text-nc-soft hover:text-nc-text hover:bg-nc-fill">{t("c.selection.zoneDetails")}</button>
         {showZoneDetails && <div id="zone-arrangement-details" className="absolute bottom-full left-0 z-10 mb-2 max-h-48 w-72 overflow-auto rounded-nc-sm border border-nc-line bg-nc-well p-2 text-2xs text-nc-text shadow-nc-md">
           {preview.moved.map((move) => <p key={move.id}>{t("c.selection.zoneMovedDetail", { task: taskLabel(move.title), zone: zoneLabel(move.zoneId) })}</p>)}
           {unchangedZoneDetails.map((task) => <p key={task.id}>{t("c.selection.zoneUnchangedDetail", { task: taskLabel(task.title), zone: zoneLabel(task.zoneId) })}</p>)}
@@ -323,10 +323,10 @@ function BarButton({ label, ariaLabel = label, onClick, danger, disabled = false
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      className={`min-w-11 min-h-11 text-2xs whitespace-nowrap px-2 py-1 rounded-nc-sm transition-colors${
+      className={`min-w-11 min-h-11 text-xs whitespace-nowrap px-2 py-1 rounded-nc-sm transition-colors${
         disabled
           ? "cursor-not-allowed text-nc-faint"
-          : danger ? "text-nc-muted hover:text-nc-danger hover:bg-nc-danger/10" : "text-nc-soft hover:text-nc-text hover:bg-nc-fill"
+          : danger ? "text-nc-muted hover:text-nc-danger hover:bg-nc-danger-muted" : "text-nc-soft hover:text-nc-text hover:bg-nc-fill"
       }`}
     >
       {label}

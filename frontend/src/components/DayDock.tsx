@@ -83,13 +83,13 @@ export function DayDock() {
           exit={{ opacity: 0, y: 48 }}
           transition={chromeSpring}
           className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-[60] flex items-stretch gap-1 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border px-2 py-1.5 shadow-nc-lg ${
-            dragging ? "border-nc-accent/60" : "border-nc-line"
+            dragging ? "border-nc-accent" : "border-nc-line"
           }`}
         >
           {overdueCount > 0 && (
-            <div className="flex flex-col items-center justify-center px-2 rounded-nc-md bg-nc-danger/10 border border-nc-danger/40">
+            <div className="flex flex-col items-center justify-center px-2 rounded-nc-md bg-nc-danger-muted border border-nc-danger-border">
               <span className="text-2xs text-nc-danger font-medium">{overdueCount}</span>
-              <span className="text-[8px] text-nc-danger/70">{t("c.day.overdue")}</span>
+              <span className="text-2xs text-nc-danger">{t("c.day.overdue")}</span>
             </div>
           )}
           {days.map(({ key, date }) => {
@@ -108,9 +108,9 @@ export function DayDock() {
                 }}
                 className={`flex flex-col items-center justify-between w-11 py-1 rounded-nc-md border transition-colors ${
                   filtered
-                    ? "border-nc-accent/70 bg-nc-accent/15"
+                    ? "border-nc-accent bg-nc-accent-muted"
                     : dragging
-                      ? "border-nc-accent/30 bg-nc-accent/5 hover:bg-nc-accent/15"
+                      ? "border-nc-accent-border bg-transparent hover:bg-nc-accent-muted"
                       : weekend
                         ? "border-nc-line-faint bg-white/[0.02] hover:bg-nc-fill-faint"
                         : "border-nc-line-faint hover:bg-nc-fill-faint"
@@ -121,7 +121,7 @@ export function DayDock() {
                     : t("c.day.dropTooltip")
                 }
               >
-                <span className={`text-[8px] uppercase ${isToday ? "text-nc-accent" : "text-nc-faint"}`}>
+                <span className={`text-2xs uppercase ${isToday ? "text-nc-accent" : "text-nc-faint"}`}>
                   {isToday ? t("c.day.today") : date.toLocaleDateString(dateLocale(), { weekday: "short" })}
                 </span>
                 <span className={`text-2xs ${isToday ? "text-nc-accent-strong" : "text-nc-soft"}`}>
@@ -137,7 +137,7 @@ export function DayDock() {
                   ))}
                 </span>
                 <span
-                  className={`text-[8px] ${
+                  className={`text-2xs ${
                     minutes > daily ? "text-nc-danger" : minutes > 0 ? "text-nc-faint" : "text-transparent"
                   }`}
                 >

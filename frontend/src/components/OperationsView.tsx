@@ -72,7 +72,7 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
                     actionsClassName={mobile ? "mobile-operations__actions" : ""}
                     meta={<>
                       <span data-task-priority={task.priority} className="rounded-nc-sm bg-nc-fill-faint px-1.5 py-0.5 text-nc-soft">{t(`inspector.priority.${task.priority}`)}</span>
-                      {dueToday && <span data-task-today="true" className="rounded-nc-sm bg-nc-accent/10 px-1.5 py-0.5 text-nc-accent-strong">{t("today.today")}</span>}
+                      {dueToday && <span data-task-today="true" className="rounded-nc-sm bg-nc-accent-muted px-1.5 py-0.5 text-nc-accent-strong">{t("today.today")}</span>}
                     </>}
                     actions={<>
                       <NightCartographyRowAction label={t("operations.openInspector")} onClick={() => onOpenInspector(task)} inspectorTaskId={task.id} />

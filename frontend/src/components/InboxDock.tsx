@@ -63,11 +63,11 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
   const similar = text.trim().length >= 4 ? findSimilar(text, tasks) : null;
 
   const CHIP_COLORS: Record<string, string> = {
-    date: "text-nc-accent border-nc-accent/40",
-    duration: "text-nc-select border-nc-select/40",
+    date: "text-nc-accent border-nc-accent-border",
+    duration: "text-nc-select border-nc-select-border",
     tag: "text-nc-soft border-nc-line-strong",
-    priority: "text-nc-danger border-nc-danger/40",
-    bubble: "text-nc-warning border-nc-warning/40",
+    priority: "text-nc-danger border-nc-danger-border",
+    bubble: "text-nc-warning border-nc-warning-border",
   };
 
   const startDrag = (e: React.PointerEvent, id: string, title: string) => {
@@ -163,7 +163,7 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
                     setOpen(false);
                   }}
                   onMouseEnter={() => useStore.getState().flashTask(similar.id)}
-                  className="mt-1.5 w-full text-left text-2xs text-nc-warning/90 hover:text-nc-warning transition-colors"
+                  className="mt-1.5 w-full text-left text-2xs text-nc-warning hover:text-nc-warning transition-colors"
                   title={t("c.inbox.similarTooltip")}
                 >
                   ≈ {t("c.inbox.looksLike")} {similar.title}
@@ -206,7 +206,7 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
       {/* Drag ghost following the pointer */}
       {ghost && (
         <div
-          className="fixed z-[300] pointer-events-none px-3 py-2 rounded-nc-md bg-nc-raised border border-nc-select/50 shadow-nc-lg text-xs text-nc-text max-w-48 truncate"
+          className="fixed z-[300] pointer-events-none px-3 py-2 rounded-nc-md bg-nc-raised border border-nc-select-border shadow-nc-lg text-xs text-nc-text max-w-48 truncate"
           style={{ left: ghost.x + 8, top: ghost.y + 8 }}
         >
           {ghost.title}

@@ -42,7 +42,7 @@ export function ShareView() {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-nc-well text-nc-text font-sans relative">
-      <div className="absolute top-0 left-0 right-0 z-[60] flex items-center justify-center gap-2 py-1.5 bg-nc-accent-surface/60 border-b border-nc-accent/30 backdrop-blur-sm">
+      <div className="absolute top-0 left-0 right-0 z-[60] flex items-center justify-center gap-2 py-1.5 bg-nc-accent-surface/60 border-b border-nc-accent-border backdrop-blur-sm">
         <span
           className="w-2.5 h-2.5 rounded-full shrink-0"
           style={{ background: "radial-gradient(circle, var(--nc-accent), var(--nc-select-surface))", boxShadow: "0 0 10px 2px color-mix(in srgb, var(--nc-accent) 60%, transparent)" }}

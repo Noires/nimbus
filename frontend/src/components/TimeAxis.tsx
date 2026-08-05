@@ -58,7 +58,7 @@ export function TimeAxis() {
           />
           <div
             className={`absolute text-2xs px-1 py-0.5 rounded-nc-sm whitespace-nowrap -translate-x-1/2 ${
-              ratio > 1 ? "text-nc-danger bg-nc-danger/70" : ratio > 0.7 ? "text-nc-warning bg-nc-well/70" : "text-nc-accent/70 bg-nc-well/60"
+              ratio > 1 ? "text-nc-danger bg-nc-danger" : ratio > 0.7 ? "text-nc-warning bg-nc-well/70" : "text-nc-accent bg-nc-well/60"
             }`}
             style={{ left: x, top: labelY + 26 / zoom }}
           >

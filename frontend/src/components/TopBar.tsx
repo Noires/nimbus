@@ -100,7 +100,7 @@ export function TopBar({ canvasId }: { canvasId: string | null }) {
             boxShadow: "0 0 12px 2px color-mix(in srgb, var(--nc-accent) 60%, transparent)",
           }}
         />
-        <span className="text-sm font-semibold tracking-wide text-nc-text">{t("app.name")}</span>
+        <span className="font-nc-display text-sm font-semibold text-nc-text">{t("app.name")}</span>
       </span>
       <CanvasSwitcher canvases={canvases} canvasId={canvasId} />
       <label data-topbar="search" className="canvas-toolbar__search">
@@ -123,7 +123,7 @@ export function TopBar({ canvasId }: { canvasId: string | null }) {
       <div className="top-bar__utilities">
         <span className="text-xs text-nc-muted whitespace-nowrap">{t("a.toolbar.active")} <span className="text-nc-text">{activeCount}</span></span>
         <span className={`w-2 h-2 rounded-full shrink-0 ${liveConnected ? "bg-nc-success bubble-pulse" : "bg-nc-faint"}`} role="status" aria-live="polite" aria-label={liveConnected ? t("a.toolbar.liveOn") : t("a.toolbar.liveOff")} />
-        {connectionError && <button onClick={() => setConnectionsOpen(true)} className="w-7 h-7 rounded-full bg-nc-danger/20 border border-nc-danger/60 text-nc-danger" aria-label={t("a.toolbar.syncError", { msg: connectionError.statusMessage ?? t("a.toolbar.unknown") })}>!</button>}
+        {connectionError && <button onClick={() => setConnectionsOpen(true)} className="w-7 h-7 rounded-full bg-nc-danger-muted border border-nc-danger text-nc-danger" aria-label={t("a.toolbar.syncError", { msg: connectionError.statusMessage ?? t("a.toolbar.unknown") })}>!</button>}
         <button data-topbar="language" onClick={() => setLocale(locale === "de" ? "en" : "de")} className="canvas-toolbar__utility-button" title={t("lang.toggle")}>{locale.toUpperCase()}</button>
         <div className="relative">
           <button

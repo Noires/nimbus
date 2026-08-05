@@ -133,7 +133,7 @@ export function CanvasSwitcher({ canvases, canvasId }: CanvasSwitcherProps) {
                         className="min-w-0 flex-1 rounded-nc-sm border border-nc-line bg-nc-well/60 px-2 py-1 text-xs text-nc-text"
                         maxLength={120}
                       />
-                      <button type="submit" className="rounded-nc-sm border border-nc-accent/40 px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/10">{t("d.switcher.save")}</button>
+                      <button type="submit" className="rounded-nc-sm border border-nc-accent-border px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">{t("d.switcher.save")}</button>
                       <button type="button" onClick={() => setRenamingId(null)} className="rounded-nc-sm px-2 py-1 text-xs text-nc-muted hover:text-nc-text">{t("d.switcher.cancel")}</button>
                     </form>
                   ) : (
@@ -142,7 +142,7 @@ export function CanvasSwitcher({ canvases, canvasId }: CanvasSwitcherProps) {
                         type="button"
                         aria-current={canvas.id === canvasId ? "true" : undefined}
                         onClick={() => goTo(canvas.id)}
-                        className={`min-w-0 flex-1 truncate rounded-nc-sm px-3 py-1.5 text-left text-xs transition-colors ${canvas.id === canvasId ? "bg-nc-accent/10 text-nc-accent-strong" : "text-nc-soft hover:bg-nc-fill hover:text-nc-text"}`}
+                        className={`min-w-0 flex-1 truncate rounded-nc-sm px-3 py-1.5 text-left text-xs transition-colors ${canvas.id === canvasId ? "bg-nc-accent-muted text-nc-accent-strong" : "text-nc-soft hover:bg-nc-fill hover:text-nc-text"}`}
                       >
                         {canvas.name || t("a.canvasList.untitled")}
                       </button>
@@ -179,7 +179,7 @@ export function CanvasSwitcher({ canvases, canvasId }: CanvasSwitcherProps) {
                 className="min-w-0 flex-1 rounded-nc-sm border border-nc-line bg-nc-well/60 px-2 py-1 text-xs text-nc-text placeholder:text-nc-muted"
                 maxLength={120}
               />
-              <button type="submit" disabled={!newName.trim()} className="whitespace-nowrap rounded-nc-sm border border-nc-accent/40 px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/10 disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="submit" disabled={!newName.trim()} className="whitespace-nowrap rounded-nc-sm border border-nc-accent-border px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted disabled:cursor-not-allowed disabled:opacity-60">
                 {t("d.switcher.create")}
               </button>
             </form>
@@ -193,13 +193,13 @@ export function CanvasSwitcher({ canvases, canvasId }: CanvasSwitcherProps) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={dialogSpring}
                 onKeyDown={(event) => { if (event.key === "Escape") { event.stopPropagation(); setDeleteCandidate(null); } }}
-                className="m-2 rounded-nc-md border border-nc-danger/50 bg-nc-raised p-3"
+                className="m-2 rounded-nc-md border border-nc-danger-border bg-nc-raised p-3"
               >
                 <h3 id="switcher-delete-heading" className="text-sm font-semibold text-nc-text">{t("d.switcher.deleteTitle")}</h3>
                 <p id="switcher-delete-detail" className="mt-1 text-xs text-nc-soft">{t("d.switcher.deleteDetail", { name: deleteCandidate.name || t("a.canvasList.untitled") })}</p>
                 <div className="mt-3 flex gap-2">
                   <button ref={cancelDeleteRef} type="button" onClick={() => setDeleteCandidate(null)} className="rounded-nc-md border border-nc-line-faint px-2.5 py-1.5 text-xs text-nc-soft transition-colors hover:bg-nc-fill-faint hover:text-nc-text">{t("d.switcher.cancel")}</button>
-                  <button type="button" onClick={() => void remove(deleteCandidate)} className="rounded-nc-md border border-nc-danger/50 px-2.5 py-1.5 text-xs text-nc-danger transition-colors hover:bg-nc-danger/10">{t("d.switcher.deleteConfirm")}</button>
+                  <button type="button" onClick={() => void remove(deleteCandidate)} className="rounded-nc-md border border-nc-danger-border px-2.5 py-1.5 text-xs text-nc-danger transition-colors hover:bg-nc-danger-muted">{t("d.switcher.deleteConfirm")}</button>
                 </div>
               </motion.div>
             )}

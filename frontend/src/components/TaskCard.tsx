@@ -331,14 +331,14 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
       }}
       transition={taskCardTransition(reducedMotion, isDragging)}
       className={`absolute w-64 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border focus-visible:outline-solid focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-nc-focus ${
-        overdue ? "border-nc-danger/70" : archived ? "border-dashed border-nc-line" : "border-nc-line-faint"
+        overdue ? "border-nc-danger" : archived ? "border-dashed border-nc-line" : "border-nc-line-faint"
       } ${isDragging ? "shadow-nc-lg ring-2 ring-nc-line-strong cursor-grabbing" : "shadow-nc-md cursor-grab"} ${
         flashing
-          ? "ring-4 ring-nc-accent/80"
+          ? "ring-4 ring-nc-accent"
           : focused
-            ? "ring-2 ring-nc-accent/70"
+            ? "ring-2 ring-nc-accent"
             : selected
-              ? "ring-2 ring-nc-select/80"
+              ? "ring-2 ring-nc-select"
               : ""
       } ${overdue && lens === "gravity" && !reducedMotion ? "animate-pulse" : ""}`}
       style={{
@@ -370,7 +370,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
           data-port
           onPointerDown={startLink}
           title={t("b.card.linkPort.title")}
-          className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-nc-raised border-2 border-nc-accent/50 hover:border-nc-accent hover:scale-125 transition-all cursor-crosshair"
+          className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-nc-raised border-2 border-nc-accent-border hover:border-nc-accent hover:scale-125 transition-all cursor-crosshair"
         />
       )}
 
@@ -389,7 +389,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
           </div>
           {task.externalKey && (
             <span
-              className="text-2xs text-nc-accent/80 shrink-0 max-w-24 truncate"
+              className="text-2xs text-nc-accent shrink-0 max-w-24 truncate"
               title={task.status ?? (externalRef ? `${externalRef[1]}#${externalRef[2]}` : undefined)}
             >
               ⑂{task.status ? ` ${task.status}` : ""}
@@ -441,7 +441,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
                 onChange={(e) =>
                   useStore.getState().patchTask(task.id, { status: e.target.value }).catch((err) => console.error(err))
                 }
-                className="text-2xs bg-nc-well/70 border border-nc-accent/30 rounded-full px-1.5 py-0.5 text-nc-accent cursor-pointer"
+                className="text-xs bg-nc-well/70 border border-nc-accent-border rounded-full px-1.5 py-0.5 text-nc-accent cursor-pointer"
                 title={t("b.card.statusColumn")}
               >
                 {/* No synced status yet: without this the browser would show
@@ -456,7 +456,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
               </select>
             )}
             {readOnly && task.status && (
-              <span className="text-2xs text-nc-accent/80 border border-nc-accent/20 rounded-full px-1.5 py-0.5">
+              <span className="text-2xs text-nc-accent border border-nc-accent-border rounded-full px-1.5 py-0.5">
                 {task.status}
               </span>
             )}
@@ -521,7 +521,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
             title={t("b.card.estimateVsActual", { actual: formatMinutes(task.actualMinutes), estimate: formatMinutes(task.estimateMinutes) })}
           >
             <div
-              className={`h-full ${task.actualMinutes <= task.estimateMinutes ? "bg-nc-accent/70" : "bg-nc-warning/80"}`}
+              className={`h-full ${task.actualMinutes <= task.estimateMinutes ? "bg-nc-accent" : "bg-nc-warning"}`}
               style={{
                 width: `${Math.min(task.actualMinutes / task.estimateMinutes, 1.5) / 1.5 * 100}%`,
               }}

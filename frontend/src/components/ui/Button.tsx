@@ -8,11 +8,11 @@ export type ButtonSize = "sm" | "md";
  * assert its markup never contains it) — so no `transform`,
  * no `transition-transform`. `transition-colors` is fine. */
 const VARIANTS: Record<ButtonVariant, string> = {
-  accent: "border border-nc-accent/45 bg-nc-accent-surface text-nc-accent-strong hover:bg-nc-accent/20",
+  accent: "border border-nc-accent-border bg-nc-accent-surface text-nc-accent-strong hover:bg-nc-accent-muted",
   select: "bg-nc-select-surface font-semibold text-nc-text hover:bg-nc-select-surface/80",
   ghost: "border border-nc-line text-nc-text hover:bg-nc-fill",
   quiet: "text-nc-muted hover:bg-nc-fill-faint hover:text-nc-text",
-  danger: "border border-nc-danger/50 text-nc-danger hover:bg-nc-danger/10",
+  danger: "border border-nc-danger-border text-nc-danger hover:bg-nc-danger-muted",
 };
 
 const SIZES: Record<ButtonSize, string> = {

@@ -98,7 +98,7 @@ export function PulsePanel({ canvasId, onClose }: { canvasId: string; onClose: (
             {pulse.days.map((d) => (
               <div key={d.date} className="flex-1 flex flex-col justify-end gap-[1px]" title={`${d.date}: +${d.created} / ✓${d.completed}`}>
                 <div className="w-full bg-nc-select-surface/70 rounded-nc-sm" style={{ height: `${(d.created / maxBar) * 100}%` }} />
-                <div className="w-full bg-nc-success/70 rounded-nc-sm" style={{ height: `${(d.completed / maxBar) * 100}%` }} />
+                <div className="w-full bg-nc-success rounded-nc-sm" style={{ height: `${(d.completed / maxBar) * 100}%` }} />
               </div>
             ))}
           </div>
@@ -118,7 +118,7 @@ export function PulsePanel({ canvasId, onClose }: { canvasId: string; onClose: (
           <div className="mb-1 text-2xs text-nc-faint">{t("c.pulse.churn")}</div>
           <div className="h-2 rounded-full bg-nc-fill-faint overflow-hidden mb-1">
             <div
-              className={`h-full ${stats.churn > 8 ? "bg-nc-danger/70" : stats.churn > 4 ? "bg-nc-warning/70" : "bg-nc-success/70"}`}
+              className={`h-full ${stats.churn > 8 ? "bg-nc-danger" : stats.churn > 4 ? "bg-nc-warning" : "bg-nc-success"}`}
               style={{ width: `${Math.min((stats.churn / 12) * 100, 100)}%` }}
             />
           </div>
@@ -151,7 +151,7 @@ export function PulsePanel({ canvasId, onClose }: { canvasId: string; onClose: (
                         <span className="text-2xs text-nc-faint">{done}/{members.length}</span>
                         <div className="w-20 h-1.5 rounded-full bg-nc-fill-faint overflow-hidden">
                           <div
-                            className="h-full bg-nc-success/70"
+                            className="h-full bg-nc-success"
                             style={{ width: members.length ? `${(done / members.length) * 100}%` : 0 }}
                           />
                         </div>

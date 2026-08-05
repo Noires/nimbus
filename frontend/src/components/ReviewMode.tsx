@@ -119,7 +119,7 @@ export function ReviewHud() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
-          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[80] flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent/30 px-4 py-2.5 shadow-nc-lg"
+          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[80] flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent-border px-4 py-2.5 shadow-nc-lg"
         >
           <span className="text-xs text-nc-accent whitespace-nowrap">
             ✈ {t("c.review.progress", { index: review.index + 1, total: review.queue.length })}

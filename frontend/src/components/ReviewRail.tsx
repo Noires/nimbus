@@ -69,7 +69,7 @@ export function ReviewRail({
             onClick={() => setActiveQueue(queue)}
             className={`rounded-nc-sm border px-2 py-1 text-xs ${
               activeQueue === queue
-                ? "border-nc-accent/50 bg-nc-accent/10 text-nc-accent-strong"
+                ? "border-nc-accent-border bg-nc-accent-muted text-nc-accent-strong"
                 : "border-nc-line text-nc-soft hover:bg-nc-fill"
             }`}
           >

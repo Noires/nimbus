@@ -4,9 +4,9 @@ export type ChipTone = "neutral" | "accent" | "danger" | "warning";
 
 const TONES: Record<ChipTone, string> = {
   neutral: "bg-nc-fill-faint text-nc-soft",
-  accent: "bg-nc-accent/10 text-nc-accent-strong",
-  danger: "bg-nc-danger/10 text-nc-danger",
-  warning: "bg-nc-warning/10 text-nc-warning",
+  accent: "bg-nc-accent-muted text-nc-accent-strong",
+  danger: "bg-nc-danger-muted text-nc-danger",
+  warning: "bg-nc-warning-muted text-nc-warning",
 };
 
 /** Small metadata pill (tags, priorities, statuses). */

@@ -56,7 +56,7 @@ function SyncedHeader({ task }: { task: Task }) {
           onChange={(e) =>
             useStore.getState().patchTask(task.id, { status: e.target.value }).catch((err) => console.error(err))
           }
-          className="text-2xs bg-nc-well/70 border border-nc-accent/30 rounded-full px-2 py-0.5 text-nc-accent cursor-pointer"
+          className="text-xs bg-nc-well/70 border border-nc-accent-border rounded-full px-2 py-0.5 text-nc-accent cursor-pointer"
           title={t("b.modal.synced.statusColumn")}
         >
           {live.status && !columns.some((c) => c.name === live.status) && (
@@ -263,10 +263,10 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
   };
 
   const CHIP_COLORS: Record<string, string> = {
-    date: "text-nc-accent border-nc-accent/40",
-    duration: "text-nc-select border-nc-select/40",
+    date: "text-nc-accent border-nc-accent-border",
+    duration: "text-nc-select border-nc-select-border",
     tag: "text-nc-soft border-nc-line-strong",
-    priority: "text-nc-danger border-nc-danger/40",
+    priority: "text-nc-danger border-nc-danger-border",
   };
 
   const isPanel = variant === "panel";
@@ -293,7 +293,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
         }>
         {/* Header */}
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-lg font-semibold text-nc-text">{isEdit ? t("b.modal.editTask") : t("b.modal.newTask")}</h2>
+          <h2 className="font-nc-display text-lg font-semibold text-nc-text">{isEdit ? t("b.modal.editTask") : t("b.modal.newTask")}</h2>
           <button
             onClick={onClose}
             className="text-nc-faint hover:text-nc-text transition-colors"
@@ -340,7 +340,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
                   store.flashTask(similar.id);
                 }}
                 onMouseEnter={() => useStore.getState().flashTask(similar.id)}
-                className="mt-1.5 text-left text-2xs text-nc-warning/90 hover:text-nc-warning transition-colors"
+                className="mt-1.5 text-left text-2xs text-nc-warning hover:text-nc-warning transition-colors"
                 title={t("b.modal.similar.tooltip")}
               >
                 ≈ {t("b.modal.similar.label")}: {similar.title}
@@ -427,7 +427,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
                     onClick={() => setEstimate(estimate === min ? null : min)}
                     className={`h-6 px-2 rounded-full text-2xs border transition-all ${
                       estimate === min
-                        ? "border-nc-select/70 text-nc-select bg-nc-select/10"
+                        ? "border-nc-select text-nc-select bg-nc-select-muted"
                         : "border-nc-line text-nc-muted hover:border-nc-line-strong"
                     }`}
                   >
@@ -504,7 +504,7 @@ export function CreateModal({ initial, variant = "modal", onClose, onSubmit }: C
                 onClose();
                 useStore.getState().splitTaskAction(initial!.id).catch((e) => console.error(e));
               }}
-              className="w-full py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent/30 hover:bg-nc-accent/10 transition-colors"
+              className="w-full py-1.5 rounded-nc-md text-xs text-nc-accent border border-nc-accent-border hover:bg-nc-accent-muted transition-colors"
               title={t("b.modal.splitChecklist.title")}
             >
               ⚛ {t("b.modal.splitChecklist")}

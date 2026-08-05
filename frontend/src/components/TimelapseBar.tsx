@@ -185,7 +185,7 @@ export function TimelapseBar({ canvasId, onClose }: { canvasId: string; onClose:
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-select/30 px-4 py-2.5 shadow-nc-lg w-[min(640px,90%)]"
+      className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[90] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-select-border px-4 py-2.5 shadow-nc-lg w-[min(640px,90%)]"
     >
       <button
         onClick={() => setPlaying(!playing)}

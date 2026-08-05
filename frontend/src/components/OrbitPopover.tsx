@@ -66,7 +66,7 @@ export function OrbitPopover() {
                     </span>
                     <button
                       onClick={() => wake(task)}
-                      className="shrink-0 text-2xs text-nc-accent px-2 py-1 rounded-nc-sm border border-nc-accent/30 hover:bg-nc-accent/10 transition-colors whitespace-nowrap"
+                      className="shrink-0 text-2xs text-nc-accent px-2 py-1 rounded-nc-sm border border-nc-accent-border hover:bg-nc-accent-muted transition-colors whitespace-nowrap"
                     >
                       <span aria-hidden="true">↩</span> {t("a.orbit.wake")}
                     </button>

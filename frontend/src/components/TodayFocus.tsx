@@ -79,7 +79,7 @@ export function TodayFocus({
           <h2 className="text-xs font-semibold uppercase tracking-wider text-nc-accent-strong">{t("today.title")}</h2>
           <p className="mt-1 text-xs leading-5 text-nc-muted">{t("today.subtitle")}</p>
         </div>
-        <span className="rounded-full bg-nc-accent/10 px-2 py-1 text-xs text-nc-accent-strong">{sections.due.length + sections.ready.length}</span>
+        <span className="rounded-full bg-nc-accent-muted px-2 py-1 text-xs text-nc-accent-strong">{sections.due.length + sections.ready.length}</span>
       </div>
       {actionError && <p role="alert" className="mt-3 text-xs text-nc-danger">{actionError}</p>}
       {!hasTasks ? (

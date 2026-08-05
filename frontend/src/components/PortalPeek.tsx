@@ -74,7 +74,7 @@ export function PortalPeek({ targetCanvasId, targetName }: { targetCanvasId: str
       initial={{ opacity: 0, scale: 0.9, y: 6 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={chromeSpring}
-      className="absolute left-1/2 bottom-24 -translate-x-1/2 z-50 rounded-nc-lg bg-nc-well/95 backdrop-blur-xl border border-nc-accent/30 shadow-nc-lg p-2.5 pointer-events-none"
+      className="absolute left-1/2 bottom-24 -translate-x-1/2 z-50 rounded-nc-lg bg-nc-well/95 backdrop-blur-xl border border-nc-accent-border shadow-nc-lg p-2.5 pointer-events-none"
       style={{ width: 220 }}
     >
       <div className="text-2xs text-nc-text mb-1 truncate">◍ {targetName}</div>

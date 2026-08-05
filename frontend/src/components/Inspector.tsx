@@ -247,14 +247,14 @@ export function WorkstreamInspector({
             {members.map((task) => (
               <li key={task.id} className="flex items-center justify-between gap-2 text-xs text-nc-text">
                 <span className="truncate">{task.title}</span>
-                <button type="button" onClick={() => onOpenTask(task)} className="shrink-0 rounded-nc-sm px-1 text-nc-accent-strong hover:bg-nc-accent/15">{t("inspector.openTask")}</button>
+                <button type="button" onClick={() => onOpenTask(task)} className="shrink-0 rounded-nc-sm px-1 text-nc-accent-strong hover:bg-nc-accent-muted">{t("inspector.openTask")}</button>
               </li>
             ))}
           </ul>
         </div>
         <div className="flex flex-wrap gap-2 border-t border-nc-line-faint pt-3">
-          <button type="button" onClick={onOpenToday} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/15">{t("inspector.openToday")}</button>
-          <button type="button" onClick={onOpenReview} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent/15">{t("inspector.openReview")}</button>
+          <button type="button" onClick={onOpenToday} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">{t("inspector.openToday")}</button>
+          <button type="button" onClick={onOpenReview} className="rounded-nc-sm px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">{t("inspector.openReview")}</button>
         </div>
       </div>
     </InspectorFrame>

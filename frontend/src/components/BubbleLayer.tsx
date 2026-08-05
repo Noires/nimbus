@@ -332,7 +332,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
                 if (store.focus) store.exitFocus();
                 else store.startFocus(cluster.members);
               }}
-              className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-accent/80 hover:text-nc-accent whitespace-nowrap transition-colors"
+              className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-accent hover:text-nc-accent whitespace-nowrap transition-colors"
               style={pillStyle(hue, 0.35)}
               title={t("b.bubble.focusTitle")}
             >

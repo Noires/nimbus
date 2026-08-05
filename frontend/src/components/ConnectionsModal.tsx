@@ -155,7 +155,7 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
         className="relative w-full max-w-lg rounded-nc-xl bg-nc-raised/95 backdrop-blur-xl border border-nc-line shadow-nc-lg p-6 max-h-[85vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-nc-text">{tr("a.connections.title")}</h2>
+          <h2 className="font-nc-display text-lg font-semibold text-nc-text">{tr("a.connections.title")}</h2>
           <button onClick={onClose} className="text-nc-faint hover:text-nc-text">×</button>
         </div>
 

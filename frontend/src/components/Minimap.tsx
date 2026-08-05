@@ -153,7 +153,7 @@ export function Minimap({ canvasId, tasks, clusters }: MinimapProps) {
                   useStore.getState().gotoWaypoint(canvasId, wp.slot);
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="w-5 h-5 rounded-full bg-nc-raised border border-nc-accent/40 text-2xs text-nc-accent hover:border-nc-accent transition-colors"
+                className="w-5 h-5 rounded-full bg-nc-raised border border-nc-accent-border text-2xs text-nc-accent hover:border-nc-accent transition-colors"
                 title={t("c.minimap.waypoint", { slot: wp.slot })}
               >
                 {wp.slot}

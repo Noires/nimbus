@@ -67,7 +67,7 @@ export function FocusTimer() {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent/30 px-4 py-2 shadow-nc-lg"
+      className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent-border px-4 py-2 shadow-nc-lg"
     >
       <svg width="28" height="28" viewBox="0 0 28 28" className="-rotate-90 shrink-0">
         <circle cx="14" cy="14" r="12" fill="none" stroke="var(--nc-border-faint)" strokeWidth="3" />
