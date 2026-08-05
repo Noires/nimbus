@@ -11,7 +11,11 @@ export const ambientFade: Transition = { duration: 0.35, ease: "easeOut" };
 export const menuPop: Transition = { type: "spring", stiffness: 520, damping: 32 };
 /** Scrims/backdrops and reduced-motion fallbacks. */
 export const quickFade: Transition = { duration: 0.15, ease: "easeOut" };
-/** THE signature moment: the rail's active pill gliding between icons. */
+/** The rail's active pill gliding between icons — the always-alive active
+ * indicator the icon-rail contract requires (not the signature moment). */
 export const railGlide: Transition = { type: "spring", stiffness: 480, damping: 36 };
 /** World-content entrance (portals): a soft settle. */
 export const contentPop: Transition = { type: "spring", stiffness: 300, damping: 24 };
+/** THE signature moment: a new cluster's sounding contours settling around
+ * the bloom when cards coalesce. One-shot, enter-only, scale/opacity only. */
+export const coalesce: Transition = { type: "spring", stiffness: 220, damping: 26 };

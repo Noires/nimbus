@@ -1,6 +1,6 @@
-import { ambientFade } from "../utils/motion";
+import { ambientFade, coalesce } from "../utils/motion";
 import { useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Cluster } from "../engine/proximityDetector";
 import { api } from "../data/api";
 import { useStore, bestBubbleMatch, CARD_W, CARD_H, type Task } from "../store";
@@ -25,6 +25,7 @@ const MIN_RADIUS = 180;
 
 export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
   const t = useT();
+  const reduced = useReducedMotion();
   const serverBubbles = useStore((s) => s.bubbles);
   const readOnly = useStore((s) => s.readOnly);
   const focusActive = useStore((s) => s.focus !== null);
@@ -169,27 +170,36 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
                 strokeWidth={matched?.pinned ? 2.5 : 1.5}
                 strokeDasharray={matched?.pinned ? undefined : "1 0"}
               />
-              {/* Signature: sounding contours — static hairline isobaths
-                  around the bloom, like depth lines on a chart. Stroke-only
-                  and unanimated; the glow above stays the only moving part. */}
-              <circle
-                cx={cx}
-                cy={cy}
-                r={r + 16}
-                fill="none"
-                stroke={`hsla(${hue}, 70%, 70%, 0.18)`}
-                strokeWidth={1}
-                strokeDasharray="7 9"
-              />
-              <circle
-                cx={cx}
-                cy={cy}
-                r={r + 30}
-                fill="none"
-                stroke={`hsla(${hue}, 70%, 70%, 0.1)`}
-                strokeWidth={1}
-                strokeDasharray="3 12"
-              />
+              {/* Signature: sounding contours — hairline isobaths around the
+                  bloom, like depth lines on a chart. The coalesce settle on
+                  mount is THE app's one signature motion moment (enter-only,
+                  scale/opacity); afterwards the rings are static — the glow
+                  above stays the only continuously moving part. */}
+              <motion.g
+                initial={reduced ? false : { scale: 0.88, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={coalesce}
+                style={{ transformOrigin: `${cx}px ${cy}px` }}
+              >
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={r + 16}
+                  fill="none"
+                  stroke={`hsla(${hue}, 70%, 70%, 0.18)`}
+                  strokeWidth={1}
+                  strokeDasharray="7 9"
+                />
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={r + 30}
+                  fill="none"
+                  stroke={`hsla(${hue}, 70%, 70%, 0.1)`}
+                  strokeWidth={1}
+                  strokeDasharray="3 12"
+                />
+              </motion.g>
             </motion.g>
           ))}
         </AnimatePresence>
