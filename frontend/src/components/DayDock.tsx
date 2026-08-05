@@ -1,3 +1,4 @@
+import { chromeSpring } from "../utils/motion";
 import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore, visibleTasks, CARD_W, CARD_H } from "../store";
@@ -80,15 +81,15 @@ export function DayDock() {
           initial={{ opacity: 0, y: 48 }}
           animate={{ opacity: 1, y: dragging ? -8 : 0 }}
           exit={{ opacity: 0, y: 48 }}
-          transition={{ type: "spring", stiffness: 360, damping: 32 }}
-          className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-[60] flex items-stretch gap-1 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border px-2 py-1.5 shadow-2xl ${
-            dragging ? "border-cyan-400/60" : "border-white/10"
+          transition={chromeSpring}
+          className={`absolute bottom-2 left-1/2 -translate-x-1/2 z-[60] flex items-stretch gap-1 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border px-2 py-1.5 shadow-nc-lg ${
+            dragging ? "border-nc-accent/60" : "border-nc-line"
           }`}
         >
           {overdueCount > 0 && (
-            <div className="flex flex-col items-center justify-center px-2 rounded-lg bg-red-500/10 border border-red-500/40">
-              <span className="text-[10px] text-red-400 font-medium">{overdueCount}</span>
-              <span className="text-[8px] text-red-400/70">{t("c.day.overdue")}</span>
+            <div className="flex flex-col items-center justify-center px-2 rounded-nc-md bg-nc-danger/10 border border-nc-danger/40">
+              <span className="text-2xs text-nc-danger font-medium">{overdueCount}</span>
+              <span className="text-[8px] text-nc-danger/70">{t("c.day.overdue")}</span>
             </div>
           )}
           {days.map(({ key, date }) => {
@@ -105,14 +106,14 @@ export function DayDock() {
                   useStore.getState().setDayFilter(filtered ? null : key);
                   if (!filtered) flyToFirst(key);
                 }}
-                className={`flex flex-col items-center justify-between w-11 py-1 rounded-lg border transition-colors ${
+                className={`flex flex-col items-center justify-between w-11 py-1 rounded-nc-md border transition-colors ${
                   filtered
-                    ? "border-cyan-400/70 bg-cyan-500/15"
+                    ? "border-nc-accent/70 bg-nc-accent/15"
                     : dragging
-                      ? "border-cyan-500/30 bg-cyan-500/5 hover:bg-cyan-500/15"
+                      ? "border-nc-accent/30 bg-nc-accent/5 hover:bg-nc-accent/15"
                       : weekend
-                        ? "border-white/5 bg-white/[0.02] hover:bg-white/5"
-                        : "border-white/10 hover:bg-white/5"
+                        ? "border-nc-line-faint bg-white/[0.02] hover:bg-nc-fill-faint"
+                        : "border-nc-line-faint hover:bg-nc-fill-faint"
                 }`}
                 title={
                   count
@@ -120,10 +121,10 @@ export function DayDock() {
                     : t("c.day.dropTooltip")
                 }
               >
-                <span className={`text-[8px] uppercase ${isToday ? "text-cyan-300" : "text-gray-500"}`}>
+                <span className={`text-[8px] uppercase ${isToday ? "text-nc-accent" : "text-nc-faint"}`}>
                   {isToday ? t("c.day.today") : date.toLocaleDateString(dateLocale(), { weekday: "short" })}
                 </span>
-                <span className={`text-[11px] ${isToday ? "text-cyan-200" : "text-gray-300"}`}>
+                <span className={`text-2xs ${isToday ? "text-nc-accent-strong" : "text-nc-soft"}`}>
                   {date.getDate()}
                 </span>
                 <span className="flex gap-[2px] h-1.5 items-center">
@@ -137,7 +138,7 @@ export function DayDock() {
                 </span>
                 <span
                   className={`text-[8px] ${
-                    minutes > daily ? "text-red-400" : minutes > 0 ? "text-gray-500" : "text-transparent"
+                    minutes > daily ? "text-nc-danger" : minutes > 0 ? "text-nc-faint" : "text-transparent"
                   }`}
                 >
                   {minutes > 0 ? formatMinutes(minutes) : "·"}

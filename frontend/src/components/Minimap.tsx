@@ -121,11 +121,11 @@ export function Minimap({ canvasId, tasks, clusters }: MinimapProps) {
   };
 
   return (
-    <div className="absolute bottom-14 right-4 z-40">
+    <div className="absolute bottom-14 right-4 z-40 max-md:hidden">
       <canvas
         ref={canvasRef}
         style={{ width: MAP_W, height: MAP_H }}
-        className="rounded-lg bg-[#0f0f13]/85 border border-white/15 shadow-xl cursor-pointer block"
+        className="rounded-nc-md bg-nc-well/85 border border-nc-line shadow-nc-md cursor-pointer block"
         onPointerDown={(e) => {
           e.stopPropagation();
           dragging.current = true;
@@ -153,7 +153,7 @@ export function Minimap({ canvasId, tasks, clusters }: MinimapProps) {
                   useStore.getState().gotoWaypoint(canvasId, wp.slot);
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="w-5 h-5 rounded-full bg-[#1a1d24] border border-cyan-500/40 text-[9px] text-cyan-300 hover:border-cyan-300 transition-colors"
+                className="w-5 h-5 rounded-full bg-nc-raised border border-nc-accent/40 text-2xs text-nc-accent hover:border-nc-accent transition-colors"
                 title={t("c.minimap.waypoint", { slot: wp.slot })}
               >
                 {wp.slot}

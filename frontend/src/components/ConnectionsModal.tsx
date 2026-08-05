@@ -1,6 +1,7 @@
+import { dialogSpring, quickFade } from "../utils/motion";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useStore, type Connection } from "../store";
 import { t, useT } from "../i18n";
 
@@ -31,14 +32,15 @@ function relativeTime(iso: string | null): string {
 }
 
 const STATUS_DOT: Record<string, string> = {
-  ok: "bg-emerald-400",
-  syncing: "bg-cyan-400",
-  error: "bg-red-500",
-  idle: "bg-gray-500",
+  ok: "bg-nc-success",
+  syncing: "bg-nc-accent",
+  error: "bg-nc-danger",
+  idle: "bg-nc-fill",
 };
 
 export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
   const tr = useT();
+  const reducedMotion = useReducedMotion();
   const connections = useStore((s) => s.connections);
   const [owner, setOwner] = useState("");
   const [repo, setRepo] = useState("");
@@ -82,22 +84,22 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
   const row = (conn: Connection) => {
     const config = conn.config as GithubConfig;
     return (
-      <div key={conn.id} className="flex items-center gap-2 py-2 border-b border-white/5">
+      <div key={conn.id} className="flex items-center gap-2 py-2 border-b border-nc-line-faint">
         <span
-          className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[conn.status] ?? "bg-gray-500"}`}
+          className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[conn.status] ?? "bg-nc-fill"}`}
           title={conn.statusMessage ?? conn.status}
         />
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-gray-200 truncate">
+          <div className="text-xs text-nc-text truncate">
             ⑂ {config.owner}/{config.repo}
             {config.projectNumber && (
-              <span className="ml-1.5 text-[10px] text-cyan-400">▦ {tr("a.connections.projectTag", { count: config.projectNumber })}</span>
+              <span className="ml-1.5 text-2xs text-nc-accent">▦ {tr("a.connections.projectTag", { count: config.projectNumber })}</span>
             )}
             {!config.projectNumber && (
-              <span className="ml-1.5 text-[10px] text-gray-500">{tr("a.connections.labelsMode")}</span>
+              <span className="ml-1.5 text-2xs text-nc-faint">{tr("a.connections.labelsMode")}</span>
             )}
           </div>
-          <div className="text-[10px] text-gray-500 truncate">
+          <div className="text-2xs text-nc-faint truncate">
             {conn.status === "error"
               ? conn.statusMessage
               : tr("a.connections.synced", {
@@ -109,7 +111,7 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
         </div>
         <button
           onClick={() => void useStore.getState().syncConnection(conn.id).catch(() => {})}
-          className="text-[10px] text-cyan-300 hover:text-cyan-200 px-1.5 py-1 whitespace-nowrap transition-colors"
+          className="text-2xs text-nc-accent hover:text-nc-accent-strong px-1.5 py-1 whitespace-nowrap transition-colors"
         >
           {tr("a.connections.syncNow")}
         </button>
@@ -117,8 +119,8 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
           onClick={() =>
             void useStore.getState().patchConnection(conn.id, { enabled: !conn.enabled }).catch((e) => console.error(e))
           }
-          className={`text-[10px] px-1.5 py-1 transition-colors ${
-            conn.enabled ? "text-gray-400 hover:text-gray-200" : "text-amber-400"
+          className={`text-2xs px-1.5 py-1 transition-colors ${
+            conn.enabled ? "text-nc-muted hover:text-nc-text" : "text-nc-warning"
           }`}
           title={conn.enabled ? tr("a.connections.pause") : tr("a.connections.resume")}
         >
@@ -130,7 +132,7 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
               void useStore.getState().removeConnection(conn.id).catch((e) => console.error(e));
             }
           }}
-          className="text-[10px] text-gray-600 hover:text-red-400 px-1 transition-colors"
+          className="text-2xs text-nc-faint hover:text-nc-danger px-1 transition-colors"
         >
           ×
         </button>
@@ -139,33 +141,33 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
   };
 
   const inputClass =
-    "px-2.5 py-1.5 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-xs outline-none transition-colors";
+    "px-2.5 py-1.5 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-xs transition-colors";
 
   // Portal to <body>: the toolbar's transform/backdrop-filter would otherwise
   // become the containing block for this fixed-position overlay.
   return createPortal(
     <div className="fixed inset-0 z-[120] flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={quickFade} className="absolute inset-0 bg-nc-scrim" onClick={onClose} />
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-        className="relative w-full max-w-lg rounded-xl bg-[#1a1d24]/97 backdrop-blur-xl border border-white/15 shadow-2xl p-5 max-h-[85vh] overflow-y-auto"
+        transition={reducedMotion ? quickFade : dialogSpring}
+        className="relative w-full max-w-lg rounded-nc-xl bg-nc-raised/95 backdrop-blur-xl border border-nc-line shadow-nc-lg p-6 max-h-[85vh] overflow-y-auto"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-100">{tr("a.connections.title")}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-200">×</button>
+          <h2 className="text-lg font-semibold text-nc-text">{tr("a.connections.title")}</h2>
+          <button onClick={onClose} className="text-nc-faint hover:text-nc-text">×</button>
         </div>
 
         {connections.length > 0 ? (
           <div className="mb-4">{connections.map(row)}</div>
         ) : (
-          <div className="mb-4 text-xs text-gray-500">
+          <div className="mb-4 text-xs text-nc-faint">
             {tr("a.connections.empty")}
           </div>
         )}
 
-        <div className="text-[10px] uppercase tracking-wider text-gray-600 mb-2">{tr("a.connections.addRepo")}</div>
+        <div className="text-2xs uppercase tracking-wider text-nc-faint mb-2">{tr("a.connections.addRepo")}</div>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder={tr("a.connections.ph.owner")} className={inputClass} />
           <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder={tr("a.connections.ph.repo")} className={inputClass} />
@@ -183,16 +185,16 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
             ))}
           </select>
         </div>
-        {formError && <div className="text-[10px] text-red-400 mb-2 whitespace-pre-wrap">{formError}</div>}
+        {formError && <div className="text-2xs text-nc-danger mb-2 whitespace-pre-wrap">{formError}</div>}
         <button
           onClick={() => void add()}
           disabled={busy}
-          className="w-full py-2 rounded-lg bg-purple-600/80 hover:bg-purple-600 disabled:opacity-50 text-white text-xs font-medium transition-colors"
+          className="w-full py-2 rounded-nc-md bg-nc-select-surface/80 hover:bg-nc-select-surface disabled:opacity-60 disabled:cursor-not-allowed text-nc-text text-xs font-medium transition-colors"
         >
           {busy ? tr("a.connections.validating") : tr("a.connections.connect")}
         </button>
 
-        <p className="mt-3 text-[10px] text-gray-600 leading-relaxed">
+        <p className="mt-3 text-2xs text-nc-faint leading-relaxed">
           {tr("a.connections.help1")}<code>GITHUB_TOKEN</code>{tr("a.connections.help2")}<code>server/.env</code>{tr("a.connections.help3")}<code>status:&lt;column&gt;</code>{tr("a.connections.help4")}<em>{tr("a.connections.helpArchiving")}</em>{tr("a.connections.help5")}
         </p>
       </motion.div>

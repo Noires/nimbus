@@ -48,35 +48,35 @@ export function CommentsSection({ taskId }: { taskId: string }) {
 
   return (
     <div>
-      <span className="block text-xs text-gray-500 mb-1.5">
+      <span className="block text-xs text-nc-faint mb-1.5">
         {t("b.comments.label")} {comments ? `(${comments.length})` : ""}
       </span>
 
-      {error && <div className="text-[10px] text-red-400 mb-1.5">{t("b.comments.unreachable", { error })}</div>}
-      {!error && comments === null && <div className="text-[10px] text-gray-600 mb-1.5">{t("b.comments.loading")}</div>}
+      {error && <div className="text-2xs text-nc-danger mb-1.5">{t("b.comments.unreachable", { error })}</div>}
+      {!error && comments === null && <div className="text-2xs text-nc-faint mb-1.5">{t("b.comments.loading")}</div>}
 
       {comments && comments.length > 0 && (
         <div className="flex flex-col gap-2 max-h-40 overflow-y-auto mb-2 pr-1">
           {comments.map((c) => (
-            <div key={c.id} className="rounded-lg bg-[#0f0f13]/60 border border-white/5 px-2.5 py-1.5">
+            <div key={c.id} className="rounded-nc-md bg-nc-well/60 border border-nc-line-faint px-2.5 py-1.5">
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[10px] text-cyan-300">{c.author}</span>
+                <span className="text-2xs text-nc-accent">{c.author}</span>
                 <a
                   href={c.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[9px] text-gray-600 hover:text-gray-400"
+                  className="text-2xs text-nc-faint hover:text-nc-muted"
                 >
                   {relativeTime(c.createdAt)} ↗
                 </a>
               </div>
-              <div className="text-xs text-gray-300 whitespace-pre-wrap break-words">{c.body}</div>
+              <div className="text-xs text-nc-soft whitespace-pre-wrap break-words">{c.body}</div>
             </div>
           ))}
         </div>
       )}
       {comments && comments.length === 0 && (
-        <div className="text-[10px] text-gray-600 mb-2">{t("b.comments.none")}</div>
+        <div className="text-2xs text-nc-faint mb-2">{t("b.comments.none")}</div>
       )}
 
       <div className="flex gap-1.5">
@@ -85,13 +85,13 @@ export function CommentsSection({ taskId }: { taskId: string }) {
           onChange={(e) => setDraft(e.target.value)}
           rows={2}
           placeholder={t("b.comments.placeholder")}
-          className="flex-1 px-2.5 py-1.5 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-xs outline-none transition-colors resize-none"
+          className="flex-1 px-2.5 py-1.5 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-xs transition-colors resize-none"
         />
         <button
           type="button"
           onClick={() => void post()}
           disabled={!draft.trim() || posting}
-          className="self-end px-3 py-1.5 rounded-lg bg-purple-600/70 hover:bg-purple-600 disabled:opacity-40 text-white text-xs transition-colors"
+          className="self-end px-3 py-1.5 rounded-nc-md bg-nc-select-surface/70 hover:bg-nc-select-surface disabled:opacity-60 disabled:cursor-not-allowed text-nc-text text-xs transition-colors"
         >
           {posting ? "…" : t("b.comments.post")}
         </button>

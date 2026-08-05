@@ -34,7 +34,7 @@ export function TaskChip({ task, dot, dimmed }: { task: Task; dot: boolean; dimm
             boxShadow: task.done ? undefined : `0 0 18px 4px ${task.color}55`,
           }}
         />
-        <span className={`semantic-dot-title absolute left-0 top-full w-full truncate text-center text-[48px] leading-none drop-shadow-md ${task.done ? "line-through text-gray-500" : "text-gray-100"}`}>
+        <span className={`semantic-dot-title absolute left-0 top-full w-full truncate text-center text-[48px] leading-none drop-shadow-md ${task.done ? "line-through text-nc-faint" : "text-nc-text"}`}>
           {task.title}
         </span>
       </button>
@@ -43,7 +43,7 @@ export function TaskChip({ task, dot, dimmed }: { task: Task; dot: boolean; dimm
 
   return (
     <div
-      className="absolute flex items-center gap-1.5 rounded-full bg-[#1a1d24]/90 border border-white/10 px-2.5 cursor-pointer hover:border-white/30 transition-colors"
+      className="absolute flex items-center gap-1.5 rounded-full bg-nc-raised/90 border border-nc-line-faint px-2.5 cursor-pointer hover:border-nc-line-strong transition-colors"
       style={{
         left: task.x,
         top: task.y + CARD_H / 2 - 14,
@@ -56,11 +56,11 @@ export function TaskChip({ task, dot, dimmed }: { task: Task; dot: boolean; dimm
       title={task.title}
     >
       <span className="w-2 h-2 rounded-full shrink-0" style={{ background: task.color }} />
-      <span className={`text-[11px] truncate flex-1 ${task.done ? "line-through text-gray-500" : "text-gray-300"}`}>
+      <span className={`text-2xs truncate flex-1 ${task.done ? "line-through text-nc-faint" : "text-nc-soft"}`}>
         {task.title}
       </span>
-      {task.done && <span className="text-[10px] text-emerald-400 shrink-0">✓</span>}
-      {!task.done && task.dueDate && <span className="text-[10px] text-amber-400/80 shrink-0">◷</span>}
+      {task.done && <span className="text-2xs text-nc-success shrink-0">✓</span>}
+      {!task.done && task.dueDate && <span className="text-2xs text-nc-muted shrink-0">◷</span>}
     </div>
   );
 }

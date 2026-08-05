@@ -73,7 +73,9 @@ export const enA: Record<string, string> = {
   "a.toolbar.autoArrange.priority": "! Priority",
   "a.toolbar.autoArrange.due": "⏰ Due date",
   "a.toolbar.pulse": "📈 Canvas pulse",
-  "a.toolbar.ledger": "☰ Ledger view (L)",
+  "a.toolbar.tableView": "☰ Table view (L)",
+  "a.toolbar.arrange": "Arrange",
+  "a.toolbar.tools": "Tools",
   "a.toolbar.dayDock": "▤ Day dock (Y)",
   "a.toolbar.timelapse": "⏪ Time-lapse replay",
   "a.toolbar.review": "✈ Review flight (W)",
@@ -178,15 +180,12 @@ export const enA: Record<string, string> = {
   "a.connections.help5": " synced cards over deleting (deleted cards re-import on the next poll).",
 
   // CanvasList
-  "a.canvasList.promptNew": "New canvas name:",
   "a.canvasList.createFailed": "Could not create canvas.",
   "a.canvasList.heading": "Canvases",
   "a.canvasList.new": "+ New Canvas",
   "a.canvasList.untitled": "Untitled",
-  "a.canvasList.promptRename": "Rename canvas:",
   "a.canvasList.renameFailed": "Could not rename canvas.",
   "a.canvasList.renameTitle": "Rename canvas",
-  "a.canvasList.confirmDelete": "Delete \"{name}\" and all its tasks?",
   "a.canvasList.deleteFailed": "Could not delete canvas.",
   "a.canvasList.deleteTitle": "Delete canvas",
 
@@ -272,7 +271,9 @@ export const deA: Record<string, string> = {
   "a.toolbar.autoArrange.priority": "! Priorität",
   "a.toolbar.autoArrange.due": "⏰ Fälligkeit",
   "a.toolbar.pulse": "📈 Canvas-Puls",
-  "a.toolbar.ledger": "☰ Listenansicht (L)",
+  "a.toolbar.tableView": "☰ Tabellenansicht (L)",
+  "a.toolbar.arrange": "Anordnen",
+  "a.toolbar.tools": "Werkzeuge",
   "a.toolbar.dayDock": "▤ Tages-Dock (Y)",
   "a.toolbar.timelapse": "⏪ Zeitraffer-Wiedergabe",
   "a.toolbar.review": "✈ Review-Flug (W)",
@@ -377,15 +378,12 @@ export const deA: Record<string, string> = {
   "a.connections.help5": " synchronisierter Karten gegenüber dem Löschen (gelöschte Karten werden bei der nächsten Abfrage erneut importiert).",
 
   // CanvasList
-  "a.canvasList.promptNew": "Name des neuen Canvas:",
   "a.canvasList.createFailed": "Canvas konnte nicht erstellt werden.",
   "a.canvasList.heading": "Canvas",
   "a.canvasList.new": "+ Neuer Canvas",
   "a.canvasList.untitled": "Unbenannt",
-  "a.canvasList.promptRename": "Canvas umbenennen:",
   "a.canvasList.renameFailed": "Canvas konnte nicht umbenannt werden.",
   "a.canvasList.renameTitle": "Canvas umbenennen",
-  "a.canvasList.confirmDelete": "„{name}“ und alle zugehörigen Aufgaben löschen?",
   "a.canvasList.deleteFailed": "Canvas konnte nicht gelöscht werden.",
   "a.canvasList.deleteTitle": "Canvas löschen",
 

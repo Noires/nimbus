@@ -94,7 +94,7 @@ export function ZoneLayer() {
       {zones.map((zone) => (
         <div
           key={zone.id}
-          className="absolute rounded-2xl"
+          className="absolute rounded-nc-xl"
           style={{
             left: zone.x,
             top: zone.y,
@@ -126,12 +126,12 @@ export function ZoneLayer() {
                   if (e.key === "Escape") setEditing(null);
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="h-6 w-40 px-2 rounded-full bg-[#0f0f13] text-[11px] text-gray-100 outline-none"
+                className="h-6 w-40 px-2 rounded-full bg-nc-well text-2xs text-nc-text"
                 style={{ border: `1.5px solid hsla(${zone.hue}, 70%, 60%, 0.6)` }}
               />
             ) : (
               <span
-                className="h-6 px-2.5 rounded-full bg-[#1a1d24] text-[11px] flex items-center cursor-grab active:cursor-grabbing whitespace-nowrap"
+                className="h-6 px-2.5 rounded-full bg-nc-raised text-2xs flex items-center cursor-grab active:cursor-grabbing whitespace-nowrap"
                 style={{
                   border: `1.5px solid hsla(${zone.hue}, 70%, 60%, 0.6)`,
                   color: `hsl(${zone.hue}, 70%, 75%)`,
@@ -144,7 +144,7 @@ export function ZoneLayer() {
                 title={t("b.zone.headerTitle")}
               >
                 ▣ {zone.label || t("b.zone.default")}
-                {zone.autoTag && <span className="ml-1.5 text-gray-500">#{zone.autoTag}</span>}
+                {zone.autoTag && <span className="ml-1.5 text-nc-faint">#{zone.autoTag}</span>}
               </span>
             )}
 
@@ -226,7 +226,7 @@ function ZoneChipButton({
     <button
       onClick={onClick}
       onPointerDown={(e) => e.stopPropagation()}
-      className="w-6 h-6 rounded-full bg-[#1a1d24] text-[11px] text-gray-400 hover:text-white transition-colors"
+      className="w-6 h-6 rounded-full bg-nc-raised text-2xs text-nc-muted hover:text-nc-text transition-colors"
       style={{ border: `1.5px solid hsla(${hue}, 70%, 60%, 0.4)` }}
       title={title}
     >

@@ -56,7 +56,7 @@ describe("TaskCard semantic density", () => {
 
     expect(html).toMatch(/focus-visible:outline-4/);
     expect(html).toMatch(/focus-visible:outline-offset-4/);
-    expect(html).toMatch(/focus-visible:outline-cyan-200/);
+    expect(html).toMatch(/focus-visible:outline-nc-focus/);
   });
 
   it("keeps the title and a text-backed status while hiding nonessential high-density details", () => {

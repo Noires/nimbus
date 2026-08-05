@@ -6,26 +6,28 @@ interface DensitySelectorProps {
   onChange: (density: CardDensity) => void;
 }
 
+const MODES: CardDensity[] = ["normal", "compact", "high"];
+
 export function DensitySelector({ density, onChange }: DensitySelectorProps) {
   const t = useT();
 
   return (
-    <section className="border-b border-white/10 px-4 py-3" aria-labelledby="density-heading">
-      <label id="density-heading" className="block text-xs font-semibold uppercase tracking-wider text-cyan-200" htmlFor="card-density">
-        {t("density.label")}
-      </label>
-      <select
-        id="card-density"
-        value={density}
-        onChange={(event) => onChange(event.target.value as CardDensity)}
-        aria-label={t("density.label")}
-        className="mt-2 w-full rounded border border-white/15 bg-black/20 px-2 py-1.5 text-xs text-white focus:border-cyan-300 focus:outline-none"
-      >
-        <option value="normal">{t("density.normal")}</option>
-        <option value="compact">{t("density.compact")}</option>
-        <option value="high">{t("density.high")}</option>
-      </select>
-      <p className="mt-2 text-xs leading-5 text-gray-400" role="status">
+    <section aria-labelledby="density-heading">
+      <h3 id="density-heading" className="rail-section__label">{t("density.label")}</h3>
+      <div role="group" aria-label={t("density.label")} className="nc-segmented">
+        {MODES.map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            value={mode}
+            aria-pressed={density === mode}
+            onClick={() => onChange(mode)}
+          >
+            {t(`density.${mode}`)}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-xs leading-5 text-nc-muted" role="status">
         {t(`density.status.${density}`)}
       </p>
     </section>

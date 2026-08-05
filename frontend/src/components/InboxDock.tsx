@@ -1,3 +1,5 @@
+import { IconClose, IconInboxTray } from "./ui/icons";
+import { chromeSpring } from "../utils/motion";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore, CARD_W, CARD_H } from "../store";
@@ -61,11 +63,11 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
   const similar = text.trim().length >= 4 ? findSimilar(text, tasks) : null;
 
   const CHIP_COLORS: Record<string, string> = {
-    date: "text-cyan-300 border-cyan-500/40",
-    duration: "text-violet-300 border-violet-500/40",
-    tag: "text-gray-300 border-white/25",
-    priority: "text-red-300 border-red-500/40",
-    bubble: "text-amber-300 border-amber-500/40",
+    date: "text-nc-accent border-nc-accent/40",
+    duration: "text-nc-select border-nc-select/40",
+    tag: "text-nc-soft border-nc-line-strong",
+    priority: "text-nc-danger border-nc-danger/40",
+    bubble: "text-nc-warning border-nc-warning/40",
   };
 
   const startDrag = (e: React.PointerEvent, id: string, title: string) => {
@@ -103,12 +105,13 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
       {/* Toggle tab */}
       <button
         onClick={() => setOpen(!open)}
-        className="absolute right-0 top-24 z-40 flex items-center gap-1 rounded-l-lg bg-[#1a1d24]/90 border border-r-0 border-white/10 px-2 py-2 text-xs text-gray-400 hover:text-white transition-colors"
+        className="absolute right-0 top-24 z-40 flex items-center gap-1 rounded-l-nc-md bg-nc-raised/95 border border-r-0 border-nc-line px-2 py-2 text-xs text-nc-muted hover:text-nc-text transition-colors"
         title={t("c.inbox.tooltip")}
+        aria-label={t("c.inbox.title")}
       >
-        📥
+        <IconInboxTray size={16} />
         {inboxTasks.length > 0 && (
-          <span className="text-[10px] text-purple-300">{inboxTasks.length}</span>
+          <span className="text-2xs text-nc-muted">{inboxTasks.length}</span>
         )}
       </button>
 
@@ -118,13 +121,13 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
             initial={{ x: 260, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 260, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 360, damping: 32 }}
-            className="absolute right-0 top-24 bottom-24 z-40 w-60 rounded-l-xl bg-[#1a1d24]/95 backdrop-blur-md border border-r-0 border-white/10 shadow-2xl flex flex-col"
+            transition={chromeSpring}
+            className="absolute right-0 top-24 bottom-24 z-40 w-60 rounded-l-nc-lg bg-nc-raised/95 backdrop-blur-md border border-r-0 border-nc-line shadow-nc-lg flex flex-col"
           >
-            <div className="p-3 border-b border-white/10">
+            <div className="p-3 border-b border-nc-line-faint">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-gray-300">{t("c.inbox.title")}</span>
-                <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-200 text-sm">×</button>
+                <span className="text-xs font-semibold text-nc-soft">{t("c.inbox.title")}</span>
+                <button onClick={() => setOpen(false)} aria-label={t("c.inbox.close")} title={t("c.inbox.close")} className="rounded-nc-sm p-0.5 text-nc-faint hover:text-nc-text"><IconClose size={16} /></button>
               </div>
               <input
                 ref={inputRef}
@@ -136,14 +139,14 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
                   if (e.key === "Escape") setOpen(false);
                 }}
                 placeholder={t("c.inbox.placeholder")}
-                className="w-full px-2.5 py-1.5 rounded-lg bg-[#0f0f13]/60 border border-white/10 focus:border-purple-500 text-xs outline-none transition-colors"
+                className="w-full px-2.5 py-1.5 rounded-nc-md bg-nc-well/60 border border-nc-line-faint text-xs transition-colors"
               />
               {parsedTokens.length > 0 && (
                 <div className="flex gap-1 flex-wrap mt-1.5">
                   {parsedTokens.map((t, i) => (
                     <span
                       key={i}
-                      className={`px-1.5 py-0.5 rounded-full border text-[9px] ${CHIP_COLORS[t.kind] ?? ""}`}
+                      className={`px-1.5 py-0.5 rounded-full border text-2xs ${CHIP_COLORS[t.kind] ?? ""}`}
                     >
                       {t.text}
                     </span>
@@ -160,7 +163,7 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
                     setOpen(false);
                   }}
                   onMouseEnter={() => useStore.getState().flashTask(similar.id)}
-                  className="mt-1.5 w-full text-left text-[10px] text-amber-300/90 hover:text-amber-200 transition-colors"
+                  className="mt-1.5 w-full text-left text-2xs text-nc-warning/90 hover:text-nc-warning transition-colors"
                   title={t("c.inbox.similarTooltip")}
                 >
                   ≈ {t("c.inbox.looksLike")} {similar.title}
@@ -171,7 +174,7 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
 
             <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
               {inboxTasks.length === 0 && (
-                <div className="text-[10px] text-gray-600 px-1 py-2">
+                <div className="text-2xs text-nc-faint px-1 py-2">
                   {t("c.inbox.empty")}
                 </div>
               )}
@@ -182,14 +185,14 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
                   onPointerMove={moveDrag}
                   onPointerUp={endDrag}
                   onPointerCancel={endDrag}
-                  className="group flex items-center gap-2 rounded-lg bg-[#0f0f13]/70 border border-white/10 px-2.5 py-2 cursor-grab active:cursor-grabbing hover:border-white/25 transition-colors"
+                  className="group flex items-center gap-2 rounded-nc-md bg-nc-well/70 border border-nc-line-faint px-2.5 py-2 cursor-grab active:cursor-grabbing hover:border-nc-line-strong transition-colors"
                   title={t("c.inbox.dragTooltip")}
                 >
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: task.color }} />
-                  <span className="text-xs text-gray-300 truncate flex-1">{task.title}</span>
+                  <span className="text-xs text-nc-soft truncate flex-1">{task.title}</span>
                   <button
                     onClick={() => useStore.getState().deleteTask(task.id).catch((err) => console.error(err))}
-                    className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 text-xs transition-all"
+                    className="opacity-0 group-hover:opacity-100 text-nc-faint hover:text-nc-danger text-xs transition-all"
                   >
                     ×
                   </button>
@@ -203,7 +206,7 @@ export function InboxDock({ canvasId, viewportRef }: InboxDockProps) {
       {/* Drag ghost following the pointer */}
       {ghost && (
         <div
-          className="fixed z-[300] pointer-events-none px-3 py-2 rounded-lg bg-[#1a1d24] border border-purple-400/50 shadow-2xl text-xs text-gray-200 max-w-48 truncate"
+          className="fixed z-[300] pointer-events-none px-3 py-2 rounded-nc-md bg-nc-raised border border-nc-select/50 shadow-nc-lg text-xs text-nc-text max-w-48 truncate"
           style={{ left: ghost.x + 8, top: ghost.y + 8 }}
         >
           {ghost.title}

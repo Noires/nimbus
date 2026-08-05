@@ -38,7 +38,7 @@ export function EdgeLayer({ tasks }: { tasks: Task[] }) {
     >
       <defs>
         <marker id="dep-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(148, 163, 184, 0.7)" />
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--nc-text-faint)" />
         </marker>
       </defs>
 
@@ -47,7 +47,7 @@ export function EdgeLayer({ tasks }: { tasks: Task[] }) {
           key={d.id}
           d={path(blocker, blocked)}
           fill="none"
-          stroke={blocker.done ? "rgba(52, 211, 153, 0.45)" : "rgba(148, 163, 184, 0.5)"}
+          stroke={blocker.done ? "color-mix(in srgb, var(--nc-success) 45%, transparent)" : "color-mix(in srgb, var(--nc-text-faint) 55%, transparent)"}
           strokeWidth="2"
           strokeDasharray={blocker.done ? "4 6" : undefined}
           markerEnd="url(#dep-arrow)"
@@ -70,7 +70,7 @@ export function EdgeLayer({ tasks }: { tasks: Task[] }) {
         <path
           d={`M ${linkSource.x + CARD_W} ${linkSource.y + CARD_H / 2} L ${linking.x} ${linking.y}`}
           fill="none"
-          stroke="rgba(34, 211, 238, 0.8)"
+          stroke="var(--nc-accent)"
           strokeWidth="2"
           strokeDasharray="6 4"
         />

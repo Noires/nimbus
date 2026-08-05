@@ -36,10 +36,10 @@ export function TimeAxis() {
 
   const washColor = (ratio: number) =>
     ratio > 1
-      ? "rgba(239, 68, 68, 0.13)"
+      ? "color-mix(in srgb, var(--nc-danger) 13%, transparent)"
       : ratio > 0.7
-        ? "rgba(245, 158, 11, 0.09)"
-        : "rgba(34, 211, 238, 0.05)";
+        ? "color-mix(in srgb, var(--nc-warning) 9%, transparent)"
+        : "color-mix(in srgb, var(--nc-accent) 5%, transparent)";
 
   return (
     <div className="pointer-events-none">
@@ -57,8 +57,8 @@ export function TimeAxis() {
             }}
           />
           <div
-            className={`absolute text-[10px] px-1 py-0.5 rounded whitespace-nowrap -translate-x-1/2 ${
-              ratio > 1 ? "text-red-300 bg-red-950/70" : ratio > 0.7 ? "text-amber-300 bg-[#0f0f13]/70" : "text-cyan-300/70 bg-[#0f0f13]/60"
+            className={`absolute text-2xs px-1 py-0.5 rounded-nc-sm whitespace-nowrap -translate-x-1/2 ${
+              ratio > 1 ? "text-nc-danger bg-nc-danger/70" : ratio > 0.7 ? "text-nc-warning bg-nc-well/70" : "text-nc-accent/70 bg-nc-well/60"
             }`}
             style={{ left: x, top: labelY + 26 / zoom }}
           >
@@ -83,12 +83,12 @@ export function TimeAxis() {
                 top: -4000,
                 height: 12000,
                 width: isToday ? 2 : 1,
-                background: isToday ? "rgba(34, 211, 238, 0.5)" : "rgba(255, 255, 255, 0.08)",
+                background: isToday ? "color-mix(in srgb, var(--nc-accent) 50%, transparent)" : "var(--nc-fill-faint)",
               }}
             />
             <div
-              className={`absolute text-[11px] whitespace-nowrap px-1.5 py-0.5 rounded ${
-                isToday ? "text-cyan-300 bg-cyan-950/60" : "text-gray-500 bg-[#0f0f13]/60"
+              className={`absolute text-2xs whitespace-nowrap px-1.5 py-0.5 rounded-nc-sm ${
+                isToday ? "text-nc-accent bg-nc-accent-surface/60" : "text-nc-faint bg-nc-well/60"
               }`}
               style={{ left: x + 6, top: labelY }}
             >
@@ -99,7 +99,7 @@ export function TimeAxis() {
       })}
       {/* Someday gutter */}
       <div
-        className="absolute text-[11px] text-gray-500 bg-[#0f0f13]/60 px-1.5 py-0.5 rounded"
+        className="absolute text-2xs text-nc-faint bg-nc-well/60 px-1.5 py-0.5 rounded-nc-sm"
         style={{ left: originX - TIME_GUTTER_X, top: labelY }}
       >
         {t("c.timeaxis.someday")}
@@ -111,8 +111,8 @@ export function TimeAxis() {
           top: -4000,
           height: 12000,
           width: 1,
-          background: "rgba(255, 255, 255, 0.05)",
-          borderLeft: "1px dashed rgba(255,255,255,0.12)",
+          background: "var(--nc-fill-faint)",
+          borderLeft: "1px dashed var(--nc-border-faint)",
         }}
       />
     </div>

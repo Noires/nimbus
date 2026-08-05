@@ -1,21 +1,151 @@
 @import "tailwindcss";
 
-/* Night Cartography: semantic roles keep the spatial field calm and make
-   destination surfaces share the same luminance, focus, and motion grammar. */
+/* ---------------------------------------------------------------------------
+   Night Cartography — the complete token set.
+
+   Nimbus is a spatial task whiteboard: a deep, calm, low-luminance field where
+   task cards and cluster bubbles are the only things that draw the eye. Chrome
+   recedes; content sits forward. Every color, elevation, and radius in the app
+   derives from these tokens. Tailwind stays for layout and spacing only.
+
+   Contrast notes (WCAG AA, checked against the darkest surface each role
+   appears on): --nc-text-faint is the 4.5:1 floor on --nc-raised — never dim
+   text below it. --nc-danger/-warning/-success and --nc-accent all clear
+   4.5:1 on --nc-raised. --nc-accent-strong clears 7:1 on --nc-accent-surface.
+--------------------------------------------------------------------------- */
 :root {
-  --nc-canvas: #09111d;
-  --nc-surface: #111c2b;
-  --nc-raised: #18273a;
+  /* Surface ramp — one luminance ladder, from the spatial field up to
+     floating chrome. */
+  --nc-canvas: #09111d;                    /* the infinite field */
+  --nc-well: #0b1626;                      /* sunken: inputs, sample panes */
+  --nc-surface: #111c2b;                   /* destination panes, docks, cards */
+  --nc-raised: #18273a;                    /* menus, popovers, rows */
+  --nc-overlay: rgb(17 28 43 / 96%);       /* near-solid chrome over canvas — keeps a hint of glass without letting text ghost through */
+  --nc-scrim: rgb(3 10 20 / 60%);          /* modal / drawer backdrop */
+  --nc-scrim-light: rgb(3 10 20 / 45%);    /* destination sheet over the live canvas */
+
+  /* Text ramp — primary / long-form secondary / labels+meta / de-emphasized */
   --nc-text: #f1f5f9;
+  --nc-text-soft: #c7d4e2;
   --nc-text-muted: #9aabc0;
+  --nc-text-faint: #8494a9;                /* AA floor on --nc-raised */
+
+  /* Accent (cyan) — the interactive hue. Muted = fills/washes, border =
+     outlines, surface = solid buttons, strong = text on accent surfaces. */
   --nc-accent: #63d7e8;
+  --nc-accent-strong: #b9eff8;
+  --nc-accent-muted: rgb(99 215 232 / 14%);
+  --nc-accent-border: rgb(99 215 232 / 45%);
+  --nc-accent-surface: #114a5e;
+
+  /* Selection (violet) — multi-select rings and the primary create action. */
+  --nc-select: #a78bfa;
+  --nc-select-muted: rgb(167 139 250 / 14%);
+  --nc-select-border: rgb(167 139 250 / 55%);
+  --nc-select-surface: #6d31d4;
+
+  /* Semantic status. Reserved for real states: danger = overdue/destructive,
+     warning = time pressure only (due today, timer overrun), success =
+     completion. Priorities: only HIGH is colored (danger) — medium/low render
+     neutral so the default state never competes with genuine warnings. */
+  --nc-danger: #f87171;
+  --nc-danger-muted: rgb(248 113 113 / 12%);
+  --nc-danger-border: rgb(248 113 113 / 45%);
+  --nc-warning: #fbbf24;
+  --nc-warning-muted: rgb(251 191 36 / 12%);
+  --nc-warning-border: rgb(251 191 36 / 45%);
+  --nc-success: #4ade80;
+  --nc-success-muted: rgb(74 222 128 / 12%);
+  --nc-success-border: rgb(74 222 128 / 45%);
+
+  /* Focus — reserved for :focus-visible rings only, never decoration. */
   --nc-focus: #f4c95d;
+
+  /* Borders — faint = hairline dividers, default = component edges,
+     strong = hover/active emphasis. */
+  --nc-border-faint: rgb(162 190 220 / 12%);
   --nc-border: rgb(162 190 220 / 22%);
-  --nc-radius: 10px;
+  --nc-border-strong: rgb(162 190 220 / 38%);
+
+  /* Neutral interactive fills (hover washes, quiet chips). */
+  --nc-fill-faint: rgb(176 203 231 / 6%);
+  --nc-fill: rgb(176 203 231 / 10%);
+
+  /* Elevation — sm = resting, md = floating chrome, lg = modal.
+     --nc-shadow-left is the drawer/rail edge. */
+  --nc-shadow-sm: 0 2px 10px rgb(2 8 18 / 35%);
+  --nc-shadow-md: 0 12px 28px rgb(2 8 18 / 40%);
+  --nc-shadow-lg: 0 24px 60px rgb(2 8 18 / 55%);
+  --nc-shadow-left: -12px 0 28px rgb(2 8 18 / 45%);
+  --nc-blur: 12px;
+
+  /* Radius — sm = small controls, md = buttons/inputs, lg = cards/panels,
+     xl = modals. */
+  --nc-radius-sm: 6px;
+  --nc-radius-md: 8px;
+  --nc-radius-lg: 12px;
+  --nc-radius-xl: 16px;
+  --nc-radius-full: 999px;
+
+  /* Type scale — 2xs = micro labels/eyebrows, xs = labels/meta, sm = body,
+     md = panel titles, lg = modal headings, display = destination titles. */
+  --nc-font: Nunito, Quicksand, Poppins, system-ui, sans-serif;
+  --nc-type-2xs: 0.65rem;
+  --nc-type-xs: 0.75rem;
+  --nc-type-sm: 0.875rem;
+  --nc-type-md: 1rem;
+  --nc-type-lg: 1.25rem;
+  --nc-type-display: clamp(1.1rem, 2vw, 1.4rem);
+  --nc-tracking-label: 0.1em;
+
+  /* Spacing */
   --nc-space-1: 4px; --nc-space-2: 8px; --nc-space-3: 12px; --nc-space-4: 16px; --nc-space-6: 24px; --nc-space-8: 32px;
 }
 
+/* Expose the tokens to Tailwind so components write `bg-nc-raised`,
+   `text-nc-muted`, `border-nc-line`, `rounded-nc-lg`, `shadow-nc-md` instead
+   of ad-hoc palette utilities. Tailwind stays responsible for layout/spacing;
+   every color, radius, and shadow routes through the --nc-* set above. */
+@theme inline {
+  --color-nc-canvas: var(--nc-canvas);
+  --color-nc-well: var(--nc-well);
+  --color-nc-surface: var(--nc-surface);
+  --color-nc-raised: var(--nc-raised);
+  --color-nc-scrim: var(--nc-scrim);
+  --color-nc-scrim-light: var(--nc-scrim-light);
+  --color-nc-text: var(--nc-text);
+  --color-nc-soft: var(--nc-text-soft);
+  --color-nc-muted: var(--nc-text-muted);
+  --color-nc-faint: var(--nc-text-faint);
+  --color-nc-accent: var(--nc-accent);
+  --color-nc-accent-strong: var(--nc-accent-strong);
+  --color-nc-accent-surface: var(--nc-accent-surface);
+  --color-nc-select: var(--nc-select);
+  --color-nc-select-surface: var(--nc-select-surface);
+  --color-nc-danger: var(--nc-danger);
+  --color-nc-warning: var(--nc-warning);
+  --color-nc-success: var(--nc-success);
+  --color-nc-focus: var(--nc-focus);
+  --color-nc-line-faint: var(--nc-border-faint);
+  --color-nc-line: var(--nc-border);
+  --color-nc-line-strong: var(--nc-border-strong);
+  --color-nc-fill-faint: var(--nc-fill-faint);
+  --color-nc-fill: var(--nc-fill);
+  --radius-nc-sm: var(--nc-radius-sm);
+  --radius-nc-md: var(--nc-radius-md);
+  --radius-nc-lg: var(--nc-radius-lg);
+  --radius-nc-xl: var(--nc-radius-xl);
+  --shadow-nc-sm: var(--nc-shadow-sm);
+  --shadow-nc-md: var(--nc-shadow-md);
+  --shadow-nc-lg: var(--nc-shadow-lg);
+  --text-2xs: 0.65rem;
+  --text-2xs--line-height: 0.9rem;
+}
+
 :focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 3px; }
+/* Headings receive programmatic focus for screen-reader orientation when a
+   destination opens; they are not interactive, so no visible ring. */
+h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus, h3[tabindex="-1"]:focus { outline: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
 * { box-sizing: border-box; }
@@ -25,12 +155,12 @@ html, body, #root {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #0f0f13;
-  font-family: Nunito, Quicksand, Poppins, system-ui, sans-serif;
-  color: #e0e0e0;
+  background: var(--nc-canvas);
+  font-family: var(--nc-font);
+  color: var(--nc-text);
 }
 
-::selection { background: rgba(0,229,255,0.3); }
+::selection { background: color-mix(in srgb, var(--nc-accent) 30%, transparent); }
 
 /* Neon glow pulse for cluster bubbles (plan §9) — GPU-friendly, opacity only */
 @keyframes glow {
@@ -40,39 +170,40 @@ html, body, #root {
 .bubble-pulse { animation: glow 2s ease-in-out infinite; }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-thumb { background: rgba(107,127,163,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--nc-border); border-radius: 3px; }
 
 /* Toolbar overhaul: the six primary functions never collapse into More.
    Compact desktop intentionally uses two rows while preserving Canvas space. */
-.canvas-toolbar { display: flex; align-items: center; gap: .5rem; max-width: calc(100% - 2rem); padding: .5rem .75rem; border: 1px solid rgb(255 255 255 / 12%); border-radius: .75rem; background: rgb(26 29 36 / 94%); box-shadow: 0 12px 28px rgb(0 0 0 / 35%); backdrop-filter: blur(10px); }
+.canvas-toolbar { display: flex; align-items: center; gap: .5rem; max-width: calc(100% - 2rem); padding: .5rem .75rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-lg); background: var(--nc-overlay); box-shadow: var(--nc-shadow-md); backdrop-filter: blur(var(--nc-blur)); }
 .canvas-toolbar__primary, .canvas-toolbar__utilities { display: flex; align-items: center; gap: .4rem; min-width: 0; }
 .canvas-toolbar__utilities { margin-left: auto; }
-.canvas-toolbar__primary-action, .canvas-toolbar__utility-button, .canvas-toolbar__search input { min-height: 2.75rem; border: 1px solid rgb(255 255 255 / 15%); border-radius: .5rem; background: rgb(15 15 19 / 65%); color: #d1d5db; font-size: .75rem; line-height: 1.1; }
+.canvas-toolbar__primary-action, .canvas-toolbar__utility-button, .canvas-toolbar__search input { min-height: 2.75rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-md); background: color-mix(in srgb, var(--nc-canvas) 70%, transparent); color: var(--nc-text-soft); font-size: var(--nc-type-xs); line-height: 1.1; }
 .canvas-toolbar__primary-action, .canvas-toolbar__utility-button { padding: .5rem .7rem; white-space: nowrap; }
-.canvas-toolbar__new-task { background: rgb(126 58 242 / 78%); color: white; font-weight: 700; }
+.canvas-toolbar__new-task { background: var(--nc-select-surface); color: var(--nc-text); font-weight: 700; }
 .canvas-toolbar__search input { width: clamp(8.5rem, 13vw, 12rem); padding: .5rem .65rem; }
-.canvas-toolbar__utility-button { min-width: 2.75rem; color: #9ca3af; }
-.canvas-toolbar__menu { position: absolute; top: calc(100% + .35rem); left: 0; z-index: 60; width: max-content; min-width: 13rem; max-width: min(24rem, calc(100vw - 2rem)); max-height: min(70vh, 34rem); overflow-y: auto; padding: .35rem; border: 1px solid rgb(255 255 255 / 15%); border-radius: .7rem; background: #1a1d24; box-shadow: 0 18px 42px rgb(0 0 0 / 48%); }
+.canvas-toolbar__utility-button { min-width: 2.75rem; color: var(--nc-text-muted); }
+.canvas-toolbar__labelled { display: inline-flex; align-items: center; gap: .4rem; }
+.canvas-toolbar__menu { position: absolute; top: calc(100% + .35rem); left: 0; z-index: 60; width: max-content; min-width: 13rem; max-width: min(24rem, calc(100vw - 2rem)); max-height: min(70vh, 34rem); overflow-y: auto; padding: .35rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-lg); background: var(--nc-raised); box-shadow: var(--nc-shadow-lg); }
 .canvas-toolbar__menu--right { right: 0; left: auto; }.canvas-toolbar__menu--more { min-width: 16rem; }
-.canvas-toolbar button:focus-visible, .canvas-toolbar input:focus-visible, .canvas-toolbar [role="menuitemcheckbox"]:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+.canvas-toolbar button:focus-visible, .canvas-toolbar input:focus-visible, .canvas-toolbar [role="menuitemcheckbox"]:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 2px; }
 @media (max-width: 768px) { .canvas-toolbar { display: none; } }
 
 /* Experimental spatial command-center shell. All layout rules stay scoped so
    the default CanvasRouter composition remains byte-for-byte class compatible. */
 .command-center-shell {
   display: grid;
-  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1fr);
+  grid-template-columns: 3.5rem minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #0f0f13;
-  color: #f3f4f6;
-  font-family: Nunito, Quicksand, Poppins, system-ui, sans-serif;
+  background: var(--nc-canvas);
+  color: var(--nc-text);
+  font-family: var(--nc-font);
 }
 
 .command-center-shell--with-rail {
-  grid-template-columns: minmax(13rem, 16rem) minmax(0, 1.75fr) minmax(18rem, 0.75fr);
+  grid-template-columns: 3.5rem minmax(0, 1.75fr) minmax(18rem, 0.75fr);
 }
 
 .command-center-shell__navigation {
@@ -80,24 +211,51 @@ html, body, #root {
   grid-row: 1 / -1;
   min-width: 0;
   overflow-y: auto;
-  border-right: 1px solid rgb(255 255 255 / 10%);
-  background: rgb(26 29 36 / 90%);
-  padding: 1rem;
+  border-right: 1px solid var(--nc-border-faint);
+  background: var(--nc-overlay);
+  padding: .5rem .375rem;
+  /* Deliberately lighter than --nc-blur: this column sits over the canvas;
+     a small kernel keeps pan/zoom repaints cheap. */
   backdrop-filter: blur(4px);
 }
+.navigation-rail { display: flex; flex-direction: column; align-items: center; gap: .375rem; }
+.navigation-rail__button { position: relative; display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border: 1px solid transparent; border-radius: var(--nc-radius-md); background: transparent; color: var(--nc-text-muted); transition: color .15s ease-out, background-color .15s ease-out, border-color .15s ease-out; }
+.navigation-rail__button:hover { background: var(--nc-fill-faint); color: var(--nc-text); }
+.navigation-rail__button--active { color: var(--nc-accent-strong); }
+.navigation-rail__button--capture { border: 1px dashed var(--nc-accent-border); color: var(--nc-accent); }
+.navigation-rail__button--capture:hover { background: var(--nc-accent-muted); color: var(--nc-accent-strong); }
+.navigation-rail__badge { position: absolute; top: -0.2rem; right: -0.2rem; z-index: 1; min-width: 1rem; padding: 0 .2rem; border-radius: var(--nc-radius-full); background: var(--nc-accent-surface); color: var(--nc-accent-strong); font-size: var(--nc-type-2xs); line-height: 1rem; text-align: center; animation: badge-pop .15s ease-out; }
+/* Shared-layout pill gliding behind the active destination icon. */
+.navigation-rail__pill { position: absolute; inset: 0; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-md); background: var(--nc-accent-muted); }
+.navigation-rail__glyph { position: relative; z-index: 1; display: grid; place-items: center; }
 
+/* Entrance motion for the floating workspace rail and small chrome — CSS
+   animations so the global prefers-reduced-motion block neutralizes them. */
+@keyframes rail-slide-in { from { opacity: .3; translate: 1.5rem 0; } }
+@keyframes badge-pop { from { scale: 0; } }
+@keyframes scrim-fade-in { from { opacity: 0; } }
+.navigation-rail__divider { width: 1.5rem; height: 1px; margin: .25rem 0; background: var(--nc-border-faint); }
+
+/* A slim global command row: the canvas tools float over the field instead,
+   so this band only carries canvas-agnostic chrome. */
 .command-center-shell__commands {
   grid-column: 2;
   grid-row: 1;
   position: relative;
   z-index: 50;
+  display: flex;
+  align-items: center;
   min-width: 0;
-  min-height: 10rem;
-  height: clamp(10.5rem, 24vh, 14rem);
-  padding: 1rem 0;
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
-  background: rgb(26 29 36 / 90%);
+  min-height: 3rem;
+  height: auto;
+  padding: .375rem .75rem;
+  border-bottom: 1px solid var(--nc-border-faint);
+  background: var(--nc-overlay);
 }
+.top-bar { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: .4rem; min-width: 0; }
+.top-bar__utilities { display: flex; align-items: center; gap: .4rem; margin-left: auto; }
+.top-bar .canvas-toolbar__primary-action, .top-bar .canvas-toolbar__utility-button, .top-bar .canvas-toolbar__search input { min-height: 2.25rem; }
+.top-bar button:focus-visible, .top-bar input:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 2px; }
 
 .command-center-shell--with-rail .command-center-shell__commands {
   grid-column: 2 / 4;
@@ -107,79 +265,149 @@ html, body, #root {
   grid-column: 2;
   grid-row: 2;
   position: relative;
+  /* Own stacking context: task cards raise their z-index freely while
+     dragging and must never paint over the commands row or the rail. */
+  z-index: 0;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
 
 .command-center-shell__rail {
+  position: relative;
   grid-column: 3;
   grid-row: 2;
   min-width: 0;
   overflow-y: auto;
-  border-left: 1px solid rgb(255 255 255 / 10%);
-  background: rgb(26 29 36 / 90%);
+  border-left: 1px solid var(--nc-border-faint);
+  background: var(--nc-overlay);
 }
 /* A destination is a real workspace, not a widened rail. The universal
    Inspector floats over its edge and can be closed without changing route. */
 .command-center-shell--workspace .command-center-shell__main { grid-column: 2 / 4; }
-.command-center-shell--workspace .command-center-shell__rail { justify-self: end; width: min(24rem, 30vw); height: 100%; z-index: 60; box-shadow: -12px 0 28px rgb(0 0 0 / 35%); }
-.command-center-shell--workspace .command-center-shell__rail-close { display: inline-flex; align-items: center; }
-.command-center-shell__rail-close { display: none; min-height: 2.75rem; margin: .5rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
-.command-center-shell__rail-open, .command-center-shell__rail-backdrop { display: none; }
-.command-center-shell__rail-close:focus-visible, .task-retrieval__input:focus-visible, .task-retrieval__task:focus-visible, .task-retrieval__reveal:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+/* The floating workspace rail sits over live content — fully opaque so card
+   text never ghosts through (the grid-column rails only cover empty field). */
+.command-center-shell--workspace .command-center-shell__rail { justify-self: end; width: min(24rem, 30vw); height: 100%; z-index: 60; background: var(--nc-surface); box-shadow: var(--nc-shadow-left); animation: rail-slide-in .22s ease-out; }
+.command-center-shell--workspace .command-center-shell__rail-close { display: flex; }
+/* Docks into the panel header row as a quiet icon button; stays FIRST in the
+   DOM so the modal-drawer focus contract is untouched. */
+.command-center-shell__rail-close { display: none; position: sticky; top: .55rem; z-index: 2; width: 2.25rem; height: 2.25rem; min-height: 0; margin: .55rem .65rem -2.8rem auto; padding: 0; align-items: center; justify-content: center; border: 1px solid var(--nc-border-faint); border-radius: var(--nc-radius-md); background: var(--nc-surface); color: var(--nc-text-muted); transition: color .15s ease-out, background-color .15s ease-out; }
+.command-center-shell__rail-close:hover { background: var(--nc-fill-faint); color: var(--nc-text); }
+/* The task/workstream inspector shares the utilities view's 16px inset; the
+   directory branch brings its own padding via .command-center-utilities. */
+.command-center-shell__rail [data-selection-context="task"],
+.command-center-shell__rail [data-selection-context="workstream"] { padding: var(--nc-space-3) var(--nc-space-4) var(--nc-space-4); }
+/* The rail opener renders only when the rail is collapsed (wide desktop) or
+   behind the compact drawer toggle — style it like its close counterpart.
+   The backdrop exists only for the compact modal drawer. */
+.command-center-shell__rail-open { display: inline-flex; align-items: center; margin-left: .5rem; min-height: 2.25rem; padding: .5rem .75rem; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-sm); background: var(--nc-accent-surface); color: var(--nc-accent-strong); font-size: var(--nc-type-xs); }
+.command-center-shell__rail-backdrop { display: none; }
+.command-center-shell__rail-close:focus-visible, .task-retrieval__input:focus-visible, .task-retrieval__task:focus-visible, .task-retrieval__reveal:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 2px; }
 
 /* Night Cartography assigns visual roles rather than treating every pane as a
    card: canvas stays deep, destinations are raised zones, and task rows are
    quiet workstream markers with a single accessible focus grammar. */
 .night-cartography { display: flex; height: 100%; min-height: 0; flex-direction: column; overflow: auto; background: var(--nc-canvas); color: var(--nc-text); }
-.night-cartography__header { flex: 0 0 auto; padding: var(--nc-space-6) clamp(var(--nc-space-4), 4vw, var(--nc-space-8)); border-bottom: 1px solid var(--nc-border); background: linear-gradient(120deg, rgb(17 28 43 / 98%), rgb(9 17 29 / 98%)); }
-.night-cartography__eyebrow { margin: 0 0 var(--nc-space-1); color: var(--nc-accent); font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.night-cartography__title { margin: 0; color: var(--nc-text); font-size: clamp(1.1rem, 2vw, 1.4rem); font-weight: 700; letter-spacing: .01em; }
+.night-cartography__header { flex: 0 0 auto; padding: var(--nc-space-6) clamp(var(--nc-space-4), 4vw, var(--nc-space-8)); border-bottom: 1px solid var(--nc-border); background: linear-gradient(120deg, var(--nc-surface), var(--nc-canvas)); }
+.night-cartography__title { margin: 0; color: var(--nc-text); font-size: var(--nc-type-display); font-weight: 700; letter-spacing: .01em; }
 .night-cartography__detail { margin: var(--nc-space-2) 0 0; color: var(--nc-text-muted); }
 /* Legacy muted utility copy becomes readable when it inherits a Night
    Cartography surface or the exposed Inspector rail. */
-.night-cartography .text-gray-500, .command-center-shell__rail .text-gray-500 { color: #aebdce; }
+.night-cartography .text-gray-500, .command-center-shell__rail .text-gray-500 { color: var(--nc-text-muted); }
 .night-cartography__body { flex: 1 1 auto; min-height: 0; padding: clamp(var(--nc-space-4), 3vw, var(--nc-space-8)); }
 .night-cartography--canvas { overflow: hidden; }
 .night-cartography--canvas .night-cartography__body { position: relative; padding: 0; overflow: hidden; }
-.night-cartography--inbox .night-cartography__body, .night-cartography--today .night-cartography__body, .night-cartography--review .night-cartography__body, .night-cartography--operations .night-cartography__body, .night-cartography--ledger .night-cartography__body { max-width: 92rem; width: 100%; margin: 0 auto; }
+/* Reading measure: list destinations stay a comfortable column; the two
+   table destinations keep the wide measure. */
+.night-cartography--today .night-cartography__body, .night-cartography--review .night-cartography__body { max-width: 64rem; width: 100%; margin: 0 auto; }
+.night-cartography--inbox .night-cartography__body, .night-cartography--operations .night-cartography__body, .night-cartography--ledger .night-cartography__body { max-width: 92rem; width: 100%; margin: 0 auto; }
 .night-cartography__task-row { border-color: var(--nc-border); background-color: color-mix(in srgb, var(--nc-raised) 58%, transparent); }
-.command-center-utilities { display: grid; gap: var(--nc-space-4); padding: var(--nc-space-4); }
-.command-center-utilities > h2 { margin: 0; color: var(--nc-text); font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; }
+/* Destination sheets: routed workspaces floating over the always-alive
+   canvas. Not modal — the field below keeps rendering; scrim click and the
+   close button navigate back to the canvas route. */
+.destination-sheet { position: absolute; inset: 0; z-index: 70; display: grid; }
+.destination-sheet__scrim { position: absolute; inset: 0; border: 0; background: var(--nc-scrim-light); backdrop-filter: blur(2px); }
+.destination-sheet__panel { position: relative; display: flex; flex-direction: column; width: min(92rem, calc(100% - 4rem)); min-height: 0; margin: clamp(.75rem, 2vh, 1.5rem) auto; overflow: hidden; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-lg); background: var(--nc-surface); box-shadow: var(--nc-shadow-lg); }
+.destination-sheet--today .destination-sheet__panel, .destination-sheet--review .destination-sheet__panel { width: min(64rem, calc(100% - 4rem)); }
+.destination-sheet__panel .night-cartography { flex: 1 1 auto; min-height: 0; background: transparent; }
+.destination-sheet__close { position: absolute; display: inline-flex; align-items: center; gap: .4rem; top: .9rem; right: clamp(1rem, 3vw, 2rem); z-index: 1; min-height: 2.25rem; padding: .35rem .75rem; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-sm); background: var(--nc-accent-surface); color: var(--nc-accent-strong); font-size: var(--nc-type-xs); }
+
+/* The right panel reads as one instrument: a slim header row (the shell's
+   close button docks into its top-right corner), then quiet sections divided
+   by hairlines instead of prose walls. */
+.command-center-utilities { display: flex; flex-direction: column; padding: 0; }
+.command-center-utilities > * { padding: var(--nc-space-4); border-bottom: 1px solid var(--nc-border-faint); }
+.command-center-utilities > :last-child { border-bottom: 0; }
+.command-center-utilities > h2 { margin: 0; padding: 1.1rem 3rem 1.1rem var(--nc-space-4); color: var(--nc-text-muted); font-size: var(--nc-type-2xs); font-weight: 600; letter-spacing: var(--nc-tracking-label); text-transform: uppercase; }
+
+/* Panel section eyebrow — one label treatment for every rail section. */
+.rail-section__label { display: block; margin: 0 0 var(--nc-space-2); color: var(--nc-text-muted); font-size: var(--nc-type-2xs); font-weight: 600; letter-spacing: var(--nc-tracking-label); text-transform: uppercase; }
+
+/* Segmented control (card density et al.). */
+.nc-segmented { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--nc-border-faint); border-radius: var(--nc-radius-md); background: var(--nc-well); }
+.nc-segmented button { flex: 1 1 0; min-width: 0; padding: .4rem .5rem; border: 0; border-radius: calc(var(--nc-radius-md) - 2px); background: transparent; color: var(--nc-text-muted); font-size: var(--nc-type-xs); white-space: nowrap; transition: color .15s ease-out, background-color .15s ease-out; }
+.nc-segmented button:hover { color: var(--nc-text); }
+.nc-segmented button[aria-pressed="true"] { background: var(--nc-raised); color: var(--nc-text); box-shadow: var(--nc-shadow-sm); }
+
+/* Task retrieval (rail utilities + mobile More): standard input treatment,
+   full rail width, row results with a quiet reveal action. */
+.task-retrieval { display: grid; gap: var(--nc-space-2); min-width: 0; }
+.task-retrieval__input { width: 100%; min-height: 2.5rem; padding: .5rem .65rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-md); background: color-mix(in srgb, var(--nc-canvas) 70%, transparent); color: var(--nc-text); font-size: var(--nc-type-xs); }
+.task-retrieval__input::placeholder { color: var(--nc-text-muted); }
+.task-retrieval__results { display: grid; gap: var(--nc-space-1); margin: 0; padding: 0; list-style: none; }
+.task-retrieval__result { display: flex; align-items: center; gap: var(--nc-space-2); min-width: 0; }
+.task-retrieval__task { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 2.25rem; padding: .35rem .5rem; border: 1px solid var(--nc-border-faint); border-radius: var(--nc-radius-md); background: var(--nc-fill-faint); color: var(--nc-text-soft); font-size: var(--nc-type-xs); text-align: left; transition: background-color .15s ease-out, color .15s ease-out; }
+.task-retrieval__task:hover { background: var(--nc-fill); color: var(--nc-text); }
+.task-retrieval__reveal { flex: 0 0 auto; min-height: 2.25rem; padding: .35rem .5rem; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-md); background: transparent; color: var(--nc-accent); font-size: var(--nc-type-2xs); white-space: nowrap; }
+.task-retrieval__empty { color: var(--nc-text-muted); font-size: var(--nc-type-xs); }
+
+/* Focus ring would be clipped by the palette's rounded overflow-hidden panel —
+   draw it inside the input instead so keyboard users still get the full ring. */
+.command-palette__input:focus-visible { outline-offset: -3px; }
 
 .command-center-state {
   display: flex; align-items: flex-start; gap: 1rem;
   width: min(38rem, calc(100vw - 2rem)); margin: min(18vh, 10rem) auto; padding: 1.25rem;
-  border: 1px solid rgb(103 232 249 / 35%); border-radius: .85rem; background: #161b25;
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-lg); background: var(--nc-surface);
+  box-shadow: var(--nc-shadow-md);
 }
-.command-center-state--error { border-color: rgb(252 165 165 / 60%); }
-.command-center-state__icon { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border-radius: 999px; background: rgb(103 232 249 / 15%); color: #a5f3fc; font-weight: 800; }
-.command-center-state--error .command-center-state__icon { background: rgb(252 165 165 / 15%); color: #fecaca; }
-.command-center-state__title { margin: 0; font-size: 1rem; color: #f8fafc; }
-.command-center-state__detail { margin: .4rem 0 0; color: #cbd5e1; line-height: 1.5; }
+.command-center-state--error { border-color: var(--nc-danger-border); }
+.command-center-state__icon { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border-radius: var(--nc-radius-full); background: var(--nc-accent-muted); color: var(--nc-accent-strong); font-weight: 800; }
+.command-center-state--error .command-center-state__icon { background: var(--nc-danger-muted); color: var(--nc-danger); }
+.command-center-state__title { margin: 0; font-size: var(--nc-type-md); color: var(--nc-text); }
+.command-center-state__detail { margin: .4rem 0 0; color: var(--nc-text-soft); line-height: 1.5; }
 .command-center-state__action { margin-top: .8rem; }
-.command-center-state__action button { min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
-.command-center-state__action button:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+.command-center-state__action button { min-height: 2.75rem; padding: .5rem .75rem; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-sm); background: var(--nc-accent-surface); color: var(--nc-accent-strong); }
+.command-center-state__action button:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 2px; }
 
 /* Compact desktop keeps the Canvas usable: contextual information becomes an
    on-demand overlay rather than a third permanently narrow column. */
 @media (min-width: 769px) and (max-width: 1100px) {
-  .command-center-shell--with-rail { grid-template-columns: minmax(12rem, 14rem) minmax(0, 1fr); }
+  .command-center-shell--with-rail { grid-template-columns: 3.5rem minmax(0, 1fr); }
   .command-center-shell--with-rail .command-center-shell__commands { grid-column: 2; }
-  .command-center-shell__rail-open { display: inline-flex; position: absolute; right: 1rem; bottom: .75rem; min-height: 2.75rem; align-items: center; padding: .5rem .75rem; border: 1px solid rgb(103 232 249 / 60%); border-radius: .4rem; background: #164e63; color: #ecfeff; }
-  .command-center-shell__rail-backdrop { display: block; position: fixed; inset: 0; z-index: 59; border: 0; background: rgb(0 0 0 / 45%); }
-  .command-center-shell__rail[role="dialog"] { position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: min(22rem, 88vw); box-shadow: -12px 0 28px rgb(0 0 0 / 35%); }
-  .command-center-shell__rail-close { display: inline-flex; align-items: center; }
+  .command-center-shell__rail-backdrop { display: block; position: fixed; inset: 0; z-index: 59; border: 0; background: var(--nc-scrim); animation: scrim-fade-in .15s ease-out; }
+  .command-center-shell__rail[role="dialog"] { position: fixed; top: 0; right: 0; bottom: 0; z-index: 60; width: min(22rem, 88vw); box-shadow: var(--nc-shadow-left); animation: rail-slide-in .22s ease-out; }
+  .command-center-shell__rail-close { display: flex; }
 }
 
-@media (min-width: 769px) and (max-width: 1100px) {
-  .canvas-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: min(100% - 1.5rem, 48rem); }
-  .canvas-toolbar__primary { display: grid; grid-template-columns: auto minmax(8.5rem, 1fr) auto; grid-template-areas: "new search undo" "lens visibility view"; }
-  .canvas-toolbar__primary > :nth-child(1) { grid-area: new; }.canvas-toolbar__primary > :nth-child(2) { grid-area: search; }.canvas-toolbar__primary > :nth-child(3) { grid-area: lens; }.canvas-toolbar__primary > :nth-child(4) { grid-area: visibility; }.canvas-toolbar__primary > :nth-child(5) { grid-area: undo; }.canvas-toolbar__primary > :nth-child(6) { grid-area: view; }
-  .canvas-toolbar__search input { width: 100%; }.canvas-toolbar__utilities { align-self: start; margin-left: 0; }
+/* Wide desktop: the workspace rail floats over the content edge — destination
+   sheets center themselves in the remaining space so their content (and the
+   close button) never sits underneath the rail. The canvas itself stays
+   full-bleed (the rail may overlap the field). */
+@media (min-width: 1101px) {
+  .command-center-shell--workspace:has(> .command-center-shell__rail) .destination-sheet {
+    padding-right: min(24rem, 30vw);
+  }
+  /* Keep the tutorial offer clear of the floating rail. */
+  body:has(.command-center-shell--workspace > .command-center-shell__rail) .command-center-tutorial-offer {
+    right: calc(min(24rem, 30vw) + 1.5rem);
+  }
 }
+
+/* The floating canvas toolbar wraps its five triggers on narrow fields
+   instead of switching to a bespoke grid. */
+.canvas-toolbar { flex-wrap: wrap; justify-content: center; max-width: min(100% - 1.5rem, 52rem); }
+.canvas-toolbar__primary { flex-wrap: wrap; justify-content: center; }
 
 .command-center-tutorial-offer {
   position: fixed;
@@ -188,38 +416,39 @@ html, body, #root {
   z-index: 130;
   max-width: 23rem;
   padding: 1rem;
-  border: 1px solid rgb(103 232 249 / 40%);
-  border-radius: .75rem;
-  background: #161b25;
-  box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
+  border: 1px solid var(--nc-accent-border);
+  border-radius: var(--nc-radius-lg);
+  background: var(--nc-surface);
+  box-shadow: var(--nc-shadow-lg);
   pointer-events: none;
 }
 .command-center-tutorial-offer button { pointer-events: auto; }
-.command-center-tutorial-offer p { margin: .4rem 0 .8rem; color: #cbd5e1; font-size: .875rem; }
-.command-center-tutorial-offer button, .command-center-tutorial__actions button, .command-center-tutorial__header button, .command-center-tutorial__sample > button {
-  min-height: 2.75rem; padding: .5rem .75rem; margin: .125rem; border: 1px solid rgb(255 255 255 / 20%); border-radius: .4rem; color: #f8fafc; background: transparent;
-}
-.command-center-tutorial__primary { background: #0e7490 !important; border-color: #67e8f9 !important; }
-.command-center-tutorial-backdrop { position: fixed; inset: 0; z-index: 150; display: grid; place-items: center; padding: 1rem; background: rgb(0 0 0 / 65%); }
-.command-center-tutorial { width: min(42rem, 100%); max-height: min(44rem, 100%); overflow: auto; padding: 1.25rem; border: 1px solid rgb(103 232 249 / 45%); border-radius: .9rem; background: #121722; color: #f8fafc; box-shadow: 0 24px 60px rgb(0 0 0 / 55%); }
-.command-center-tutorial__header, .command-center-tutorial__actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.command-center-tutorial__utilities { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .25rem; }
-.command-center-tutorial__header h2 { margin: 0; font-size: 1.25rem; }
-.command-center-tutorial__eyebrow { margin: 0 0 .25rem; color: #67e8f9; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
-.command-center-tutorial__sample { position: relative; min-height: 8rem; margin: 1rem 0; padding: 3rem 1rem 1rem; border: 1px dashed rgb(103 232 249 / 60%); border-radius: .6rem; background: radial-gradient(circle at 30% 25%, rgb(34 211 238 / 18%), transparent 42%), #0b1019; }
-.command-center-tutorial__sample-badge { position: absolute; top: .75rem; left: .75rem; color: #67e8f9; font-size: .75rem; font-weight: 700; }
-.command-center-tutorial__sample-workflow { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem; }
-.command-center-tutorial__sample-card { display: grid; gap: .3rem; min-height: 4.5rem; padding: .7rem; border: 1px solid rgb(148 163 184 / 35%); border-radius: .45rem; background: #253147; color: #e2e8f0; }
-.command-center-tutorial__sample-card strong { font-size: .8rem; }
-.command-center-tutorial__sample-card span { color: #cbd5e1; font-size: .72rem; }
-.command-center-tutorial__sample-card.is-complete { border-color: rgb(103 232 249 / 75%); background: rgb(8 80 101 / 60%); box-shadow: inset 3px 0 #67e8f9; }
-.command-center-tutorial__sample-caption { margin: .8rem 0 0; color: #f8fafc; font-size: .875rem; font-weight: 650; }
-.command-center-tutorial__privacy { color: #a5f3fc; font-size: .875rem; }
-.command-center-tutorial__actions { flex-wrap: wrap; margin-top: 1rem; font-size: .875rem; }
-.command-center-tutorial button:focus-visible, .command-center-tutorial-offer button:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
 @media (max-width: 1100px) { .command-center-tutorial-offer { display: none; } }
-@media (max-width: 768px) { .command-center-tutorial { padding: 1rem; } }
-@media (prefers-reduced-motion: reduce) { .command-center-tutorial *, .command-center-tutorial-offer * { transition: none !important; animation: none !important; } }
+/* While the tour itself is open, its offer card would only distract. */
+body:has(.guided-tour) .command-center-tutorial-offer { display: none; }
+.command-center-tutorial-offer p { margin: .4rem 0 .8rem; color: var(--nc-text-soft); font-size: var(--nc-type-sm); }
+.command-center-tutorial-offer button {
+  min-height: 2.75rem; padding: .5rem .75rem; margin: .125rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-sm); color: var(--nc-text); background: transparent;
+}
+.command-center-tutorial__primary { background: var(--nc-accent-surface) !important; border-color: var(--nc-accent) !important; }
+/* Guided tour: a full-viewport interceptor (the app stays inert while the
+   tour is open — the read-only promise by construction), a spotlight ring
+   whose huge shadow forms the scrim, and a positioned tooltip card. */
+.guided-tour { position: fixed; inset: 0; z-index: 150; }
+.guided-tour__backdrop { position: fixed; inset: 0; background: var(--nc-scrim); }
+.guided-tour__spotlight { position: fixed; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-lg); box-shadow: 0 0 0 9999px var(--nc-scrim-light); pointer-events: none; }
+.guided-tour__card { position: fixed; top: 50%; left: 50%; translate: -50% -50%; width: min(22rem, calc(100vw - 2rem)); padding: 1rem 1.1rem 0.9rem; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-xl); background: var(--nc-surface); color: var(--nc-text); box-shadow: var(--nc-shadow-lg); }
+.guided-tour__card:not(.guided-tour__card--centered) { translate: none; }
+.guided-tour__eyebrow { margin: 0 0 .25rem; color: var(--nc-accent); font-size: var(--nc-type-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: var(--nc-tracking-label); }
+.guided-tour__card h2 { margin: 0 0 .4rem; font-size: var(--nc-type-md); }
+.guided-tour__card p { margin: 0; color: var(--nc-text-soft); font-size: var(--nc-type-sm); line-height: 1.5; }
+.guided-tour__promise { margin-top: .5rem !important; color: var(--nc-accent-strong) !important; font-size: var(--nc-type-xs) !important; }
+.guided-tour__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .9rem; font-size: var(--nc-type-xs); color: var(--nc-text-muted); }
+.guided-tour__actions > div { display: flex; gap: .35rem; }
+.guided-tour__actions button { min-height: 2.25rem; padding: .4rem .7rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-sm); background: transparent; color: var(--nc-text); font-size: var(--nc-type-xs); transition: background-color .15s ease-out; }
+.guided-tour__actions button:hover { background: var(--nc-fill-faint); }
+.guided-tour button:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .guided-tour *, .command-center-tutorial-offer * { transition: none !important; animation: none !important; } }
 
 
 /* The mobile companion intentionally replaces, rather than compresses, the
@@ -230,8 +459,8 @@ html, body, #root {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #0f0f13;
-  color: #f3f4f6;
+  background: var(--nc-canvas);
+  color: var(--nc-text);
 }
 
 .mobile-command-center__header,
@@ -248,11 +477,11 @@ html, body, #root {
   justify-content: space-between;
   min-height: 3.5rem;
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  border-bottom: 1px solid var(--nc-border-faint);
 }
 
-.mobile-command-center__title { font-size: 1rem; }
-.mobile-command-center__title:focus-visible { outline: 3px solid #facc15; outline-offset: 3px; }
+.mobile-command-center__title { font-size: var(--nc-type-md); }
+.mobile-command-center__title:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 3px; }
 
 .mobile-command-center__close,
 .mobile-command-center__capture,
@@ -267,15 +496,15 @@ html, body, #root {
 .mobile-command-center__nav-button,
 .mobile-inbox-triage button,
 .mobile-inbox-triage select {
-  border: 1px solid rgb(255 255 255 / 15%);
-  border-radius: 0.5rem;
-  background: rgb(255 255 255 / 5%);
+  border: 1px solid var(--nc-border);
+  border-radius: var(--nc-radius-md);
+  background: var(--nc-fill-faint);
   color: inherit;
 }
 
 .mobile-command-center__close { padding: 0 0.75rem; }
 .mobile-command-center__header-actions { display: flex; gap: .5rem; }
-.mobile-command-center__capture { padding: 0 .75rem; border-color: rgb(99 215 232 / 65%); background: rgb(99 215 232 / 12%); color: #d9fbff; }
+.mobile-command-center__capture { padding: 0 .75rem; border-color: var(--nc-accent-border); background: var(--nc-accent-muted); color: var(--nc-accent-strong); }
 
 .mobile-command-center__content {
   min-height: 0;
@@ -287,28 +516,28 @@ html, body, #root {
   gap: 0.375rem;
   overflow-x: auto;
   padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
-  border-top: 1px solid rgb(255 255 255 / 10%);
+  border-top: 1px solid var(--nc-border-faint);
 }
 
 .mobile-command-center__nav-button { flex: 1 0 auto; padding: 0 0.75rem; }
-.mobile-command-center__nav-button[aria-current="page"] { border-color: rgb(34 211 238 / 70%); background: rgb(34 211 238 / 15%); box-shadow: inset 0 -3px #67e8f9; font-weight: 700; }
+.mobile-command-center__nav-button[aria-current="page"] { border-color: var(--nc-accent-border); background: var(--nc-accent-muted); box-shadow: inset 0 -3px var(--nc-accent); font-weight: 700; }
 .mobile-utilities { display: grid; gap: 1rem; width: 100%; }
 .mobile-utilities h2, .mobile-utilities p { margin: 0; }
-.mobile-utilities h2 { color: var(--nc-text); font-size: 1rem; }
-.mobile-utilities p { color: var(--nc-text-muted); font-size: .875rem; line-height: 1.5; }
+.mobile-utilities h2 { color: var(--nc-text); font-size: var(--nc-type-md); }
+.mobile-utilities p { color: var(--nc-text-muted); font-size: var(--nc-type-sm); line-height: 1.5; }
 .mobile-utilities__destinations { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
-.mobile-utilities__destinations button { min-height: 44px; padding: .5rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius); background: var(--nc-raised); color: var(--nc-text); }
-.mobile-command-center__nav-button:focus-visible, .mobile-command-center__close:focus-visible, .mobile-capture__input:focus-visible, .mobile-capture__submit:focus-visible { outline: 3px solid #facc15; outline-offset: 2px; }
+.mobile-utilities__destinations button { min-height: 44px; padding: .5rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-md); background: var(--nc-raised); color: var(--nc-text); }
+.mobile-command-center__nav-button:focus-visible, .mobile-command-center__close:focus-visible, .mobile-capture__input:focus-visible, .mobile-capture__submit:focus-visible { outline: 3px solid var(--nc-focus); outline-offset: 2px; }
 
 .mobile-inbox-triage { width: 100%; }
 .mobile-inbox-triage__list { display: grid; gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
-.mobile-inbox-triage__card { flex-direction: column; gap: 0.75rem; padding: 1rem; border: 1px solid rgb(255 255 255 / 10%); border-radius: 0.75rem; background: rgb(255 255 255 / 4%); }
+.mobile-inbox-triage__card { flex-direction: column; gap: 0.75rem; padding: 1rem; border: 1px solid var(--nc-border-faint); border-radius: var(--nc-radius-lg); background: var(--nc-fill-faint); }
 .mobile-inbox-triage__title { margin: 0; font-size: 0.95rem; }
-.mobile-inbox-triage__metadata { margin: 0.25rem 0 0; color: #9ca3af; font-size: 0.75rem; }
+.mobile-inbox-triage__metadata { margin: 0.25rem 0 0; color: var(--nc-text-muted); font-size: var(--nc-type-xs); }
 .mobile-inbox-triage__controls, .mobile-inbox-triage__actions { gap: 0.5rem; flex-wrap: wrap; }
-.mobile-inbox-triage select, .mobile-inbox-triage button { padding: 0 0.75rem; font-size: 0.75rem; }
-.mobile-inbox-triage__status, .mobile-inbox-triage__error { margin: 0; color: #9ca3af; }
-.mobile-inbox-triage__error { margin-bottom: 0.75rem; color: #fca5a5; }
+.mobile-inbox-triage select, .mobile-inbox-triage button { padding: 0 0.75rem; font-size: var(--nc-type-xs); }
+.mobile-inbox-triage__status, .mobile-inbox-triage__error { margin: 0; color: var(--nc-text-muted); }
+.mobile-inbox-triage__error { margin-bottom: 0.75rem; color: var(--nc-danger); }
 
 .mobile-capture__form { display: grid; gap: 0.75rem; width: 100%; }
 .mobile-capture__input,
@@ -316,11 +545,11 @@ html, body, #root {
   min-width: 44px;
   min-height: 44px;
 }
-.mobile-capture__input { padding: 0 0.75rem; border: 1px solid rgb(255 255 255 / 15%); border-radius: 0.5rem; background: rgb(255 255 255 / 5%); color: inherit; }
-.mobile-capture__submit { padding: 0 0.75rem; border: 1px solid rgb(34 211 238 / 70%); border-radius: 0.5rem; background: #164e63; color: #ecfeff; }
+.mobile-capture__input { padding: 0 0.75rem; border: 1px solid var(--nc-border); border-radius: var(--nc-radius-md); background: var(--nc-fill-faint); color: inherit; }
+.mobile-capture__submit { padding: 0 0.75rem; border: 1px solid var(--nc-accent-border); border-radius: var(--nc-radius-md); background: var(--nc-accent-surface); color: var(--nc-accent-strong); }
 .mobile-capture__submit:disabled { cursor: progress; opacity: .7; }
-.mobile-capture__hint, .mobile-capture__status { margin: 0.5rem 0 0; color: #cbd5e1; font-size: .875rem; line-height: 1.4; }
-.mobile-capture__status { min-height: 1.4em; color: #a5f3fc; }
+.mobile-capture__hint, .mobile-capture__status { margin: 0.5rem 0 0; color: var(--nc-text-soft); font-size: var(--nc-type-sm); line-height: 1.4; }
+.mobile-capture__status { min-height: 1.4em; color: var(--nc-accent-strong); }
 
 /* Operations and search are companion destinations too: retain 44px targets
    without changing the compact desktop rail. */
@@ -340,8 +569,8 @@ html, body, #root {
   z-index: 60;
   min-height: 44px;
   padding: 0 0.75rem;
-  border: 1px solid rgb(34 211 238 / 70%);
-  border-radius: 9999px;
-  background: #164e63;
-  color: #ecfeff;
+  border: 1px solid var(--nc-accent-border);
+  border-radius: var(--nc-radius-full);
+  background: var(--nc-accent-surface);
+  color: var(--nc-accent-strong);
 }

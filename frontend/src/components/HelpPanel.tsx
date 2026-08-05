@@ -1,5 +1,6 @@
+import { dialogSpring, quickFade } from "../utils/motion";
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useT, useLocale } from "../i18n";
 
 // Feature catalog: every capability with a one-line description, grouped.
@@ -38,6 +39,7 @@ export function HelpPanel({
   onStartTutorial?: () => void;
 }) {
   const t = useT();
+  const reducedMotion = useReducedMotion();
   const locale = useLocale((s) => s.locale);
   const setLocale = useLocale((s) => s.setLocale);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -78,38 +80,39 @@ export function HelpPanel({
 
   return (
     <div className="fixed inset-0 z-[140] flex items-center justify-center px-4 py-8">
-      <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={quickFade} className="absolute inset-0 bg-nc-scrim" aria-hidden="true" />
       <motion.div
         ref={dialogRef}
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 360, damping: 30 }}
+        transition={reducedMotion ? quickFade : dialogSpring}
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-panel-title"
         aria-describedby="help-panel-subtitle"
         onKeyDown={handleKeyDown}
-        className="relative w-full max-w-3xl max-h-full rounded-xl bg-[#12141a]/98 backdrop-blur-xl border border-white/15 shadow-2xl flex flex-col"
+        className="relative w-full max-w-3xl max-h-full rounded-nc-xl bg-nc-raised/95 backdrop-blur-xl border border-nc-line shadow-nc-lg flex flex-col"
       >
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-nc-line-faint">
           <div>
-            <h2 id="help-panel-title" className="text-base font-semibold text-gray-100">{t("help.title")}</h2>
-            <div id="help-panel-subtitle" className="text-[11px] text-gray-500">{t("help.subtitle")}</div>
+            <h2 id="help-panel-title" className="text-base font-semibold text-nc-text">{t("help.title")}</h2>
+            <div id="help-panel-subtitle" className="text-2xs text-nc-faint">{t("help.subtitle")}</div>
           </div>
           <div className="flex items-center gap-2">
             {onStartTutorial && (
-              <button onClick={onStartTutorial} className="px-2 py-1 rounded-md text-xs text-cyan-200 border border-cyan-300/30 hover:bg-cyan-300/10 transition-colors">
+              <button onClick={onStartTutorial} className="px-2 py-1 rounded-nc-sm text-xs text-nc-accent-strong border border-nc-accent/30 hover:bg-nc-accent/10 transition-colors">
                 {t("tutorial.help")}
               </button>
             )}
             <button
               onClick={() => setLocale(locale === "de" ? "en" : "de")}
-              className="px-2 py-1 rounded-md text-xs text-gray-300 border border-white/15 hover:bg-white/10 transition-colors"
+              className="px-2 py-1 rounded-nc-sm text-xs text-nc-soft border border-nc-line hover:bg-nc-fill transition-colors"
               title={t("lang.toggle")}
             >
-              {locale === "de" ? "🇩🇪 DE" : "🇬🇧 EN"}
+              {/* Plain text — Windows renders flag emoji as letter pairs ("DE DE"). */}
+              {locale === "de" ? "DE" : "EN"}
             </button>
-            <button ref={closeRef} type="button" onClick={onClose} aria-label={t("help.close")} className="text-gray-500 hover:text-gray-200 text-lg leading-none px-1">
+            <button ref={closeRef} type="button" onClick={onClose} aria-label={t("help.close")} className="text-nc-faint hover:text-nc-text text-lg leading-none px-1">
               ×
             </button>
           </div>
@@ -118,12 +121,12 @@ export function HelpPanel({
         <div className="overflow-y-auto p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
           {GROUPS.map(({ group, features }) => (
             <div key={group}>
-              <div className="text-[10px] uppercase tracking-wider text-cyan-400/80 mb-2">{t(group)}</div>
+              <div className="text-2xs uppercase tracking-wider text-nc-accent/80 mb-2">{t(group)}</div>
               <div className="flex flex-col gap-2.5">
                 {features.map((key) => (
                   <div key={key}>
-                    <div className="text-xs font-medium text-gray-200">{t(`${key}.name`)}</div>
-                    <div className="text-[11px] text-gray-500 leading-relaxed">
+                    <div className="text-xs font-medium text-nc-text">{t(`${key}.name`)}</div>
+                    <div className="text-2xs text-nc-faint leading-relaxed">
                       {key === "help.inbox" ? t("help.inbox.triage.desc") : t(`${key}.desc`)}
                     </div>
                   </div>

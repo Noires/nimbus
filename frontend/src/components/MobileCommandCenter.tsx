@@ -1,6 +1,6 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import { useT } from "../i18n";
-import type { MobileCommandDestination } from "./mobileCommandCenter";
+import type { MobileCommandDestination } from "./mobileCommandDestination";
 
 interface MobileCommandCenterProps {
   destination: MobileCommandDestination;

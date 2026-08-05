@@ -119,28 +119,28 @@ export function ReviewHud() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
-          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border border-cyan-500/30 px-4 py-2.5 shadow-2xl"
+          className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[80] flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-x-3 gap-y-1.5 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-accent/30 px-4 py-2.5 shadow-nc-lg"
         >
-          <span className="text-xs text-cyan-300 whitespace-nowrap">
+          <span className="text-xs text-nc-accent whitespace-nowrap">
             ✈ {t("c.review.progress", { index: review.index + 1, total: review.queue.length })}
           </span>
-          <span className="text-xs text-gray-200 max-w-48 truncate">
+          <span className="text-xs text-nc-text max-w-64 truncate">
             {current?.title ?? "…"}
           </span>
-          <div className="w-px h-5 bg-white/10" />
+          <div className="w-px h-5 bg-nc-fill" />
           {KEYS.map(({ key, labelKey, action }) => (
             <button
               key={key}
               onClick={() => reviewAct(action)}
-              className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-white transition-colors whitespace-nowrap"
+              className="flex items-center gap-1 text-xs text-nc-muted hover:text-nc-text transition-colors whitespace-nowrap"
             >
-              <kbd className="px-1 py-0.5 rounded bg-white/10 text-gray-300">{key}</kbd>
+              <kbd className="px-1 py-0.5 rounded-nc-sm bg-nc-fill text-nc-soft">{key}</kbd>
               {t(labelKey)}
             </button>
           ))}
           <button
             onClick={() => exitReview()}
-            className="text-[10px] text-gray-500 hover:text-gray-200 transition-colors"
+            className="text-xs text-nc-faint hover:text-nc-text transition-colors"
           >
             {t("c.review.end")}
           </button>

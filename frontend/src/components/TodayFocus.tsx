@@ -3,6 +3,7 @@ import type { Dependency, Task } from "../store";
 import { selectTodayFocus } from "../data/todayFocusSelectors";
 import { dateLocale, useT } from "../i18n";
 import { localDayKey } from "../utils/capacity";
+import { NightCartographyRowAction, NightCartographyTaskRow } from "./NightCartography";
 
 export type TodayFocusState = "loading" | "error" | "ready";
 
@@ -65,24 +66,24 @@ export function TodayFocus({
   };
 
   if (state === "loading") {
-    return <section className="p-4" aria-label={t("today.label")}><p className="text-xs text-gray-500">{t("today.loading")}</p></section>;
+    return <section className="p-4" aria-label={t("today.label")}><p className="text-xs text-nc-faint">{t("today.loading")}</p></section>;
   }
   if (state === "error") {
-    return <section className="p-4" aria-label={t("today.label")}><p role="alert" className="text-xs text-red-300">{t("today.error")}</p></section>;
+    return <section className="p-4" aria-label={t("today.label")}><p role="alert" className="text-xs text-nc-danger">{t("today.error")}</p></section>;
   }
 
   return (
     <section className="p-4" aria-label={t("today.label")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-cyan-200">{t("today.title")}</h2>
-          <p className="mt-1 text-xs leading-5 text-gray-400">{t("today.subtitle")}</p>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-nc-accent-strong">{t("today.title")}</h2>
+          <p className="mt-1 text-xs leading-5 text-nc-muted">{t("today.subtitle")}</p>
         </div>
-        <span className="rounded-full bg-cyan-400/10 px-2 py-1 text-xs text-cyan-100">{sections.due.length + sections.ready.length}</span>
+        <span className="rounded-full bg-nc-accent/10 px-2 py-1 text-xs text-nc-accent-strong">{sections.due.length + sections.ready.length}</span>
       </div>
-      {actionError && <p role="alert" className="mt-3 text-xs text-red-300">{actionError}</p>}
+      {actionError && <p role="alert" className="mt-3 text-xs text-nc-danger">{actionError}</p>}
       {!hasTasks ? (
-        <p className="mt-5 text-xs leading-5 text-gray-500">{t("today.empty")}</p>
+        <p className="mt-5 text-xs leading-5 text-nc-faint">{t("today.empty")}</p>
       ) : (
         <div className="mt-4 space-y-5">
           <TaskSection title={t("today.due")} tasks={sections.due} blockerTitles={blockerTitles} blockerStatusEnabled={blockerStatusEnabled} now={now} t={t} onComplete={onComplete} onReturnToInbox={onReturnToInbox} onOpenInspector={onOpenInspector} onReveal={onReveal} onFocus={onFocus} focusEnabled={focusEnabled} run={run} />
@@ -128,40 +129,39 @@ function TaskSection({
 }) {
   return (
     <section aria-label={title}>
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-[10px] font-medium uppercase tracking-wide text-gray-300">{title}</h3>
-        {tasks.length > 0 && <span className="text-[10px] text-gray-300">{t("today.showing", { count: tasks.length, limit: MAX_ITEMS })}</span>}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
+        <h3 className="text-2xs font-medium uppercase tracking-wider text-nc-muted">{title}</h3>
+        {tasks.length > 0 && <span className="whitespace-nowrap text-xs text-nc-soft">{t("today.showing", { count: tasks.length, limit: MAX_ITEMS })}</span>}
       </div>
       {tasks.length === 0 ? (
-        <p className="mt-1 text-xs text-gray-300">{t("today.sectionEmpty")}</p>
+        <p className="mt-1 text-xs text-nc-soft">{t("today.sectionEmpty")}</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {tasks.map((task) => {
             const due = dueLabel(task, now, t);
+            // Amber only under real time pressure; future dates stay quiet.
+            const urgent = !completed && task.dueDate !== null && localDayKey(task.dueDate) <= localDayKey(now);
             const blockerTitle = blockerTitles.get(task.id);
             return (
-              <li key={task.id} className="night-cartography__task-row rounded-lg border border-white/10 bg-[#0f0f13]/40 p-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <p className={`min-w-0 text-xs font-medium ${completed ? "text-gray-500 line-through" : "text-gray-100"}`}>{task.title}</p>
-                  {due && <span className="shrink-0 text-[10px] text-amber-200">{due}</span>}
-                </div>
-                {blockerStatusEnabled && blockerTitle && <p className="mt-1 text-xs text-amber-100">{t("today.blockedBy", { title: blockerTitle })}</p>}
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {!completed && <ActionButton label={t("today.complete")} onClick={() => run(() => onComplete(task))} />}
-                  <ActionButton label={t("today.openInspector")} onClick={() => onOpenInspector(task)} inspectorTaskId={task.id} />
-                  <ActionButton label={t("today.reveal")} onClick={() => onReveal(task)} />
-                  {!completed && <ActionButton label={t("today.returnToInbox")} onClick={() => run(() => onReturnToInbox(task))} />}
-                  {focusEnabled && !completed && <ActionButton label={t("today.focus")} onClick={() => onFocus(task)} />}
-                </div>
-              </li>
+              <NightCartographyTaskRow
+                key={task.id}
+                title={task.title}
+                titleTone={completed ? "text-nc-faint line-through" : "text-nc-text"}
+                badge={due && <span className={urgent ? "text-nc-warning" : "text-nc-muted"}>{due}</span>}
+                actions={<>
+                  {!completed && <NightCartographyRowAction label={t("today.complete")} onClick={() => run(() => onComplete(task))} />}
+                  <NightCartographyRowAction label={t("today.openInspector")} onClick={() => onOpenInspector(task)} inspectorTaskId={task.id} />
+                  <NightCartographyRowAction label={t("today.reveal")} onClick={() => onReveal(task)} />
+                  {!completed && <NightCartographyRowAction label={t("today.returnToInbox")} onClick={() => run(() => onReturnToInbox(task))} />}
+                  {focusEnabled && !completed && <NightCartographyRowAction label={t("today.focus")} onClick={() => onFocus(task)} />}
+                </>}
+              >
+                {blockerStatusEnabled && blockerTitle && <p className="mt-1 text-xs text-nc-muted">{t("today.blockedBy", { title: blockerTitle })}</p>}
+              </NightCartographyTaskRow>
             );
           })}
         </ul>
       )}
     </section>
   );
-}
-
-function ActionButton({ label, onClick, inspectorTaskId }: { label: string; onClick: () => void; inspectorTaskId?: string }) {
-  return <button type="button" onClick={onClick} data-mobile-inspector-task={inspectorTaskId} className="rounded border border-white/15 px-2 py-1 text-[10px] text-gray-200 hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">{label}</button>;
 }

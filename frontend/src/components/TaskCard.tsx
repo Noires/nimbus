@@ -7,6 +7,8 @@ import { resolveOverlap } from "../engine/collision";
 import { dayDockHit } from "./DayDock";
 import { useT, dateLocale } from "../i18n";
 import { resolveSemanticDensity, type CardDensity } from "../engine/semanticDensity";
+import { MenuPanel } from "./toolbarMenu";
+import { IconArchive, IconClock, IconPencil, IconRestore, IconTrash } from "./ui/icons";
 import { selectZonesContainingTask } from "../data/spatialZoneSelectors";
 
 interface TaskCardProps {
@@ -300,17 +302,17 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
   const renderY = timeLens ? task.y + (timeDrag?.dy ?? 0) : task.y;
   const checklistDone = task.checklist.filter((c) => c.done).length;
 
-  const priorityLabel = { high: "text-red-400", medium: "text-yellow-400", low: "text-green-400" } as const;
+  const priorityLabel = { high: "text-nc-danger", medium: "text-nc-muted", low: "text-nc-faint" } as const;
 
   const dueBadge =
     days === null ? null : task.done ? (
-      <span className="text-gray-500">{t("b.card.due.label", { date: new Date(task.dueDate!).toLocaleDateString(dateLocale()) })}</span>
+      <span className="text-nc-faint">{t("b.card.due.label", { date: new Date(task.dueDate!).toLocaleDateString(dateLocale()) })}</span>
     ) : days < 0 ? (
-      <span className="text-red-400 font-medium">{t("b.card.due.overdue", { n: -days })}</span>
+      <span className="text-nc-danger font-medium">{t("b.card.due.overdue", { n: -days })}</span>
     ) : days === 0 ? (
-      <span className="text-amber-400 font-medium">{t("b.card.due.today")}</span>
+      <span className="text-nc-warning font-medium">{t("b.card.due.today")}</span>
     ) : (
-      <span className="text-gray-400">{t("b.card.due.left", { n: days })}</span>
+      <span className="text-nc-muted">{t("b.card.due.left", { n: days })}</span>
     );
 
   return (
@@ -328,15 +330,15 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         top: renderY,
       }}
       transition={taskCardTransition(reducedMotion, isDragging)}
-      className={`absolute w-64 rounded-xl bg-[#1a1d24]/95 backdrop-blur-md border focus-visible:outline-solid focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-cyan-200 ${
-        overdue ? "border-red-500/70" : archived ? "border-dashed border-white/20" : "border-white/10"
-      } ${isDragging ? "shadow-2xl ring-2 ring-white/20 cursor-grabbing" : "shadow-lg cursor-grab"} ${
+      className={`absolute w-64 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border focus-visible:outline-solid focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-nc-focus ${
+        overdue ? "border-nc-danger/70" : archived ? "border-dashed border-nc-line" : "border-nc-line-faint"
+      } ${isDragging ? "shadow-nc-lg ring-2 ring-nc-line-strong cursor-grabbing" : "shadow-nc-md cursor-grab"} ${
         flashing
-          ? "ring-4 ring-cyan-300/80"
+          ? "ring-4 ring-nc-accent/80"
           : focused
-            ? "ring-2 ring-cyan-400/70"
+            ? "ring-2 ring-nc-accent/70"
             : selected
-              ? "ring-2 ring-purple-400/80"
+              ? "ring-2 ring-nc-select/80"
               : ""
       } ${overdue && lens === "gravity" && !reducedMotion ? "animate-pulse" : ""}`}
       style={{
@@ -348,6 +350,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         filter: blocked && !task.done ? "saturate(0.45)" : undefined,
       } as React.CSSProperties}
       tabIndex={0}
+      data-tour="task-card"
       aria-label={task.title || t("b.card.untitled")}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -359,7 +362,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
       }}
     >
       {/* Accent strip — the task's color, falling back to an id-seeded gradient */}
-      <div className="rounded-t-xl" style={{ height: 8 * density.scale, background: task.color || cardGradient(task.id) }} />
+      <div className="rounded-t-nc-lg" style={{ height: 8 * density.scale, background: task.color || cardGradient(task.id) }} />
 
       {/* Dependency port: drag from here onto another card to link */}
       {!readOnly && (
@@ -367,7 +370,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
           data-port
           onPointerDown={startLink}
           title={t("b.card.linkPort.title")}
-          className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#1a1d24] border-2 border-cyan-400/50 hover:border-cyan-300 hover:scale-125 transition-all cursor-crosshair"
+          className="absolute -right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-nc-raised border-2 border-nc-accent/50 hover:border-nc-accent hover:scale-125 transition-all cursor-crosshair"
         />
       )}
 
@@ -376,36 +379,36 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         <div className="px-3 py-2 flex items-center gap-2">
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
-              task.priority === "high" ? "bg-red-400" : task.priority === "low" ? "bg-green-400" : "bg-yellow-400"
+              task.priority === "high" ? "bg-nc-danger" : task.priority === "low" ? "bg-nc-faint" : "bg-nc-muted"
             }`}
             title={t(`b.priority.${task.priority}`)}
           />
-          <div className={`flex-1 min-w-0 truncate text-xs font-semibold ${task.done ? "line-through text-gray-500" : ""}`}>
+          <div className={`flex-1 min-w-0 truncate text-xs font-semibold ${task.done ? "line-through text-nc-faint" : ""}`}>
             {blocked && !task.done && <span title={t("b.card.blocked")}>🔒 </span>}
             {task.title || t("b.card.untitled")}
           </div>
           {task.externalKey && (
             <span
-              className="text-[9px] text-cyan-300/80 shrink-0 max-w-24 truncate"
+              className="text-2xs text-nc-accent/80 shrink-0 max-w-24 truncate"
               title={task.status ?? (externalRef ? `${externalRef[1]}#${externalRef[2]}` : undefined)}
             >
               ⑂{task.status ? ` ${task.status}` : ""}
             </span>
           )}
-          {dueBadge && <span className="text-[10px] shrink-0">{dueBadge}</span>}
+          {dueBadge && <span className="text-2xs shrink-0">{dueBadge}</span>}
         </div>
       )}
 
       {!mini && (
       <div className="p-4" style={{ padding: 16 * density.scale }}>
         <div className="flex items-start justify-between gap-2 mb-1">
-          <div className={`text-sm font-semibold ${task.done ? "line-through text-gray-500" : ""}`}>
+          <div className={`text-sm font-semibold ${task.done ? "line-through text-nc-faint" : ""}`}>
             {blocked && !task.done && <span title={t("b.card.blocked")}>🔒 </span>}
             {task.title || t("b.card.untitled")}
           </div>
           <span
-            className={`text-[10px] uppercase tracking-wide shrink-0 ${
-              priorityLabel[task.priority as keyof typeof priorityLabel] ?? "text-gray-500"
+            className={`text-2xs uppercase tracking-wider shrink-0 ${
+              priorityLabel[task.priority as keyof typeof priorityLabel] ?? "text-nc-faint"
             }`}
           >
             {t(`b.priority.${task.priority}`)}
@@ -413,7 +416,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         </div>
 
         {isSemanticDensity && (
-          <div className="mb-1.5 text-[10px] text-cyan-200">
+          <div className="mb-1.5 text-2xs text-nc-accent-strong">
             {task.status ?? t(`b.priority.${task.priority}`)}
           </div>
         )}
@@ -426,7 +429,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
               target="_blank"
               rel="noreferrer"
               onPointerDown={(e) => e.stopPropagation()}
-              className="text-[10px] text-gray-500 hover:text-white transition-colors whitespace-nowrap"
+              className="text-2xs text-nc-faint hover:text-nc-text transition-colors whitespace-nowrap"
               title={t("b.card.openGithub")}
             >
               ⑂ {externalRef ? `${externalRef[1]}#${externalRef[2]}` : "linked"}
@@ -438,7 +441,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
                 onChange={(e) =>
                   useStore.getState().patchTask(task.id, { status: e.target.value }).catch((err) => console.error(err))
                 }
-                className="text-[10px] bg-[#0f0f13]/70 border border-cyan-500/30 rounded-full px-1.5 py-0.5 text-cyan-300 outline-none cursor-pointer"
+                className="text-2xs bg-nc-well/70 border border-nc-accent/30 rounded-full px-1.5 py-0.5 text-nc-accent cursor-pointer"
                 title={t("b.card.statusColumn")}
               >
                 {/* No synced status yet: without this the browser would show
@@ -453,7 +456,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
               </select>
             )}
             {readOnly && task.status && (
-              <span className="text-[10px] text-cyan-300/80 border border-cyan-500/20 rounded-full px-1.5 py-0.5">
+              <span className="text-2xs text-nc-accent/80 border border-nc-accent/20 rounded-full px-1.5 py-0.5">
                 {task.status}
               </span>
             )}
@@ -461,7 +464,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         )}
 
         {showDescription && task.description && (
-          <div className="text-xs text-gray-400 line-clamp-2 mb-2">{task.description}</div>
+          <div className="text-xs text-nc-muted line-clamp-2 mb-2">{task.description}</div>
         )}
 
         {showTags && task.tags.length > 0 && (
@@ -469,7 +472,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
             {task.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 border border-white/10 text-gray-300"
+                className="px-1.5 py-0.5 rounded-nc-sm text-2xs bg-nc-fill border border-nc-line-faint text-nc-soft"
               >
                 {tag}
               </span>
@@ -478,21 +481,21 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         )}
 
         {(dueBadge || archived || task.estimateMinutes || task.recurrence || task.checklist.length > 0) && (
-          <div className="flex items-center gap-2 text-[10px] mt-1 flex-wrap">
+          <div className="flex items-center gap-2 text-2xs mt-1 flex-wrap">
             {dueBadge}
             {showSummaryMetadata && task.estimateMinutes != null && (
-              <span className="text-gray-400">⏱ {formatMinutes(task.estimateMinutes)}</span>
+              <span className="text-nc-muted">⏱ {formatMinutes(task.estimateMinutes)}</span>
             )}
-            {showSummaryMetadata && task.recurrence && <span className="text-gray-500" title={t("b.card.recurring")}>↻</span>}
+            {showSummaryMetadata && task.recurrence && <span className="text-nc-faint" title={t("b.card.recurring")}>↻</span>}
             {showSummaryMetadata && task.checklist.length > 0 && (
               <span
                 className={`flex items-center gap-1 ${
-                  checklistDone === task.checklist.length ? "text-emerald-400" : "text-gray-400"
+                  checklistDone === task.checklist.length ? "text-nc-success" : "text-nc-muted"
                 }`}
                 title={t("b.card.checklistProgress")}
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" className="-rotate-90">
-                  <circle cx="6" cy="6" r="5" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="2" />
+                  <circle cx="6" cy="6" r="5" fill="none" stroke="var(--nc-border-faint)" strokeWidth="2" />
                   <circle
                     cx="6"
                     cy="6"
@@ -507,18 +510,18 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
                 {checklistDone}/{task.checklist.length}
               </span>
             )}
-            {archived && <span className="text-gray-500 italic">{t("b.card.archived")}</span>}
+            {archived && <span className="text-nc-faint italic">{t("b.card.archived")}</span>}
           </div>
         )}
 
         {/* Estimate vs actual (fed by the focus timer) */}
         {showSummaryMetadata && task.estimateMinutes != null && task.actualMinutes > 0 && (
           <div
-            className="mt-1.5 h-1 rounded-full bg-white/5 overflow-hidden"
+            className="mt-1.5 h-1 rounded-full bg-nc-fill-faint overflow-hidden"
             title={t("b.card.estimateVsActual", { actual: formatMinutes(task.actualMinutes), estimate: formatMinutes(task.estimateMinutes) })}
           >
             <div
-              className={`h-full ${task.actualMinutes <= task.estimateMinutes ? "bg-cyan-500/70" : "bg-orange-500/80"}`}
+              className={`h-full ${task.actualMinutes <= task.estimateMinutes ? "bg-nc-accent/70" : "bg-nc-warning/80"}`}
               style={{
                 width: `${Math.min(task.actualMinutes / task.estimateMinutes, 1.5) / 1.5 * 100}%`,
               }}
@@ -535,27 +538,32 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
           style={readOnly ? { display: "none" } : undefined}
         >
           {task.done ? (
-            <span className="text-gray-500 hover:text-gray-300">✓ {t("b.card.markUndone")}</span>
+            <span className="text-nc-faint hover:text-nc-soft">✓ {t("b.card.markUndone")}</span>
           ) : (
-            <span className="text-purple-400 hover:text-purple-300">○ {t("b.card.markDone")}</span>
+            <span className="text-nc-muted hover:text-nc-success transition-colors">○ {t("b.card.markDone")}</span>
           )}
         </button>
 
-        <div className="flex gap-3 mt-1 relative" style={readOnly ? { display: "none" } : undefined}>
+        {/* Icon action row — every button carries its label via aria-label + title. */}
+        <div className="flex gap-1 mt-1.5 relative" style={readOnly ? { display: "none" } : undefined}>
           <button
             onClick={() => onEdit(task)}
-            className="text-left text-[10px] text-gray-600 hover:text-gray-200 transition-colors"
+            aria-label={t("b.card.edit")}
+            title={t("b.card.edit")}
+            className="rounded-nc-sm p-1 text-nc-faint hover:bg-nc-fill-faint hover:text-nc-text transition-colors"
           >
-            {t("b.card.edit")}
+            <IconPencil size={16} />
           </button>
           {archived ? (
             <button
               onClick={() =>
                 useStore.getState().patchTask(task.id, { archivedAt: null }).catch((e) => console.error(e))
               }
-              className="text-left text-[10px] text-gray-600 hover:text-emerald-400 transition-colors"
+              aria-label={t("b.card.restore")}
+              title={t("b.card.restore")}
+              className="rounded-nc-sm p-1 text-nc-faint hover:bg-nc-fill-faint hover:text-nc-success transition-colors"
             >
-              {t("b.card.restore")}
+              <IconRestore size={16} />
             </button>
           ) : (
             <>
@@ -566,36 +574,42 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
                     .patchTask(task.id, { archivedAt: new Date().toISOString() })
                     .catch((e) => console.error(e))
                 }
-                className="text-left text-[10px] text-gray-600 hover:text-gray-300 transition-colors"
+                aria-label={t("b.card.archive")}
+                title={t("b.card.archive")}
+                className="rounded-nc-sm p-1 text-nc-faint hover:bg-nc-fill-faint hover:text-nc-soft transition-colors"
               >
-                {t("b.card.archive")}
+                <IconArchive size={16} />
               </button>
               <button
                 onClick={() => setSnoozeOpen(!snoozeOpen)}
-                className="text-left text-[10px] text-gray-600 hover:text-indigo-300 transition-colors"
+                aria-label={t("b.card.snooze")}
+                title={t("b.card.snooze")}
+                className="rounded-nc-sm p-1 text-nc-faint hover:bg-nc-fill-faint hover:text-nc-text transition-colors"
               >
-                {t("b.card.snooze")}
+                <IconClock size={16} />
               </button>
             </>
           )}
           <button
             onClick={() => useStore.getState().deleteTask(task.id).catch((e) => console.error(e))}
-            className="text-left text-[10px] text-gray-600 hover:text-red-400 transition-colors"
+            aria-label={t("b.card.delete")}
+            title={t("b.card.delete")}
+            className="rounded-nc-sm p-1 text-nc-faint hover:bg-nc-fill-faint hover:text-nc-danger transition-colors"
           >
-            {t("b.card.delete")}
+            <IconTrash size={16} />
           </button>
 
           {snoozeOpen && (
-            <div className="absolute bottom-5 left-0 z-50 flex flex-col gap-1 rounded-lg bg-[#0f0f13] border border-white/15 p-2 shadow-2xl w-40">
+            <MenuPanel className="absolute bottom-5 left-0 z-50 flex flex-col gap-1 rounded-nc-md bg-nc-well border border-nc-line p-2 shadow-nc-lg w-40">
               <button
                 onClick={() => snooze(new Date(startOfDay(new Date()).getTime() + 86_400_000))}
-                className="text-left text-xs text-gray-300 hover:text-white px-1.5 py-1 rounded hover:bg-white/5"
+                className="text-left text-xs text-nc-soft hover:text-nc-text px-1.5 py-1 rounded-nc-sm hover:bg-nc-fill-faint"
               >
                 {t("b.card.snooze.tomorrow")}
               </button>
               <button
                 onClick={() => snooze(new Date(startOfDay(new Date()).getTime() + 7 * 86_400_000))}
-                className="text-left text-xs text-gray-300 hover:text-white px-1.5 py-1 rounded hover:bg-white/5"
+                className="text-left text-xs text-nc-soft hover:text-nc-text px-1.5 py-1 rounded-nc-sm hover:bg-nc-fill-faint"
               >
                 {t("b.card.snooze.nextWeek")}
               </button>
@@ -604,9 +618,9 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
                 onChange={(e) => {
                   if (e.target.value) snooze(new Date(e.target.value));
                 }}
-                className="text-xs bg-[#1a1d24] border border-white/10 rounded px-1.5 py-1 text-gray-300"
+                className="text-xs bg-nc-raised border border-nc-line-faint rounded-nc-sm px-1.5 py-1 text-nc-soft"
               />
-            </div>
+            </MenuPanel>
           )}
         </div>
       </div>

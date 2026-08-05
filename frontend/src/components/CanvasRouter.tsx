@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useStore, visibleTasks, CARD_W, CARD_H, type Task, type CanvasSettings } from "../store";
 import { nearestInDirection, nearestToPoint, type Direction } from "../utils/spatialNav";
-import { CanvasList } from "./CanvasList";
+import { NavigationRail } from "./NavigationRail";
 import { Canvas } from "./Canvas";
-import { Toolbar } from "./Toolbar";
+import { TopBar } from "./TopBar";
+import { CanvasToolbar } from "./CanvasToolbar";
 import { Toast } from "./Toast";
 import { CommandPalette } from "./CommandPalette";
 
@@ -34,7 +35,8 @@ import { OperationsView } from "./OperationsView";
 import { LedgerView } from "./LedgerView";
 import { NightCartographySurface } from "./NightCartography";
 import { resolveSelectionContext } from "./selectionContext";
-import { canvasDestinationFromPath, canvasPathForDestination } from "./destinationRoutes";
+import { canvasDestinationFromPath, canvasPathForDestination, type CanvasDestination } from "./destinationRoutes";
+import { DestinationSheet } from "./DestinationSheet";
 import { quickParseTokens } from "../utils/quickParse";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { useCanvasDataLoader } from "../hooks/useCanvasDataLoader";
@@ -48,7 +50,7 @@ import {
   MOBILE_COMMAND_CENTER_QUERY,
   resolveMobileCommandDestination,
   type MobileCommandDestination,
-} from "./mobileCommandCenter";
+} from "./mobileCommandDestination";
 
 type ModalState =
   | { mode: "create"; x?: number; y?: number }
@@ -57,21 +59,11 @@ type ModalState =
 
 type MobileInspectorReturnDestination = "inbox" | "today" | "review" | "operations" | "ledger" | "more";
 
-export function resolveRailLabel({
-  reviewRailOpen,
-  todayFocusOpen,
-  inboxTriageOpen,
-  operationsOpen = false,
-}: {
-  reviewRailOpen: boolean;
-  todayFocusOpen: boolean;
-  inboxTriageOpen: boolean;
-  operationsOpen?: boolean;
-}): string {
-  if (reviewRailOpen) return tr("review.title");
-  if (todayFocusOpen) return tr("today.label");
-  if (inboxTriageOpen) return tr("inbox.triage.label");
-  if (operationsOpen) return tr("operations.label");
+export function resolveRailLabel(destination: CanvasDestination): string {
+  if (destination === "review") return tr("review.title");
+  if (destination === "today") return tr("today.label");
+  if (destination === "inbox") return tr("inbox.triage.label");
+  if (destination === "operations") return tr("operations.label");
   return tr("workstreams.title");
 }
 
@@ -109,12 +101,8 @@ export function CanvasRouter() {
   const semanticDensity = useStore((s) => s.semanticDensity);
   const readOnly = useStore((s) => s.readOnly);
   const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null);
-  const [inboxTriageOpen, setInboxTriageOpen] = useState(false);
-  const [todayFocusOpen, setTodayFocusOpen] = useState(false);
-  const [reviewRailOpen, setReviewRailOpen] = useState(false);
-  const [operationsOpen, setOperationsOpen] = useState(false);
-  const [ledgerOpen, setLedgerOpen] = useState(false);
   const [compactRailOpen, setCompactRailOpen] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const [inboxTriageFocusNonce, setInboxTriageFocusNonce] = useState(0);
   const [inboxTriageState, setInboxTriageState] = useState<InboxTriageState>("loading");
   const modalRef = useRef(modal);
@@ -183,13 +171,6 @@ export function CanvasRouter() {
     if (!canvasId) return;
     navigate(canvasPathForDestination(canvasId, destination));
   };
-  useEffect(() => {
-    setInboxTriageOpen(routeDestination === "inbox");
-    setTodayFocusOpen(routeDestination === "today");
-    setReviewRailOpen(routeDestination === "review");
-    setOperationsOpen(routeDestination === "operations");
-    setLedgerOpen(routeDestination === "ledger");
-  }, [routeDestination]);
   // Canonical canvas routes are also the source of truth for mobile destinations.
   // Transient Capture, Inspector, and More stay local because they have no route.
   useEffect(() => {
@@ -279,7 +260,7 @@ export function CanvasRouter() {
           store.setZoneDraw(false);
         } else if (mobileCommandCenter) {
           closeMobileCommandCenter();
-        } else if (inboxTriageOpen || todayFocusOpen || reviewRailOpen || operationsOpen || ledgerOpen) {
+        } else if (routeDestination !== "canvas") {
           navigateDestination("canvas");
         } else if (store.selectedIds.length || selectedWorkstreamId) {
           store.clearSelection();
@@ -475,7 +456,7 @@ export function CanvasRouter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [canvasId, inboxTriageOpen, ledgerOpen, mobileCommandCenter, mobileDestination, operationsOpen, reviewRailOpen, selectedWorkstreamId, todayFocusOpen]);
+  }, [canvasId, mobileCommandCenter, mobileDestination, routeDestination, selectedWorkstreamId]);
 
   const handleSubmit = async (data: TaskFormData) => {
     if (!modal || !canvasId) return;
@@ -507,103 +488,15 @@ export function CanvasRouter() {
   if (error) return <CommandCenterState kind="error" title={tr("a.router.apiError")} detail={tr("d.state.errorDetail")} action={<button type="button" onClick={() => void loadCanvases()}>{tr("d.state.retry")}</button>} />;
 
   const navigation = (
-    <>
-      {/* Nimbus wordmark — a glowing halo dot, matching the bubble motif */}
-      <div className="flex items-center gap-2 mb-5 px-1">
-        <span
-          className="w-3.5 h-3.5 rounded-full bubble-pulse shrink-0"
-          style={{
-            background: "radial-gradient(circle, #67e8f9, #6366f1)",
-            boxShadow: "0 0 12px 2px rgba(103,232,249,0.6)",
-          }}
-        />
-        <span className="text-base font-semibold tracking-wide text-gray-100">{tr("app.name")}</span>
-      </div>
-      <CanvasList canvases={canvases} canvasId={canvasId} />
-      {canvasId && (
-        <div className="mt-4 space-y-2">
-          <button
-            type="button"
-            aria-pressed={!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen}
-            onClick={() => navigateDestination("canvas")}
-            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${!todayFocusOpen && !inboxTriageOpen && !reviewRailOpen && !ledgerOpen && !operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
-          >
-            <span>{tr("d.shell.canvas")}</span><span aria-hidden="true" className="text-cyan-300">⌘</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setModal({ mode: "capture" })}
-            className="flex w-full items-center justify-between rounded-lg border border-cyan-300 bg-cyan-300 px-3 py-2 text-left text-xs font-semibold text-slate-950 transition-colors hover:bg-cyan-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
-          >
-            <span>{tr("mobile.command.capture")}</span><span aria-hidden="true">+</span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={todayFocusOpen}
-            onClick={() => navigateDestination("today")}
-            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
-              todayFocusOpen
-                ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100"
-                : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
-            }`}
-          >
-            <span>{tr("today.title")}</span>
-            <span className="text-cyan-300">O</span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={inboxTriageOpen}
-            onClick={() => navigateDestination("inbox")}
-            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 ${
-              inboxTriageOpen
-                ? "border-purple-400/50 bg-purple-400/10 text-purple-100"
-                : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
-            }`}
-          >
-            <span>{tr("inbox.triage.title")}</span>
-            <span className="text-purple-300">{tasks.filter((task) => task.inbox && !task.archivedAt).length}</span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={reviewRailOpen}
-            onClick={() => navigateDestination("review")}
-            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${
-              reviewRailOpen
-                ? "border-amber-400/50 bg-amber-400/10 text-amber-100"
-                : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"
-            }`}
-          >
-            <span>{tr("review.title")}</span>
-            <span className="text-amber-300">V</span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={operationsOpen}
-            onClick={() => navigateDestination("operations")}
-            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${operationsOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
-          >
-            <span>{tr("operations.label")}</span><span aria-hidden="true" className="text-cyan-300">↗</span>
-          </button>
-          <button
-            type="button"
-            aria-pressed={ledgerOpen}
-            onClick={() => navigateDestination("ledger")}
-            className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 ${ledgerOpen ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-100" : "border-white/10 text-gray-300 hover:border-white/25 hover:bg-white/5"}`}
-          >
-            <span>{tr("d.shell.ledger")}</span><span className="text-cyan-300">≡</span>
-          </button>
-        </div>
-      )}
-    </>
-  );
-  const commands = canvasId ? (
-    <Toolbar
-      canvasId={canvasId}
-      onAddTask={() => setModal({ mode: "create" })}
-      onOpenTimelapse={() => setTimelapse(true)}
-      onOpenPulse={() => setPulseOpen(true)}
+    <NavigationRail
+      canvasId={canvasId ?? null}
+      destination={routeDestination}
+      inboxCount={tasks.filter((task) => task.inbox && !task.archivedAt).length}
+      onNavigate={navigateDestination}
+      onCapture={() => setModal({ mode: "capture" })}
     />
-  ) : null;
+  );
+  const commands = <TopBar canvasId={canvasId ?? null} />;
   const selectionContext = resolveSelectionContext({
     selectedIds,
     tasks,
@@ -627,7 +520,11 @@ export function CanvasRouter() {
     store.flyTo(task.x + CARD_W / 2, task.y + CARD_H / 2, store.zoom);
     navigateDestination("canvas");
   };
-  const rail = canvasId && (!compactDesktop || compactRailOpen || selectionContext.kind !== "directory") ? <InspectorRail
+  // The rail exists when: the inspector has content (always shows), or the
+  // directory is wanted — on compact desktop behind the drawer toggle, on wide
+  // desktop unless the user collapsed it in favour of the full-width field.
+  const railVisible = compactDesktop ? compactRailOpen : !railCollapsed;
+  const rail = canvasId && (railVisible || selectionContext.kind !== "directory") ? <InspectorRail
     context={selectionContext}
     tasks={tasks}
     workstreams={workstreams}
@@ -655,7 +552,10 @@ export function CanvasRouter() {
       />
     </section>}
   /> : undefined;
-  const workspaceContent = !canvasId ? <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} />
+  // Destinations are sheets floating over the always-mounted canvas: the
+  // spatial field never unmounts, so pan/zoom/cluster state and canvas chrome
+  // stay alive while the user works a queue.
+  const destinationSheet = !canvasId || routeDestination === "canvas" ? null
     : routeDestination === "inbox" ? <NightCartographySurface kind="inbox" title={tr("inbox.triage.title")}>
       <InboxTriage tasks={tasks} workstreams={workstreams} state={inboxTriageState} focusNonce={inboxTriageFocusNonce}
         onCapture={async (input) => { const { fields } = quickParseTokens(input); if (fields.title) await useStore.getState().addTask({ canvasId, title: fields.title, tags: fields.tags, priority: fields.priority ?? undefined, dueDate: fields.dueDate, estimateMinutes: fields.estimateMinutes, inbox: true }); }}
@@ -679,15 +579,29 @@ export function CanvasRouter() {
     : routeDestination === "ledger" ? <NightCartographySurface kind="ledger" title={tr("d.shell.ledger")}>
       <LedgerView canvasId={canvasId} tasks={tasks} onOpenInspector={inspectTask} />
     </NightCartographySurface>
-    : <NightCartographySurface kind="canvas" title={tr("d.shell.canvas")}>
-      <Canvas ref={canvasRef} canvasId={canvasId} semanticDensity={semanticDensity} onCreateAt={(x, y) => setModal({ mode: "create", x, y })} onEditTask={(task) => setModal({ mode: "edit", task })} />
-      <SelectionBar canvasId={canvasId} tidyEnabled /><DayDock /><ReviewHud /><FocusTimer />
-      {viewMode === "table" && <TableView onExit={() => useStore.getState().setViewMode("canvas")} />}
-      {pulseOpen && <PulsePanel canvasId={canvasId} onClose={() => setPulseOpen(false)} />}
-      {timelapse && <TimelapseBar canvasId={canvasId} onClose={() => setTimelapse(false)} />}
+    : null;
+  const mainContent = !canvasId ? <CommandCenterState kind="empty" title={tr("a.router.noCanvases")} detail={tr("d.state.emptyDetail")} /> : (
+    <>
+      <NightCartographySurface kind="canvas" title={tr("d.shell.canvas")}>
+        <Canvas ref={canvasRef} canvasId={canvasId} semanticDensity={semanticDensity} onCreateAt={(x, y) => setModal({ mode: "create", x, y })} onEditTask={(task) => setModal({ mode: "edit", task })} />
+        {/* Canvas tools float over the field and hide beneath destination sheets. */}
+        {routeDestination === "canvas" && (
+          <CanvasToolbar canvasId={canvasId} onAddTask={() => setModal({ mode: "create" })} onOpenTimelapse={() => setTimelapse(true)} onOpenPulse={() => setPulseOpen(true)} />
+        )}
+        <SelectionBar canvasId={canvasId} tidyEnabled /><DayDock /><ReviewHud /><FocusTimer />
+        {viewMode === "table" && <TableView onExit={() => useStore.getState().setViewMode("canvas")} />}
+        {pulseOpen && <PulsePanel canvasId={canvasId} onClose={() => setPulseOpen(false)} />}
+        {timelapse && <TimelapseBar canvasId={canvasId} onClose={() => setTimelapse(false)} />}
+      </NightCartographySurface>
+      {destinationSheet && (
+        <DestinationSheet kind={routeDestination as Exclude<CanvasDestination, "canvas">} closeLabel={tr("d.sheet.close")} onClose={() => navigateDestination("canvas")}>
+          {destinationSheet}
+        </DestinationSheet>
+      )}
+      {/* Route-independent: capture/edit must work from every destination. */}
       {modal && <CreateModal key={modal.mode === "edit" ? modal.task.id : modal.mode} initial={modal.mode === "edit" ? modal.task : null} variant={modal.mode === "edit" ? "panel" : "modal"} onClose={() => setModal(null)} onSubmit={handleSubmit} />}
-    </NightCartographySurface>;
-  const mainContent = workspaceContent;
+    </>
+  );
   const overlays = (
     <>
       <CommandPalette canvasId={canvasId} onNewTask={() => setModal({ mode: "create" })} fallbackFocusRef={canvasRef} />
@@ -696,12 +610,16 @@ export function CanvasRouter() {
           onClose={() => useStore.getState().setHelpOpen(false)}
           onStartTutorial={() => {
             useStore.getState().setHelpOpen(false);
+            // The tour spotlights canvas-only chrome (floating toolbar), so it
+            // always starts from the canvas route — sheets would hide step 5.
+            if (canvasId && routeDestination !== "canvas") navigateDestination("canvas");
             setTutorialReplay(true);
             setTutorialOpen(true);
           }}
         />
       )}
       <CommandCenterTutorialOffer key={tutorialOfferRevision} onStart={() => {
+        if (canvasId && routeDestination !== "canvas") navigateDestination("canvas");
         setTutorialReplay(false);
         setTutorialOpen(true);
       }} />
@@ -913,10 +831,17 @@ export function CanvasRouter() {
         commandLabel={tr("d.shell.globalCommands")}
         railLabel={selectionContext.kind === "directory" ? tr("d.utilities.label") : tr("inspector.label")}
         railModal={compactDesktop && Boolean(rail)}
-        railToggle={compactDesktop && selectionContext.kind === "directory"}
+        railToggle={selectionContext.kind === "directory" && (compactDesktop || railCollapsed)}
         openRailLabel={tr("d.utilities.label")}
-        closeRailLabel={tr("d.shell.closeRail")}
-        onCloseRail={compactDesktop && !compactRailOpen && selectionContext.kind === "directory" ? () => setCompactRailOpen(true) : closeCommandCenterRail}
+        closeRailLabel={selectionContext.kind === "directory" ? tr("d.shell.closeRail") : tr("d.shell.closeInspector")}
+        onCloseRail={
+          // Closing means the nearest meaningful thing: inspector → deselect;
+          // directory → close the drawer (compact) or collapse the rail (wide).
+          selectionContext.kind !== "directory" ? closeCommandCenterRail
+            : compactDesktop
+              ? (compactRailOpen ? closeCommandCenterRail : () => setCompactRailOpen(true))
+              : railCollapsed ? () => setRailCollapsed(false) : () => setRailCollapsed(true)
+        }
         navigation={navigation}
         commands={commands}
         rail={rail}

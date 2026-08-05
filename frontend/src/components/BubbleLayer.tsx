@@ -1,3 +1,4 @@
+import { ambientFade } from "../utils/motion";
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Cluster } from "../engine/proximityDetector";
@@ -149,7 +150,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
+              transition={ambientFade}
             >
               <circle
                 className="bubble-pulse"
@@ -204,7 +205,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
               onPointerMove={moveGroupDrag}
               onPointerUp={endGroupDrag}
               onPointerCancel={endGroupDrag}
-              className="flex items-center justify-center w-6 h-6 rounded-full bg-[#1a1d24] text-[11px] text-gray-400 cursor-grab active:cursor-grabbing select-none"
+              className="flex items-center justify-center w-6 h-6 rounded-full bg-nc-raised text-2xs text-nc-muted cursor-grab active:cursor-grabbing select-none"
               style={pillStyle(hue)}
               title={t("b.bubble.dragWhole")}
             >
@@ -215,7 +216,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             {/* Count → X-ray */}
             <button
               onClick={() => setXray(xray === cluster.id ? null : cluster.id)}
-              className="flex items-center justify-center w-6 h-6 rounded-full bg-[#1a1d24] text-[11px] text-gray-200 hover:text-white shrink-0"
+              className="flex items-center justify-center w-6 h-6 rounded-full bg-nc-raised text-2xs text-nc-text hover:text-nc-text shrink-0"
               style={pillStyle(hue)}
               title={t("b.bubble.xrayTitle")}
             >
@@ -226,7 +227,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             {readOnly ? (
               title && (
                 <span
-                  className="h-6 px-2.5 rounded-full bg-[#1a1d24] text-[11px] text-gray-100 flex items-center whitespace-nowrap"
+                  className="h-6 px-2.5 rounded-full bg-nc-raised text-2xs text-nc-text flex items-center whitespace-nowrap"
                   style={pillStyle(hue)}
                 >
                   {title}
@@ -243,7 +244,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
                   if (e.key === "Enter") saveTitle(cluster);
                   if (e.key === "Escape") setEditing(null);
                 }}
-                className="h-6 w-36 px-2 rounded-full bg-[#0f0f13] text-[11px] text-gray-100 outline-none"
+                className="h-6 w-36 px-2 rounded-full bg-nc-well text-2xs text-nc-text"
                 style={pillStyle(hue)}
               />
             ) : (
@@ -252,8 +253,8 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
                   setDraft(title ?? "");
                   setEditing(cluster.id);
                 }}
-                className={`h-6 px-2.5 rounded-full bg-[#1a1d24] text-[11px] whitespace-nowrap transition-colors ${
-                  title ? "text-gray-100" : "text-gray-500 italic hover:text-gray-300"
+                className={`h-6 px-2.5 rounded-full bg-nc-raised text-2xs whitespace-nowrap transition-colors ${
+                  title ? "text-nc-text" : "text-nc-faint italic hover:text-nc-soft"
                 }`}
                 style={pillStyle(hue)}
                 title={t("b.bubble.rename")}
@@ -266,8 +267,8 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             {!readOnly && (
             <button
               onClick={() => togglePin(cluster, matched, hue)}
-              className={`h-6 px-1.5 rounded-full bg-[#1a1d24] text-[11px] transition-colors ${
-                matched?.pinned ? "text-amber-300" : "text-gray-500 hover:text-gray-300"
+              className={`h-6 px-1.5 rounded-full bg-nc-raised text-2xs transition-colors ${
+                matched?.pinned ? "text-nc-accent-strong" : "text-nc-faint hover:text-nc-soft"
               }`}
               style={pillStyle(hue, matched?.pinned ? 0.75 : 0.35)}
               title={matched?.pinned ? t("b.bubble.unpin") : t("b.bubble.pin")}
@@ -279,7 +280,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             {/* Workload */}
             {remaining > 0 && (
               <span
-                className="h-6 px-2 rounded-full bg-[#1a1d24] text-[10px] text-gray-300 flex items-center whitespace-nowrap"
+                className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-soft flex items-center whitespace-nowrap"
                 style={{
                   border: `1.5px solid hsla(${Math.round(190 - 190 * overCapacity)}, 85%, 60%, 0.6)`,
                 }}
@@ -292,7 +293,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             {/* Checklist aggregate */}
             {checklistTotal > 0 && (
               <span
-                className="h-6 px-2 rounded-full bg-[#1a1d24] text-[10px] text-gray-400 flex items-center whitespace-nowrap"
+                className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-muted flex items-center whitespace-nowrap"
                 style={pillStyle(hue, 0.35)}
               >
                 ☑ {checklistDone}/{checklistTotal}
@@ -303,7 +304,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             {!readOnly && (<>
             <button
               onClick={() => useStore.getState().arrangeCluster(cluster.members, "due").catch((e) => console.error(e))}
-              className="h-6 px-2 rounded-full bg-[#1a1d24] text-[10px] text-gray-400 hover:text-white whitespace-nowrap transition-colors"
+              className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-muted hover:text-nc-text whitespace-nowrap transition-colors"
               style={pillStyle(hue, 0.35)}
               title={t("b.bubble.arrangeDue")}
             >
@@ -311,7 +312,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             </button>
             <button
               onClick={() => useStore.getState().arrangeCluster(cluster.members, "priority").catch((e) => console.error(e))}
-              className="h-6 px-2 rounded-full bg-[#1a1d24] text-[10px] text-gray-400 hover:text-white whitespace-nowrap transition-colors"
+              className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-muted hover:text-nc-text whitespace-nowrap transition-colors"
               style={pillStyle(hue, 0.35)}
               title={t("b.bubble.arrangePrio")}
             >
@@ -319,7 +320,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
             </button>
             <button
               onClick={() => useStore.getState().packCluster(cluster.members).catch((e) => console.error(e))}
-              className="h-6 px-2 rounded-full bg-[#1a1d24] text-[10px] text-gray-400 hover:text-white whitespace-nowrap transition-colors"
+              className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-muted hover:text-nc-text whitespace-nowrap transition-colors"
               style={pillStyle(hue, 0.35)}
               title={t("b.bubble.pack")}
             >
@@ -331,7 +332,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
                 if (store.focus) store.exitFocus();
                 else store.startFocus(cluster.members);
               }}
-              className="h-6 px-2 rounded-full bg-[#1a1d24] text-[10px] text-cyan-400/80 hover:text-cyan-300 whitespace-nowrap transition-colors"
+              className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-accent/80 hover:text-nc-accent whitespace-nowrap transition-colors"
               style={pillStyle(hue, 0.35)}
               title={t("b.bubble.focusTitle")}
             >
@@ -372,7 +373,7 @@ export function BubbleLayer({ canvasId, clusters, tasks }: BubbleLayerProps) {
                   .then(() => useStore.getState().showToast(t("b.bubble.savedToast", { name })))
                   .catch((e) => console.error(e));
               }}
-              className="h-6 px-2 rounded-full bg-[#1a1d24] text-[10px] text-gray-400 hover:text-amber-300 whitespace-nowrap transition-colors"
+              className="h-6 px-2 rounded-full bg-nc-raised text-2xs text-nc-muted hover:text-nc-text whitespace-nowrap transition-colors"
               style={pillStyle(hue, 0.35)}
               title={t("b.bubble.saveTitle")}
             >

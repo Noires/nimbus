@@ -177,13 +177,13 @@ describe("CanvasRouter task retrieval", () => {
     setStore();
     await render(false);
 
-    expect(container.querySelector('[aria-label="First-time tutorial offer"]')).not.toBeNull();
-    await act(async () => button(container, "Start tutorial")?.click());
+    expect(container.querySelector('[aria-label="Guided tour offer"]')).not.toBeNull();
+    await act(async () => button(container, "Start tour")?.click());
     expect(container.querySelector('[role="dialog"]')).not.toBeNull();
-    await act(async () => button(container, "Exit tutorial")?.click());
+    await act(async () => button(container, "Skip tour")?.click());
     await act(async () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true })));
-    expect(button(container, "Replay safe sample tutorial")).toBeDefined();
-    await act(async () => button(container, "Replay safe sample tutorial")?.click());
+    expect(button(container, "Replay the guided tour")).toBeDefined();
+    await act(async () => button(container, "Replay the guided tour")?.click());
     expect(container.querySelector('[role="dialog"]')).not.toBeNull();
   });
 

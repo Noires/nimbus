@@ -1,3 +1,4 @@
+import { IconClose, IconWrench } from "./ui/icons";
 import { useEffect, useRef, type KeyboardEvent, type ReactNode, type Ref } from "react";
 
 interface SpatialCommandCenterShellProps {
@@ -71,7 +72,7 @@ export function SpatialCommandCenterShell({
       </aside>
       <header className="command-center-shell__commands" aria-label={commandLabel}>
         {commands}
-        {railToggle && onCloseRail && <button ref={railOpenerRef} type="button" className="command-center-shell__rail-open" onClick={onCloseRail}>{openRailLabel ?? railLabel ?? "Context"}</button>}
+        {railToggle && onCloseRail && <button ref={railOpenerRef} type="button" className="command-center-shell__rail-open" onClick={onCloseRail}><IconWrench size={16} /><span className="sr-only">{openRailLabel ?? railLabel ?? "Context"}</span></button>}
       </header>
       <main ref={mainRef} className="command-center-shell__main">
         {children}
@@ -79,11 +80,11 @@ export function SpatialCommandCenterShell({
       {rail && (railModal ? <>
         <button type="button" className="command-center-shell__rail-backdrop" aria-label={closeRailLabel} onClick={closeModalRail} />
         <aside className="command-center-shell__rail" role="dialog" aria-modal="true" aria-label={railLabel ?? "Context"} onKeyDown={trapRailFocus}>
-          {onCloseRail && <button ref={railCloseRef} type="button" className="command-center-shell__rail-close" onClick={closeModalRail}>{closeRailLabel}</button>}
+          {onCloseRail && <button ref={railCloseRef} type="button" className="command-center-shell__rail-close" onClick={closeModalRail}><IconClose size={16} /><span className="sr-only">{closeRailLabel}</span></button>}
           {rail}
         </aside>
       </> : <aside className="command-center-shell__rail" aria-label={railLabel ?? "Context"}>
-        {onCloseRail && <button type="button" className="command-center-shell__rail-close" onClick={onCloseRail}>{closeRailLabel}</button>}
+        {onCloseRail && <button type="button" className="command-center-shell__rail-close" onClick={onCloseRail}><IconClose size={16} /><span className="sr-only">{closeRailLabel}</span></button>}
         {rail}
       </aside>)}
     </div>

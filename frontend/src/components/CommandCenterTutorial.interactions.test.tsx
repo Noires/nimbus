@@ -3,20 +3,54 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useLocale } from "../i18n";
-import { COMMAND_CENTER_TUTORIAL_KEY, CommandCenterTutorial } from "./CommandCenterTutorial";
+import { CommandCenterTutorial, COMMAND_CENTER_TUTORIAL_KEY } from "./CommandCenterTutorial";
+
+const LEGACY_KEY = "nimbus:command-center-tutorial-v6";
 
 function button(container: HTMLElement, label: string) {
   return [...container.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent === label);
 }
 
-describe("CommandCenterTutorial interactions", () => {
+function stubAnchor(className: string, attrs: Record<string, string> = {}) {
+  const el = document.createElement("div");
+  el.className = className;
+  for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+  Object.defineProperty(el, "getBoundingClientRect", {
+    value: () => ({ top: 100, left: 100, width: 200, height: 80, right: 300, bottom: 180, x: 100, y: 100, toJSON: () => ({}) }),
+  });
+  document.body.append(el);
+  return el;
+}
+
+describe("CommandCenterTutorial guided-tour interactions", () => {
   let container: HTMLDivElement;
   let root: Root;
+  let anchors: HTMLElement[];
 
   beforeEach(() => {
     Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-    localStorage.clear();
+    vi.useFakeTimers();
     useLocale.setState({ locale: "en" });
+    localStorage.clear();
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
+    });
+    const surface = stubAnchor("night-cartography--canvas");
+    const card = stubAnchor("task-card-stub", { "data-tour": "task-card" });
+    anchors = [
+      surface,
+      card,
+      stubAnchor("navigation-rail__button--capture"),
+      stubAnchor("navigation-rail"),
+      stubAnchor("canvas-toolbar"),
+      stubAnchor("command-center-shell__rail"),
+    ];
+    const returnTarget = document.createElement("div");
+    returnTarget.id = "command-center-tutorial-return";
+    returnTarget.tabIndex = -1;
+    document.body.append(returnTarget);
+    anchors.push(returnTarget);
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
@@ -25,125 +59,104 @@ describe("CommandCenterTutorial interactions", () => {
   afterEach(async () => {
     await act(async () => root.unmount());
     container.remove();
-    vi.restoreAllMocks();
+    for (const el of anchors) el.remove();
+    vi.useRealTimers();
+    localStorage.clear();
   });
 
-  it("persists resume progress and performs only local sample actions", async () => {
-    const fetchSpy = vi.fn();
-    const liveCanvasEscape = vi.fn();
-    vi.stubGlobal("fetch", fetchSpy);
-    window.addEventListener("keydown", liveCanvasEscape);
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+  async function render(props: { open: boolean; replay?: boolean; onClose?: () => void; onStatusChange?: (s: string) => void }) {
+    await act(async () => {
+      root.render(
+        <CommandCenterTutorial open={props.open} replay={props.replay} onClose={props.onClose ?? (() => {})} onStatusChange={props.onStatusChange} />,
+      );
+    });
+  }
 
-    await act(async () => button(container, "Next")?.click());
-    expect(container.textContent).toContain("Capture an idea");
-    expect(button(container, "Next")?.disabled).toBe(true);
+  async function settle() {
+    await act(async () => { vi.advanceTimersByTime(400); });
+  }
 
-    await act(async () => button(container, "Capture sample task")?.click());
-    await act(async () => button(container, "Next")?.click());
-    expect(container.textContent).toContain("Triage the sample Inbox");
-    expect(fetchSpy).not.toHaveBeenCalled();
-
-    await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
-    window.removeEventListener("keydown", liveCanvasEscape);
-    const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
-    expect(saved).toMatchObject({ version: 6, status: "in-progress", step: 2, sample: { captured: true } });
-    expect(liveCanvasEscape).not.toHaveBeenCalled();
-  });
-
-  it("resets the deterministic sample state and records a skipped tutorial", async () => {
+  it("walks through all steps and records completion in the new storage key", async () => {
     const statuses: string[] = [];
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} onStatusChange={(status) => statuses.push(status)} />));
-    await act(async () => button(container, "Next")?.click());
-    await act(async () => button(container, "Capture sample task")?.click());
-    await act(async () => button(container, "Reset sample")?.click());
+    await render({ open: true, onStatusChange: (s) => statuses.push(s) });
+    await settle();
 
-    expect(container.textContent).toContain("Welcome to your safe sample");
-    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      status: "in-progress", step: 0, sample: { captured: false, triaged: false, assigned: false, today: false, completed: false },
+    expect(container.textContent).toContain("Welcome to Nimbus");
+    const stepTitles = ["Your spatial canvas", "Capture ideas fast", "Destinations", "Canvas tools", "The tools rail", "You're ready"];
+    for (const title of stepTitles) {
+      await act(async () => button(container, "Next")?.click());
+      await settle();
+      expect(container.textContent).toContain(title);
+    }
+    await act(async () => button(container, "Finish tour")?.click());
+
+    const stored = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY)!);
+    expect(stored.status).toBe("completed");
+    expect(statuses).toContain("completed");
+  });
+
+  it("supports Back and records Skip", async () => {
+    await render({ open: true });
+    await settle();
+    await act(async () => button(container, "Next")?.click());
+    await settle();
+    expect(container.textContent).toContain("Your spatial canvas");
+    await act(async () => button(container, "Back")?.click());
+    await settle();
+    expect(container.textContent).toContain("Welcome to Nimbus");
+
+    await act(async () => button(container, "Skip tour")?.click());
+    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY)!).status).toBe("skipped");
+  });
+
+  it("keeps keyboard shortcuts local and resumes after Escape at the saved step", async () => {
+    const windowSpy = vi.fn();
+    window.addEventListener("keydown", windowSpy);
+    const onClose = vi.fn();
+    await render({ open: true, onClose });
+    await settle();
+    await act(async () => button(container, "Next")?.click());
+    await settle();
+    await act(async () => button(container, "Next")?.click());
+    await settle();
+    expect(container.textContent).toContain("Capture ideas fast");
+
+    const dialog = container.querySelector<HTMLElement>(".guided-tour")!;
+    await act(async () => {
+      dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true }));
+      dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     });
-    await act(async () => button(container, "Skip tutorial")?.click());
-    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({ status: "skipped" });
-    expect(statuses).toEqual(["in-progress", "skipped"]);
+    expect(windowSpy).not.toHaveBeenCalled();
+    window.removeEventListener("keydown", windowSpy);
+    expect(onClose).toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY)!).status).toBe("in-progress");
+
+    await render({ open: false });
+    await render({ open: true });
+    await settle();
+    expect(container.textContent).toContain("Capture ideas fast");
   });
 
-  it("keeps the exact sample checkpoint while switching language in the dialog", async () => {
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
+  it("falls back along the anchor chain and auto-skips missing steps", async () => {
+    // Remove the rail anchor entirely: step 6 should auto-skip 5 -> 7.
+    anchors.find((el) => el.className === "command-center-shell__rail")?.remove();
+    await render({ open: true });
+    await settle();
+    for (let i = 0; i < 4; i++) {
+      await act(async () => button(container, "Next")?.click());
+      await settle();
+    }
+    expect(container.textContent).toContain("Canvas tools");
     await act(async () => button(container, "Next")?.click());
-    await act(async () => button(container, "Capture sample task")?.click());
-    await act(async () => button(container, "Deutsch")?.click());
-
-    expect(container.textContent).toContain("Eine Idee erfassen");
-    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      version: 6, step: 1, sample: { captured: true, assigned: false },
-    });
-    expect(useLocale.getState().locale).toBe("en");
-    expect(localStorage.getItem("locale")).toBeNull();
+    await settle();
+    await settle();
+    expect(container.textContent).toContain("You're ready");
   });
 
-  it("adopts an application locale change without losing the persisted sample checkpoint", async () => {
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
-    await act(async () => button(container, "Next")?.click());
-    await act(async () => button(container, "Capture sample task")?.click());
-
-    await act(async () => useLocale.setState({ locale: "de" }));
-
-    expect(container.textContent).toContain("Eine Idee erfassen");
-    expect(JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}")).toMatchObject({
-      version: 6, status: "in-progress", step: 1, sample: { captured: true, triaged: false, assigned: false },
-    });
-  });
-
-  it("requires explicit sample-only Workstream, Today, and Review outcomes in the approved order", async () => {
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
-    await act(async () => button(container, "Next")?.click());
-    await act(async () => button(container, "Capture sample task")?.click());
-    await act(async () => button(container, "Next")?.click());
-    await act(async () => button(container, "Triage sample task")?.click());
-    await act(async () => button(container, "Next")?.click());
-
-    expect(container.textContent).toContain("See the Workstream");
-    expect(button(container, "Place sample task in Today")).toBeUndefined();
-    expect(button(container, "Next")?.disabled).toBe(true);
-    await act(async () => button(container, "Inspect sample Workstream")?.click());
-    expect(button(container, "Next")?.disabled).toBe(false);
-    await act(async () => button(container, "Next")?.click());
-    expect(container.textContent).toContain("Choose Today deliberately");
-    expect(button(container, "Next")?.disabled).toBe(true);
-    await act(async () => button(container, "Place sample task in Today")?.click());
-    expect(button(container, "Next")?.disabled).toBe(false);
-    await act(async () => button(container, "Next")?.click());
-    await act(async () => button(container, "Complete sample task")?.click());
-    await act(async () => button(container, "Next")?.click());
-    expect(button(container, "Open my workspace")?.disabled).toBe(true);
-    await act(async () => button(container, "Inspect sample Review")?.click());
-    expect(button(container, "Open my workspace")?.disabled).toBe(false);
-    const saved = JSON.parse(localStorage.getItem(COMMAND_CENTER_TUTORIAL_KEY) ?? "{}");
-    expect(saved.sample).toMatchObject({ workstreamInspected: true, reviewInspected: true });
-  });
-
-  it("keeps Shift+Tab from the programmatic heading inside the modal", async () => {
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
-    await act(async () => { await Promise.resolve(); });
-
-    const heading = container.querySelector<HTMLHeadingElement>("#command-center-tutorial-title");
-    const dialog = container.querySelector<HTMLElement>("[role=dialog]");
-    expect(document.activeElement).toBe(heading);
-    await act(async () => dialog?.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true })));
-
-    expect(dialog?.contains(document.activeElement)).toBe(true);
-    expect(document.activeElement).toBe(button(container, "Next"));
-  });
-
-  it("does not bubble productive Canvas shortcut keys while the sample dialog is open", async () => {
-    const liveCanvasShortcut = vi.fn();
-    window.addEventListener("keydown", liveCanvasShortcut);
-    await act(async () => root.render(<CommandCenterTutorial open onClose={() => {}} />));
-
-    await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true })));
-    await act(async () => container.querySelector<HTMLElement>("[role=dialog]")?.dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true })));
-
-    window.removeEventListener("keydown", liveCanvasShortcut);
-    expect(liveCanvasShortcut).not.toHaveBeenCalled();
+  it("cleans up the legacy sample-modal checkpoint", async () => {
+    localStorage.setItem(LEGACY_KEY, JSON.stringify({ version: 6, status: "completed", step: 6, sample: {} }));
+    await render({ open: true });
+    await settle();
+    expect(localStorage.getItem(LEGACY_KEY)).toBeNull();
   });
 });
