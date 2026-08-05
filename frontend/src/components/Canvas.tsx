@@ -54,6 +54,7 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
   const zoneDraw = useStore((s) => s.zoneDraw);
   const readOnly = useStore((s) => s.readOnly);
   const zoom = useStore((s) => s.zoom);
+  const lens = useStore((s) => s.lens);
   const panX = useStore((s) => s.panX);
   const panY = useStore((s) => s.panY);
   const viewportW = useStore((s) => s.viewportW);
@@ -246,11 +247,15 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
       onPointerCancel={handlePointerUp}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Grid background synced to the view transform */}
+      {/* Graticule synced to the view transform — the chart's substrate.
+          One background layer (a pair of hairline gradients), per the canvas
+          perf rail. An active lens re-inks the graticule in accent so the
+          mode is visible on the field itself, not just in the toolbar. */}
       <div
-        className="absolute inset-0 opacity-[0.15] pointer-events-none"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle, var(--nc-text) 1px, transparent 1px)`,
+          opacity: lens === "off" ? 0.08 : 0.14,
+          backgroundImage: `linear-gradient(${lens === "off" ? "var(--nc-text)" : "var(--nc-accent)"} 1px, transparent 1px), linear-gradient(90deg, ${lens === "off" ? "var(--nc-text)" : "var(--nc-accent)"} 1px, transparent 1px)`,
           backgroundSize: `${24 * zoom}px ${24 * zoom}px`,
           backgroundPosition: `${panX}px ${panY}px`,
         }}
@@ -319,9 +324,17 @@ export const Canvas = forwardRef<HTMLDivElement, CanvasProps>(function Canvas({ 
 
       <Minimap canvasId={canvasId} tasks={shown} clusters={clusters} />
 
-      {/* Zoom indicator */}
-      <div className="absolute bottom-4 right-4 bg-nc-raised/80 backdrop-blur-sm rounded-nc-md px-3 py-1.5 text-xs text-nc-muted pointer-events-none">
-        {Math.round(zoom * 100)}%
+      {/* Zoom indicator + lens badge — the corner instruments. The badge
+          seconds the graticule re-ink so a lens is never a silent mode. */}
+      <div className="absolute bottom-4 right-4 flex items-center gap-2 pointer-events-none">
+        {lens !== "off" && (
+          <div className="bg-nc-raised/80 backdrop-blur-sm rounded-nc-md border border-nc-accent-border px-3 py-1.5 text-xs text-nc-accent">
+            {t("a.toolbar.lens")}: {t(`a.toolbar.lens.${lens}`)}
+          </div>
+        )}
+        <div className="bg-nc-raised/80 backdrop-blur-sm rounded-nc-md px-3 py-1.5 text-xs text-nc-muted">
+          {Math.round(zoom * 100)}%
+        </div>
       </div>
 
       {/* Shortcut hint */}
