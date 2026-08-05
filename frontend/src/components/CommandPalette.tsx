@@ -256,7 +256,7 @@ export function CommandPalette({ canvasId, onNewTask, fallbackFocusRef }: Palett
   const kindIcon = { task: "◈", canvas: "▦", bubble: "◯", action: "⌘" } as const;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-start justify-center pt-[15vh] px-4">
+    <div className="fixed inset-0 z-[145] flex items-start justify-center pt-[15vh] px-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={quickFade} className="absolute inset-0 bg-nc-scrim" aria-hidden="true" onClick={close} />
       <motion.div
         initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -12, scale: 0.98 }}
