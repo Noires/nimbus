@@ -17,7 +17,7 @@ function InspectorFrame({ title, onBack, backLabel, children }: InspectorFramePr
   return (
     <section aria-label={t("inspector.label")}>
       <div className="flex items-center justify-between gap-2 pr-9">
-        <h2 className="text-2xs font-semibold uppercase tracking-wider text-nc-muted">{title}</h2>
+        <h2 className="rail-section__label rail-section__label--inline">{title}</h2>
         <button
           type="button"
           onClick={onBack}
@@ -34,7 +34,7 @@ function InspectorFrame({ title, onBack, backLabel, children }: InspectorFramePr
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <dt className="text-2xs font-medium uppercase tracking-wider text-nc-muted">{label}</dt>
+      <dt className="rail-section__label rail-section__label--inline">{label}</dt>
       <dd className="mt-0.5 text-xs leading-5 text-nc-text">{children}</dd>
     </div>
   );
@@ -161,7 +161,7 @@ export function TaskInspector({
         )}
         {blockerV1Enabled && (
           <section className="space-y-2 border-t border-nc-line-faint pt-3" aria-label={t("inspector.blockerControls")}>
-            <label className="block text-2xs font-medium uppercase tracking-wider text-nc-muted" htmlFor={`blocker-${task.id}`}>{t("inspector.blocker")}</label>
+            <label className="rail-section__label" htmlFor={`blocker-${task.id}`}>{t("inspector.blocker")}</label>
             <div className="flex flex-wrap gap-2">
               <select id={`blocker-${task.id}`} value={selectedBlockerId} disabled={savingBlocker} onChange={(event) => setSelectedBlockerId(event.target.value)} className="min-w-0 flex-1 rounded-nc-sm border border-nc-line bg-nc-surface px-2 py-1 text-xs text-nc-text disabled:opacity-60 disabled:cursor-not-allowed">
                 <option value="">{t("inspector.selectBlocker")}</option>
@@ -242,7 +242,7 @@ export function WorkstreamInspector({
           </Detail>
         </dl>
         <div className="border-t border-nc-line-faint pt-3">
-          <h4 className="text-2xs font-medium uppercase tracking-wider text-nc-muted">{t("workstreams.members")}</h4>
+          <h4 className="rail-section__label rail-section__label--inline">{t("workstreams.members")}</h4>
           <ul className="mt-1 space-y-1" aria-label={t("workstreams.members")}>
             {members.map((task) => (
               <li key={task.id} className="flex items-center justify-between gap-2 text-xs text-nc-text">

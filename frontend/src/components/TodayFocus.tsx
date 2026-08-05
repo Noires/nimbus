@@ -76,7 +76,7 @@ export function TodayFocus({
     <section className="p-4" aria-label={t("today.label")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-nc-accent-strong">{t("today.title")}</h2>
+          <h2 className="sr-only">{t("today.title")}</h2>
           <p className="mt-1 text-xs leading-5 text-nc-muted">{t("today.subtitle")}</p>
         </div>
         <span className="rounded-full bg-nc-accent-muted px-2 py-1 text-xs text-nc-accent-strong">{sections.due.length + sections.ready.length}</span>
@@ -130,7 +130,7 @@ function TaskSection({
   return (
     <section aria-label={title}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-        <h3 className="text-2xs font-medium uppercase tracking-wider text-nc-muted">{title}</h3>
+        <h3 className="rail-section__label rail-section__label--inline">{title}</h3>
         {tasks.length > 0 && <span className="whitespace-nowrap text-xs text-nc-soft">{t("today.showing", { count: tasks.length, limit: MAX_ITEMS })}</span>}
       </div>
       {tasks.length === 0 ? (

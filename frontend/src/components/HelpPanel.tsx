@@ -121,7 +121,7 @@ export function HelpPanel({
         <div className="overflow-y-auto p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
           {GROUPS.map(({ group, features }) => (
             <div key={group}>
-              <div className="text-2xs uppercase tracking-wider text-nc-accent mb-2">{t(group)}</div>
+              <div className="rail-section__label">{t(group)}</div>
               <div className="flex flex-col gap-2.5">
                 {features.map((key) => (
                   <div key={key}>

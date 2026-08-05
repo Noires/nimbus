@@ -135,7 +135,7 @@ export function TableView({ onExit }: { onExit: () => void }) {
                 <td className="px-3 py-1.5 text-xs text-nc-muted">
                   {t.estimateMinutes != null ? formatMinutes(t.estimateMinutes) : "—"}
                 </td>
-                <td className="px-3 py-1.5 text-xs text-nc-faint truncate max-w-40">
+                <td className="px-3 py-1.5 text-xs text-nc-faint max-w-40 [overflow-wrap:anywhere]">
                   {t.tags.map((tag) => `#${tag}`).join(" ")}
                 </td>
               </tr>

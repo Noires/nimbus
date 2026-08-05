@@ -167,7 +167,7 @@ export function ConnectionsModal({ canvasId, onClose }: ConnectionsModalProps) {
           </div>
         )}
 
-        <div className="text-2xs uppercase tracking-wider text-nc-faint mb-2">{tr("a.connections.addRepo")}</div>
+        <div className="rail-section__label">{tr("a.connections.addRepo")}</div>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder={tr("a.connections.ph.owner")} className={inputClass} />
           <input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder={tr("a.connections.ph.repo")} className={inputClass} />

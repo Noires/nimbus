@@ -371,8 +371,12 @@ html, body, #root {
 .command-center-utilities > :last-child { border-bottom: 0; }
 .command-center-utilities > h2 { margin: 0; padding: 1.1rem 3rem 1.1rem var(--nc-space-4); color: var(--nc-text-muted); font-size: var(--nc-type-2xs); font-weight: 600; letter-spacing: var(--nc-tracking-label); text-transform: uppercase; }
 
-/* Panel section eyebrow — one label treatment for every rail section. */
+/* Panel section eyebrow — THE one label treatment for rail sections, sheet
+   sections, inspector fields and dialog section headers. The utilities panel
+   heading (.command-center-utilities > h2 above) restates these values only
+   to add the docked-close-button padding — keep them in lockstep. */
 .rail-section__label { display: block; margin: 0 0 var(--nc-space-2); color: var(--nc-text-muted); font-size: var(--nc-type-2xs); font-weight: 600; letter-spacing: var(--nc-tracking-label); text-transform: uppercase; }
+.rail-section__label--inline { margin: 0; }
 
 /* Segmented control (card density et al.). */
 .nc-segmented { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--nc-border-faint); border-radius: var(--nc-radius-md); background: var(--nc-well); }

@@ -80,12 +80,12 @@ export function LedgerView({ canvasId, tasks, onOpenInspector }: { canvasId: str
   };
   return <section aria-labelledby="ledger-heading" className="space-y-4 p-3">
     <div>
-      <h2 id="ledger-heading" ref={headingRef} tabIndex={-1} className="text-sm font-semibold text-nc-text">{t("ledger.title")}</h2>
+      <h2 id="ledger-heading" ref={headingRef} tabIndex={-1} className="sr-only">{t("ledger.title")}</h2>
       <p className="mt-1 text-xs text-nc-muted">{t("ledger.subtitle")}</p>
     </div>
     {error && <p role="alert" className="text-xs text-nc-danger">{error}</p>}<p role="status" aria-live="polite" className="sr-only">{notice}</p>
     <fieldset className="flex flex-wrap items-end gap-2" aria-describedby="ledger-filter-summary">
-      <legend className="mb-2 text-2xs font-medium uppercase tracking-wider text-nc-muted">{t("ledger.filters")}</legend>
+      <legend className="rail-section__label">{t("ledger.filters")}</legend>
       <label className={labelCls}>{t("ledger.completion")} <Select value={active.done === undefined ? "all" : String(active.done)} onChange={(e) => change({ ...active, done: e.target.value === "all" ? undefined : e.target.value === "true" })}><option value="all">{t("ledger.completion.all")}</option><option value="false">{t("ledger.status.open")}</option><option value="true">{t("ledger.status.done")}</option></Select></label>
       <label className={labelCls}>{t("ledger.tag")} <Select value={active.tag ?? ""} onChange={(e) => change({ ...active, tag: e.target.value || undefined })}><option value="">{t("ledger.tag.all")}</option>{tags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}</Select></label>
       <label className={labelCls}>{t("ledger.priority")} <Select value={active.priority ?? ""} onChange={(e) => change({ ...active, priority: e.target.value || undefined })}><option value="">{t("ledger.priority.all")}</option><option value="high">{t("b.priority.high")}</option><option value="medium">{t("b.priority.medium")}</option><option value="low">{t("b.priority.low")}</option></Select></label>

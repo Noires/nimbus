@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Task, Workstream } from "../store";
 import type { TaskPatch } from "../data/api";
 import { dateLocale, useT } from "../i18n";
+import { Button } from "./ui/Button";
+import { Input } from "./ui/Input";
+import { Select } from "./ui/Select";
 
 export type InboxTriageState = "loading" | "error" | "ready";
 
@@ -68,7 +71,7 @@ export function InboxTriage({
     <section className="p-4" aria-label={t("inbox.triage.label")}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-nc-accent-strong">{t("inbox.triage.title")}</h2>
+          <h2 className="sr-only">{t("inbox.triage.title")}</h2>
           <p className="mt-1 text-xs leading-5 text-nc-muted">{t("inbox.triage.subtitle")}</p>
         </div>
         <span className="rounded-full bg-nc-fill px-2 py-1 text-xs text-nc-muted">{inboxTasks.length}</span>
@@ -82,13 +85,13 @@ export function InboxTriage({
         }}
       >
         <label className="sr-only" htmlFor="inbox-triage-capture">{t("inbox.triage.captureLabel")}</label>
-        <input
+        <Input
           ref={inputRef}
           id="inbox-triage-capture"
           value={captureText}
           onChange={(event) => setCaptureText(event.target.value)}
           placeholder={t("inbox.triage.capturePlaceholder")}
-          className="min-w-0 flex-1 rounded-nc-md border border-nc-line-faint bg-nc-well/60 px-2.5 py-2 text-xs transition-colors"
+          className="min-w-0 flex-1"
         />
         <button type="submit" className="rounded-nc-md bg-nc-select-muted px-3 py-2 text-xs text-nc-select hover:bg-nc-select-surface/30">
           {t("inbox.triage.capture")}
@@ -123,50 +126,49 @@ export function InboxTriage({
                   </td>
                   <td className="px-2 py-3">
                     <label className="sr-only" htmlFor={`inbox-priority-${task.id}`}>{t("inbox.triage.priority")}</label>
-                    <select
+                    <Select
                       id={`inbox-priority-${task.id}`}
                       value={task.priority}
                       onChange={(event) => { void run(() => onPatchTask(task.id, { priority: event.target.value })); }}
-                      className="rounded-nc-sm border border-nc-line-faint bg-nc-well/60 px-1.5 py-1 text-xs text-nc-text"
                     >
                       <option value="high">{t("inspector.priority.high")}</option>
                       <option value="medium">{t("inspector.priority.medium")}</option>
                       <option value="low">{t("inspector.priority.low")}</option>
-                    </select>
+                    </Select>
                   </td>
                   <td className="px-2 py-3 text-nc-soft">
                     <span className="block pb-1">{formatDueDate(task.dueDate)}</span>
                     <label className="sr-only" htmlFor={`inbox-due-${task.id}`}>{t("inbox.triage.due")}</label>
-                    <input
+                    <Input
                       id={`inbox-due-${task.id}`}
                       type="date"
                       value={task.dueDate?.slice(0, 10) ?? ""}
                       onChange={(event) => { void run(() => onPatchTask(task.id, { dueDate: event.target.value || null })); }}
-                      className="w-32 rounded-nc-sm border border-nc-line-faint bg-nc-well/60 px-1.5 py-1 text-xs text-nc-text"
+                      className="w-32"
                     />
                   </td>
                   <td className="px-2 py-3">
                     <label className="sr-only" htmlFor={`inbox-workstream-${task.id}`}>{t("inbox.triage.workstream")}</label>
-                    <select
+                    <Select
                       id={`inbox-workstream-${task.id}`}
                       defaultValue=""
                       onChange={(event) => {
                         if (event.target.value) void run(() => onSetWorkstream(task.id, event.target.value));
                       }}
-                      className="w-44 rounded-nc-sm border border-nc-line-faint bg-nc-well/60 px-1.5 py-1 text-xs text-nc-text"
+                      className="min-w-44"
                     >
                       <option value="">{t("inbox.triage.chooseWorkstream")}</option>
                       {workstreams.map((workstream) => <option key={workstream.id} value={workstream.id}>{workstream.name}</option>)}
-                    </select>
+                    </Select>
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex flex-wrap gap-1">
-                      <button type="button" onClick={() => { void run(() => onClearInbox(task)); }} className="whitespace-nowrap rounded-nc-sm border border-nc-accent-border px-2 py-1 text-xs text-nc-accent-strong hover:bg-nc-accent-muted">
+                      <Button size="sm" className="border-nc-accent-border text-nc-accent-strong hover:bg-nc-accent-muted" onClick={() => { void run(() => onClearInbox(task)); }}>
                         {t("inbox.triage.clearInbox")}
-                      </button>
-                      <button type="button" onClick={() => onReveal(task)} className="whitespace-nowrap rounded-nc-sm border border-nc-line px-2 py-1 text-xs text-nc-text hover:bg-nc-fill">
+                      </Button>
+                      <Button size="sm" onClick={() => onReveal(task)}>
                         {t("inbox.triage.openInspector")}
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

@@ -45,7 +45,7 @@ export function OrbitPopover() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <MenuPanel className="absolute left-0 top-9 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-line shadow-nc-lg p-2">
-            <div className="px-1.5 pb-1.5 text-2xs uppercase tracking-wider text-nc-faint">
+            <div className="px-1.5 pb-1.5 text-2xs uppercase tracking-wider text-nc-soft">
               {t("a.orbit.heading", { count: orbit.length })}
             </div>
             <div className="flex flex-col gap-0.5 max-h-80 overflow-y-auto">

@@ -54,7 +54,7 @@ export function ReviewRail({
     <section className="p-4" aria-label={t("review.label")}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-nc-accent-strong">{t("review.title")}</h2>
+          <h2 className="sr-only">{t("review.title")}</h2>
           <p className="mt-1 text-xs leading-5 text-nc-muted">{t("review.subtitle")}</p>
         </div>
         <span className="rounded-full bg-nc-fill px-2 py-1 text-xs text-nc-muted">{queueTasks.length}</span>

@@ -43,7 +43,7 @@ export function OperationsView({ tasks, workstreams, dependencies, now = new Dat
 
   return (
     <section data-operations-view="local-derived" aria-label={t("operations.label")} className={`space-y-3${mobile ? " mobile-operations" : ""}`}>
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-nc-accent-strong">{t("operations.title")}</h2>
+      <h2 className="sr-only">{t("operations.title")}</h2>
       {groups.length === 0 ? (
         <p className="text-xs text-nc-muted">{t("operations.empty")}</p>
       ) : groups.map((group) => {

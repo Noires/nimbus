@@ -81,7 +81,7 @@ export function AutopilotPopover({ canvasId }: { canvasId: string }) {
         <>
           <div className="fixed inset-0 z-40" onClick={close} />
           <MenuPanel ref={dialogRef} role="dialog" aria-modal="true" aria-label={t("a.autopilot.title")} onKeyDown={trapFocus} className="absolute right-4 top-16 z-50 w-72 rounded-nc-lg bg-nc-raised/95 backdrop-blur-md border border-nc-line shadow-nc-lg p-3 flex flex-col gap-2.5">
-            <span className="text-2xs uppercase tracking-wider text-nc-muted">{t("a.autopilot.header")}</span>
+            <span className="rail-section__label rail-section__label--inline">{t("a.autopilot.header")}</span>
 
             <Switch
               label={t("a.autopilot.autoComplete")}
@@ -105,7 +105,7 @@ export function AutopilotPopover({ canvasId }: { canvasId: string }) {
             </label>
 
             <div className="h-px bg-nc-fill" />
-            <span className="text-2xs uppercase tracking-wider text-nc-muted">{t("a.autopilot.notifications")}</span>
+            <span className="rail-section__label rail-section__label--inline">{t("a.autopilot.notifications")}</span>
 
             <Switch
               label={t("a.autopilot.notifyUnblocked")}
