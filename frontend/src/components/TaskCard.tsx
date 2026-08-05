@@ -407,7 +407,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
             {task.title || t("b.card.untitled")}
           </div>
           <span
-            className={`text-2xs uppercase tracking-wider shrink-0 ${
+            className={`text-xs uppercase tracking-wider shrink-0 ${
               priorityLabel[task.priority as keyof typeof priorityLabel] ?? "text-nc-faint"
             }`}
           >
@@ -416,7 +416,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         </div>
 
         {isSemanticDensity && (
-          <div className="mb-1.5 text-2xs text-nc-accent-strong">
+          <div className="mb-1.5 text-xs text-nc-accent-strong">
             {task.status ?? t(`b.priority.${task.priority}`)}
           </div>
         )}
@@ -429,7 +429,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
               target="_blank"
               rel="noreferrer"
               onPointerDown={(e) => e.stopPropagation()}
-              className="text-2xs text-nc-faint hover:text-nc-text transition-colors whitespace-nowrap"
+              className="text-xs text-nc-faint hover:text-nc-text transition-colors whitespace-nowrap"
               title={t("b.card.openGithub")}
             >
               ⑂ {externalRef ? `${externalRef[1]}#${externalRef[2]}` : "linked"}
@@ -456,7 +456,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
               </select>
             )}
             {readOnly && task.status && (
-              <span className="text-2xs text-nc-accent border border-nc-accent-border rounded-full px-1.5 py-0.5">
+              <span className="text-xs text-nc-accent border border-nc-accent-border rounded-full px-1.5 py-0.5">
                 {task.status}
               </span>
             )}
@@ -472,7 +472,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
             {task.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-1.5 py-0.5 rounded-nc-sm text-2xs bg-nc-fill border border-nc-line-faint text-nc-soft"
+                className="px-1.5 py-0.5 rounded-nc-sm text-xs bg-nc-fill border border-nc-line-faint text-nc-soft"
               >
                 {tag}
               </span>
@@ -481,7 +481,7 @@ export function TaskCard({ task, dimmed, blocked, focused, selected, semanticDen
         )}
 
         {(dueBadge || archived || task.estimateMinutes || task.recurrence || task.checklist.length > 0) && (
-          <div className="flex items-center gap-2 text-2xs mt-1 flex-wrap">
+          <div className="flex items-center gap-2 text-xs mt-1 flex-wrap">
             {dueBadge}
             {showSummaryMetadata && task.estimateMinutes != null && (
               <span className="text-nc-muted">⏱ {formatMinutes(task.estimateMinutes)}</span>
